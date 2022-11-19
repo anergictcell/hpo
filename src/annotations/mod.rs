@@ -1,0 +1,59 @@
+use std::cmp::PartialEq;
+use std::collections::HashSet;
+use std::convert::TryFrom;
+
+use crate::HpoTermId;
+use crate::HpoError;
+use crate::OntologyResult;
+
+pub type Genes = HashSet<GeneId>;
+
+#[derive(Clone, Copy, Default, Debug, Hash, PartialEq, Eq)]
+pub struct GeneId {
+    inner: usize
+}
+
+impl TryFrom<&str> for GeneId {
+    type Error = HpoError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(GeneId {inner: value.parse::<usize>()?})
+    }
+}
+
+#[derive(Default, Debug, Eq)]
+pub struct Gene {
+    id: GeneId,
+    name: String,
+    hpos: HashSet<HpoTermId>,
+}
+
+impl Gene {
+    pub fn new(id: GeneId, name: &str) -> Gene {
+        Gene {id, name:name.to_string(), hpos: HashSet::default()}
+    }
+    pub fn from_parts(id: &str, name: &str) -> OntologyResult<Gene> {
+        Ok(Gene{
+            id: GeneId::try_from(id)?,
+            name: name.to_string(),
+            hpos: HashSet::default()
+        })
+    }
+
+    pub fn id(&self) -> &GeneId {
+        &self.id
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn symbol(&self) -> &str {
+        &self.name
+    }
+}
+
+impl PartialEq for Gene {
+    fn eq(&self, other: &Gene) -> bool {
+        self.id == other.id
+    }
+}

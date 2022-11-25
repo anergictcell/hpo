@@ -4,15 +4,17 @@ use crate::HashSet;
 use crate::DEFAULT_NUM_ALL_PARENTS;
 use crate::DEFAULT_NUM_PARENTS;
 use crate::DEFAULT_NUM_GENES;
+use crate::term::InformationContent;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct HpoTermInternal {
     id: HpoTermId,
     name: String,
     parents: HpoParents,
     all_parents: HpoParents,
     children: HpoChildren,
-    genes: Genes
+    genes: Genes,
+    ic: InformationContent,
 }
 
 impl HpoTermInternal {
@@ -23,7 +25,8 @@ impl HpoTermInternal {
             parents: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
             all_parents: HashSet::with_capacity(DEFAULT_NUM_ALL_PARENTS),
             children: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
-            genes: HashSet::with_capacity(DEFAULT_NUM_GENES)
+            genes: HashSet::with_capacity(DEFAULT_NUM_GENES),
+            ic: InformationContent::default()
         }
     }
 
@@ -71,3 +74,12 @@ impl HpoTermInternal {
         self.genes.insert(gene_id)
     }
 }
+
+
+impl PartialEq for HpoTermInternal {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for HpoTermInternal {}

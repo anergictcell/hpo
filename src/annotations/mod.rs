@@ -50,6 +50,10 @@ impl Gene {
     pub fn symbol(&self) -> &str {
         &self.name
     }
+
+    pub fn add_term(&mut self, term_id: HpoTermId) -> bool {
+        self.hpos.insert(term_id)
+    }
 }
 
 impl PartialEq for Gene {

@@ -1,12 +1,16 @@
 use std::collections::HashSet;
+use std::ops::BitAnd;
+use core::fmt::Debug;
+use std::fmt::Display;
+use std::iter::zip;
 
 
 use crate::HpoError;
 use crate::Ontology;
 use crate::OntologyResult;
-use core::fmt::Debug;
-use std::fmt::Display;
-use std::iter::zip;
+
+mod information_content;
+pub use information_content::InformationContent;
 
 mod internal;
 pub use crate::term::internal::HpoTermInternal;
@@ -116,6 +120,10 @@ impl<'a> HpoTerm<'a> {
 
     pub fn all_parents(&self) -> HpoParentIterator<'a> {
         HpoParentIterator::new(self.all_parents, self.ontology)
+    }
+
+    pub fn overlap(&self, other: &HpoTerm) -> HpoParents {
+        self.all_parents.bitand(other.all_parents)
     }
 }
 

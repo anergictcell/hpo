@@ -1,5 +1,6 @@
-use std::collections::{HashMap, HashSet};
 use std::ops::BitOr;
+use std::collections::{HashMap, HashSet};
+use std::ops::BitAnd;
 use std::slice::Iter;
 
 use crate::term::HpoParentIterator;
@@ -87,6 +88,11 @@ impl Ontology {
             None => panic!("term not present"),
         }
     }
+
+    /// Is this method really needed or beneficial?
+    pub fn shrink_to_fit(&mut self) {
+        self.hpo_terms.shrink_to_fit();
+    }
 }
 
 
@@ -106,12 +112,14 @@ impl Ontology {
     pub fn link_gene_term(&mut self, term_id: &HpoTermId, gene_id: GeneId) {
         let term = self.get_mut(term_id).expect("Cannot add gene to non-existing term");
 
-        // if the gene is already linked to the term, all parent terms are already linked as well
         if term.add_gene(gene_id) {
+            // this part can be skipped, if the gene is already linked to the term,
+            // because all parent terms are already linked as well
             let parents = term.all_parents().clone();
             for parent in parents {
                 self.link_gene_term(&parent, gene_id);
             }
+            self.get_gene_mut(&gene_id).expect("Cannot find gene").add_term(*term_id);
         }
     }
 }
@@ -136,6 +144,10 @@ impl Ontology {
         self.genes.get(gene_id)
     }
 
+    pub fn get_gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
+        self.genes.get_mut(gene_id)
+    }
+
     /// Returns an iterator over all direct parents of the term
     ///
     /// Same as `HpoTerm.parents()`, but (one would think) it is more performant.
@@ -157,10 +169,29 @@ impl Ontology {
     pub fn common_ancestors(&self, t1: &HpoTermId, t2: &HpoTermId) -> HpoParents {
         let term1 = self.get(t1).unwrap();
         let term2 = self.get(t2).unwrap();
-        term1.all_parents().bitor(term2.all_parents())
+        term1.all_parents().bitand(term2.all_parents())
     }
 
     pub fn iter(&self) -> Iter<HpoTermId> {
         self.hpo_ids.iter()
+    }
+
+    pub fn iter_terms(&self) -> OntologyIterator {
+        OntologyIterator { inner: self.hpo_terms.values() , ontology: self}
+    }
+}
+
+pub struct OntologyIterator<'a> {
+    inner: std::collections::hash_map::Values<'a, HpoTermId, HpoTermInternal>,
+    ontology: &'a Ontology
+}
+
+impl<'a> std::iter::Iterator for OntologyIterator<'a> {
+    type Item = HpoTerm<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.inner.next() {
+            Some(term) => Some(HpoTerm::new(self.ontology, term)),
+            None => None
+        }
     }
 }

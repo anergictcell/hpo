@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::ops::BitAnd;
 use core::fmt::Debug;
 use std::fmt::Display;
-use std::iter::zip;
 
 
 use crate::HpoError;
@@ -20,14 +19,13 @@ pub type HpoChildren = HashSet<HpoTermId>;
 
 #[derive(Copy, Clone, Eq, Hash, PartialEq)]
 pub struct HpoTermId {
-    inner: [char; 10],
+    inner: u32,
 }
 
 impl HpoTermId {
     fn new(s: &str) -> HpoTermId {
-        let v: Vec<char> = s.chars().collect();
         HpoTermId {
-            inner: v.try_into().unwrap(),
+            inner: s[3..].parse::<u32>().unwrap(),
         }
     }
 }
@@ -38,9 +36,19 @@ impl From<&str> for HpoTermId {
     }
 }
 
+impl From<usize> for HpoTermId {
+    fn from(n: usize) -> Self {
+        Self { inner: n as u32 }
+    }
+}
+
 impl From<[char; 10]> for HpoTermId {
     fn from(s: [char; 10]) -> Self {
-        HpoTermId { inner: s }
+        let mut num = String::with_capacity(7);
+        for c in &s[3..] {
+            num.push(*c);
+        }
+        HpoTermId { inner: num.parse::<u32>().unwrap() }
     }
 }
 
@@ -52,21 +60,13 @@ impl Debug for HpoTermId {
 
 impl Display for HpoTermId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut out = String::with_capacity(10);
-        for c in self.inner {
-            out.push(c);
-        }
-        write!(f, "{}", out)
+        write!(f, "{}", self.inner)
     }
 }
 
 impl PartialEq<str> for HpoTermId {
     fn eq(&self, other: &str) -> bool {
-        if other.len() != 10 { return false }
-        for (a, b) in zip(self.inner, other.chars()) {
-            if a != b { return false }
-        }
-        true
+        self == &HpoTermId::new(other)
     }
 }
 

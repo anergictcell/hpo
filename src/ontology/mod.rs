@@ -1,9 +1,9 @@
 use std::ops::BitOr;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::ops::BitAnd;
 use std::slice::Iter;
 
-use crate::term::HpoParentIterator;
+use crate::term::HpoTermIterator;
 use crate::term::HpoTerm;
 use crate::term::HpoTermInternal;
 use crate::HpoParents;
@@ -13,9 +13,13 @@ use crate::annotations::{GeneId, Gene};
 
 use core::fmt::Debug;
 
+mod termarena;
+use termarena::Arena;
+
+
 #[derive(Default)]
 pub struct Ontology {
-    hpo_terms: HashMap<HpoTermId, HpoTermInternal>,
+    hpo_terms: Arena,
     hpo_ids: Vec<HpoTermId>,
     genes: HashMap<GeneId, Gene>
 }
@@ -46,7 +50,7 @@ impl Ontology {
     fn create_cache_of_grandparents(&mut self, term_id: &HpoTermId) {
         let term = self.get(term_id).unwrap();
         let parents = term.parents().clone();
-        let mut res = HashSet::default();
+        let mut res = HpoParents::default();
         for parent in &parents {
             let grandparents = self.all_grandparents(parent);
             for gp in grandparents {
@@ -58,7 +62,7 @@ impl Ontology {
     }
 
     pub fn create_cache(&mut self) {
-        let term_ids: Vec<HpoTermId> = self.hpo_terms.keys().copied().collect();
+        let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
 
         for id in term_ids {
             self.create_cache_of_grandparents(&id);
@@ -93,6 +97,15 @@ impl Ontology {
     pub fn shrink_to_fit(&mut self) {
         self.hpo_terms.shrink_to_fit();
     }
+
+    pub fn len(&self) -> usize {
+        self.hpo_terms.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
 }
 
 
@@ -116,8 +129,8 @@ impl Ontology {
             // this part can be skipped, if the gene is already linked to the term,
             // because all parent terms are already linked as well
             let parents = term.all_parents().clone();
-            for parent in parents {
-                self.link_gene_term(&parent, gene_id);
+            for parent in &parents {
+                self.link_gene_term(parent, gene_id);
             }
             self.get_gene_mut(&gene_id).expect("Cannot find gene").add_term(*term_id);
         }
@@ -131,6 +144,11 @@ impl Ontology {
     pub fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
         self.hpo_terms.get(term_id)
     }
+
+    pub fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
+        self.hpo_terms.get_unchecked(term_id)
+    }
+
 
     fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
         self.hpo_terms.get_mut(term_id)
@@ -152,23 +170,23 @@ impl Ontology {
     ///
     /// Same as `HpoTerm.parents()`, but (one would think) it is more performant.
     /// Turns out, there is no measurable difference
-    pub fn parents(&self, term_id: &HpoTermId) -> HpoParentIterator {
+    pub fn parents(&self, term_id: &HpoTermId) -> HpoTermIterator {
         let term = self.get(term_id).unwrap();
-        HpoParentIterator::new(term.parents(), self)
+        HpoTermIterator::new(term.parents(), self)
     }
 
     /// Returns an iterator over all direct parents of the term
     ///
     /// Same as `HpoTerm.parents()`, but (one would think) it is more performant.
     /// Turns out, there is no measurable difference
-    pub fn all_parents(&self, term_id: &HpoTermId) -> HpoParentIterator {
+    pub fn all_parents(&self, term_id: &HpoTermId) -> HpoTermIterator {
         let term = self.get(term_id).unwrap();
-        HpoParentIterator::new(term.all_parents(), self)
+        HpoTermIterator::new(term.all_parents(), self)
     }
 
     pub fn common_ancestors(&self, t1: &HpoTermId, t2: &HpoTermId) -> HpoParents {
-        let term1 = self.get(t1).unwrap();
-        let term2 = self.get(t2).unwrap();
+        let term1 = self.get_unchecked(t1);
+        let term2 = self.get_unchecked(t2);
         term1.all_parents().bitand(term2.all_parents())
     }
 
@@ -177,12 +195,12 @@ impl Ontology {
     }
 
     pub fn iter_terms(&self) -> OntologyIterator {
-        OntologyIterator { inner: self.hpo_terms.values() , ontology: self}
+        OntologyIterator { inner: self.hpo_terms.values().iter() , ontology: self}
     }
 }
 
 pub struct OntologyIterator<'a> {
-    inner: std::collections::hash_map::Values<'a, HpoTermId, HpoTermInternal>,
+    inner: std::slice::Iter<'a, HpoTermInternal>,
     ontology: &'a Ontology
 }
 

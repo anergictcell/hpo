@@ -5,6 +5,7 @@ use crate::DEFAULT_NUM_ALL_PARENTS;
 use crate::DEFAULT_NUM_PARENTS;
 use crate::DEFAULT_NUM_GENES;
 use crate::term::InformationContent;
+use crate::term::HpoGroup;
 
 #[derive(Debug)]
 pub struct HpoTermInternal {
@@ -17,13 +18,27 @@ pub struct HpoTermInternal {
     ic: InformationContent,
 }
 
+impl Default for HpoTermInternal {
+    fn default() -> Self {
+        Self {
+            id: 0.into(),
+            name: "Not present".to_string(),
+            parents: HpoParents::default(),
+            all_parents: HpoParents::default(),
+            children: HpoChildren::default(),
+            genes: Genes::default(),
+            ic: InformationContent::default()
+        }
+    }
+}
+
 impl HpoTermInternal {
     pub fn new(name: &str) -> HpoTermInternal {
         HpoTermInternal {
             id: name.into(),
             name: name.to_string(),
-            parents: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
-            all_parents: HashSet::with_capacity(DEFAULT_NUM_ALL_PARENTS),
+            parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
+            all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
             children: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
             genes: HashSet::with_capacity(DEFAULT_NUM_GENES),
             ic: InformationContent::default()

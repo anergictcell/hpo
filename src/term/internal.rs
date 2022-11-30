@@ -1,9 +1,11 @@
 use crate::annotations::{Genes, GeneId};
+use crate::annotations::{OmimDiseases, OmimDiseaseId};
 use crate::term::{HpoChildren, HpoParents, HpoTermId};
 use crate::HashSet;
 use crate::DEFAULT_NUM_ALL_PARENTS;
 use crate::DEFAULT_NUM_PARENTS;
 use crate::DEFAULT_NUM_GENES;
+use crate::DEFAULT_NUM_OMIM;
 use crate::term::InformationContent;
 use crate::term::HpoGroup;
 
@@ -15,6 +17,7 @@ pub struct HpoTermInternal {
     all_parents: HpoParents,
     children: HpoChildren,
     genes: Genes,
+    omim_diseases: OmimDiseases,
     ic: InformationContent,
 }
 
@@ -27,6 +30,7 @@ impl Default for HpoTermInternal {
             all_parents: HpoParents::default(),
             children: HpoChildren::default(),
             genes: Genes::default(),
+            omim_diseases: OmimDiseases::default(),
             ic: InformationContent::default()
         }
     }
@@ -41,6 +45,7 @@ impl HpoTermInternal {
             all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
             children: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
             genes: HashSet::with_capacity(DEFAULT_NUM_GENES),
+            omim_diseases: HashSet::with_capacity(DEFAULT_NUM_OMIM),
             ic: InformationContent::default()
         }
     }
@@ -87,6 +92,10 @@ impl HpoTermInternal {
 
     pub fn add_gene(&mut self, gene_id: GeneId) -> bool {
         self.genes.insert(gene_id)
+    }
+
+    pub fn add_omim_disease(&mut self, omim_disease_id: OmimDiseaseId) -> bool {
+        self.omim_diseases.insert(omim_disease_id)
     }
 }
 

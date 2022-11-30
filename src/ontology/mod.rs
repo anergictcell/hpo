@@ -10,6 +10,7 @@ use crate::HpoParents;
 use crate::HpoTermId;
 use crate::OntologyResult;
 use crate::annotations::{GeneId, Gene};
+use crate::annotations::{OmimDiseaseId, OmimDisease};
 
 use core::fmt::Debug;
 
@@ -21,7 +22,8 @@ use termarena::Arena;
 pub struct Ontology {
     hpo_terms: Arena,
     hpo_ids: Vec<HpoTermId>,
-    genes: HashMap<GeneId, Gene>
+    genes: HashMap<GeneId, Gene>,
+    omim_diseases: HashMap<OmimDiseaseId, OmimDisease>,
 }
 
 impl Debug for Ontology {
@@ -164,6 +166,14 @@ impl Ontology {
 
     pub fn get_gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
         self.genes.get_mut(gene_id)
+    }
+
+    pub fn get_omim_disease(&self, omim_disease_id: &OmimDiseaseId) -> Option<&OmimDisease> {
+        self.omim_diseases.get(omim_disease_id)
+    }
+
+    pub fn get_omim_disease_mut(&mut self, omim_disease_id: &OmimDiseaseId) -> Option<&mut OmimDisease> {
+        self.omim_diseases.get_mut(omim_disease_id)
     }
 
     /// Returns an iterator over all direct parents of the term

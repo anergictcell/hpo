@@ -14,6 +14,7 @@ pub use ontology::Ontology;
 const DEFAULT_NUM_PARENTS: usize = 10;
 const DEFAULT_NUM_ALL_PARENTS: usize = 50;
 const DEFAULT_NUM_GENES: usize = 50;
+const DEFAULT_NUM_OMIM: usize = 20;
 const MAX_HPO_ID_INTEGER: usize = 10_000_000;
 
 

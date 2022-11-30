@@ -1,4 +1,3 @@
-
 use std::collections::HashSet;
 use std::ops::{BitAnd, BitOr};
 
@@ -6,7 +5,7 @@ use crate::HpoTermId;
 
 #[derive(Debug, Default, Clone)]
 pub struct HpoGroup {
-    ids: Vec<HpoTermId>
+    ids: Vec<HpoTermId>,
 }
 
 impl HpoGroup {
@@ -15,7 +14,9 @@ impl HpoGroup {
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {ids: Vec::with_capacity(capacity)}
+        Self {
+            ids: Vec::with_capacity(capacity),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -47,7 +48,7 @@ impl HpoGroup {
         self.ids.push(id)
     }
 
-    fn foo(&self) -> std::slice::Iter<'_, HpoTermId>{
+    fn foo(&self) -> std::slice::Iter<'_, HpoTermId> {
         self.ids.iter()
     }
 
@@ -85,12 +86,12 @@ impl<'a> IntoIterator for &'a HpoGroup {
 }
 
 pub struct HpoGroupIterator<'a> {
-    inner: std::slice::Iter<'a, HpoTermId>
+    inner: std::slice::Iter<'a, HpoTermId>,
 }
 
 impl<'a> HpoGroupIterator<'a> {
     fn new(inner: std::slice::Iter<'a, HpoTermId>) -> Self {
-        Self {inner}
+        Self { inner }
     }
 }
 
@@ -195,13 +196,7 @@ mod tests {
         group2.insert(1.into());
 
         let result = group1.bitor(&group2);
-        let expected: Vec<HpoTermId> = vec![
-            2.into(),
-            4.into(),
-            5.into(),
-            1.into(),
-            3.into(),
-        ];
+        let expected: Vec<HpoTermId> = vec![2.into(), 4.into(), 5.into(), 1.into(), 3.into()];
         assert_eq!(result.into_inner(), expected);
     }
 
@@ -219,10 +214,7 @@ mod tests {
         group2.insert(1.into());
 
         let result = group1.bitand(&group2);
-        let expected: Vec<HpoTermId> = vec![
-            1.into(),
-            2.into(),
-        ];
+        let expected: Vec<HpoTermId> = vec![1.into(), 2.into()];
         assert_eq!(result.into_inner(), expected);
     }
 }

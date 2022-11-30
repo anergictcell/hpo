@@ -3,9 +3,9 @@ use core::fmt::Debug;
 use std::num::ParseIntError;
 
 use thiserror::Error;
+mod annotations;
 mod ontology;
 mod term;
-mod annotations;
 pub use crate::term::HpoParents;
 pub use crate::term::HpoTermId;
 pub use ontology::Ontology;
@@ -16,7 +16,6 @@ const DEFAULT_NUM_GENES: usize = 50;
 const DEFAULT_NUM_OMIM: usize = 20;
 const MAX_HPO_ID_INTEGER: usize = 10_000_000;
 
-
 #[derive(Error, Debug)]
 pub enum HpoError {
     #[error("not implemented")]
@@ -24,7 +23,7 @@ pub enum HpoError {
     #[error("term does not exist")]
     DoesNotExist,
     #[error("unable to parse Integer")]
-    ParseIntError
+    ParseIntError,
 }
 
 impl From<ParseIntError> for HpoError {

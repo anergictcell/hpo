@@ -1,6 +1,6 @@
 #![allow(clippy::slow_vector_initialization)]
-use crate::HpoTermId;
 use crate::term::HpoTermInternal;
+use crate::HpoTermId;
 
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
@@ -8,7 +8,7 @@ use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
 pub struct Arena {
     terms: Vec<HpoTermInternal>,
-    ids: Vec<usize>
+    ids: Vec<usize>,
 }
 
 impl Default for Arena {
@@ -17,7 +17,7 @@ impl Default for Arena {
         ids.resize(HPO_TERM_NUMBERS, 0);
         let mut s = Self {
             terms: Vec::with_capacity(18_000),
-            ids
+            ids,
         };
         s.terms.push(HpoTermInternal::default());
         s
@@ -26,7 +26,7 @@ impl Default for Arena {
 
 impl Arena {
     pub fn len(&self) -> usize {
-        self.terms.len() -1
+        self.terms.len() - 1
     }
 
     pub fn is_empty(&self) -> bool {
@@ -47,8 +47,8 @@ impl Arena {
             0 => {
                 println!("0 lookup: {}", id);
                 None
-            },
-            n => Some(&self.terms[n])
+            }
+            n => Some(&self.terms[n]),
         }
     }
 
@@ -59,7 +59,7 @@ impl Arena {
     pub fn get_mut(&mut self, id: &HpoTermId) -> Option<&mut HpoTermInternal> {
         match self.ids[id.to_usize()] {
             0 => None,
-            n => Some(&mut self.terms[n])
+            n => Some(&mut self.terms[n]),
         }
     }
 

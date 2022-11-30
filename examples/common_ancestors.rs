@@ -16,7 +16,6 @@ fn from_file(collection: &mut Ontology) {
     collection.shrink_to_fit();
     println!("finished adding terms");
 
-
     let file = File::open("connections.txt").unwrap();
     let reader = BufReader::new(file);
     for line in reader.lines() {
@@ -28,12 +27,13 @@ fn from_file(collection: &mut Ontology) {
     collection.create_cache();
     println!("finished caching");
 
-
     let file = File::open("phenotype_to_genes.txt").unwrap();
     let reader = BufReader::new(file);
     for line in reader.lines() {
         let line = line.unwrap();
-        if line.starts_with('#') { continue; }
+        if line.starts_with('#') {
+            continue;
+        }
         let cols: Vec<&str> = line.trim().split('\t').collect();
         let gene_id = collection.add_gene(cols[3], cols[2]).unwrap();
         collection.link_gene_term(&cols[0].into(), gene_id);
@@ -41,10 +41,10 @@ fn from_file(collection: &mut Ontology) {
     println!("finished linking genes");
 }
 
-
 fn bench(collection: &Ontology, times: usize) {
     let mut count = 0;
-    let mut terms: (HpoTermId, HpoTermId) = (HpoTermId::from("HP:0000001"), HpoTermId::from("HP:0000001"));
+    let mut terms: (HpoTermId, HpoTermId) =
+        (HpoTermId::from("HP:0000001"), HpoTermId::from("HP:0000001"));
     let start = SystemTime::now();
     for term1 in collection.iter_terms() {
         for term2 in collection.iter_terms().take(times) {
@@ -106,9 +106,9 @@ print('It took {:.3f} s. {} and {} have {} overlaps '.format(
 ))
 
 # 5000:
-# It took 82.564 s. HP:0004223 and HP:0004223 have 41 overlaps 
+# It took 82.564 s. HP:0004223 and HP:0004223 have 41 overlaps
 
 # All terms:
-# It took 298.564 s. HP:0009640 and HP:0009640 have 42 overlaps 
+# It took 298.564 s. HP:0009640 and HP:0009640 have 42 overlaps
 
 */

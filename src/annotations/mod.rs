@@ -1,7 +1,5 @@
-
 mod gene;
-pub use gene::{GeneId, Genes, Gene, GeneIterator};
-
+pub use gene::{Gene, GeneId, GeneIterator, Genes};
 
 mod omim_disease;
-pub use omim_disease::{OmimDiseaseId, OmimDiseases, OmimDisease, OmimDiseaseIterator};
+pub use omim_disease::{OmimDisease, OmimDiseaseId, OmimDiseaseIterator, OmimDiseases};

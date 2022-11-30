@@ -1,7 +1,7 @@
-#[derive(Default, Debug, )]
+#[derive(Default, Debug)]
 pub struct InformationContent {
     gene: f32,
-    omim: f32
+    omim: f32,
 }
 
 impl InformationContent {

@@ -1,7 +1,6 @@
 use core::fmt::Debug;
 use std::fmt::Display;
 
-
 #[derive(Copy, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct HpoTermId {
     inner: u32,
@@ -27,7 +26,9 @@ impl From<&str> for HpoTermId {
 
 impl From<usize> for HpoTermId {
     fn from(n: usize) -> Self {
-        Self { inner: n.try_into().unwrap() }
+        Self {
+            inner: n.try_into().unwrap(),
+        }
     }
 }
 
@@ -37,7 +38,9 @@ impl From<[char; 10]> for HpoTermId {
         for c in &s[3..] {
             num.push(*c);
         }
-        HpoTermId { inner: num.parse::<u32>().unwrap() }
+        HpoTermId {
+            inner: num.parse::<u32>().unwrap(),
+        }
     }
 }
 

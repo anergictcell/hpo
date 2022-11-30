@@ -1,12 +1,12 @@
-use crate::annotations::{Genes, GeneId};
-use crate::annotations::{OmimDiseases, OmimDiseaseId};
+use crate::annotations::{GeneId, Genes};
+use crate::annotations::{OmimDiseaseId, OmimDiseases};
+use crate::term::HpoGroup;
+use crate::term::InformationContent;
 use crate::term::{HpoChildren, HpoParents, HpoTermId};
 use crate::DEFAULT_NUM_ALL_PARENTS;
-use crate::DEFAULT_NUM_PARENTS;
 use crate::DEFAULT_NUM_GENES;
 use crate::DEFAULT_NUM_OMIM;
-use crate::term::InformationContent;
-use crate::term::HpoGroup;
+use crate::DEFAULT_NUM_PARENTS;
 
 #[derive(Debug)]
 pub struct HpoTermInternal {
@@ -30,7 +30,7 @@ impl Default for HpoTermInternal {
             children: HpoChildren::default(),
             genes: Genes::default(),
             omim_diseases: OmimDiseases::default(),
-            ic: InformationContent::default()
+            ic: InformationContent::default(),
         }
     }
 }
@@ -45,7 +45,7 @@ impl HpoTermInternal {
             children: HpoChildren::with_capacity(DEFAULT_NUM_PARENTS),
             genes: Genes::with_capacity(DEFAULT_NUM_GENES),
             omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
-            ic: InformationContent::default()
+            ic: InformationContent::default(),
         }
     }
 
@@ -97,7 +97,6 @@ impl HpoTermInternal {
         self.omim_diseases.insert(omim_disease_id)
     }
 }
-
 
 impl PartialEq for HpoTermInternal {
     fn eq(&self, other: &Self) -> bool {

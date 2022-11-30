@@ -1,15 +1,14 @@
 use crate::annotations::GeneIterator;
 use crate::annotations::Genes;
-use crate::HpoTermId;
-use crate::HpoParents;
-use crate::Ontology;
 use crate::term::HpoTermInternal;
 use crate::term::HpoTermIterator;
+use crate::HpoParents;
+use crate::HpoTermId;
+use crate::Ontology;
 
 use crate::HpoError;
 
 use crate::OntologyResult;
-
 
 #[derive(Debug)]
 pub struct HpoTerm<'a> {

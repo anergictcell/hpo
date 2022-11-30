@@ -1,40 +1,38 @@
 use std::collections::HashSet;
 
-
-use crate::HpoTermId;
-use crate::HpoError;
-use crate::Ontology;
 use crate::term::HpoGroup;
-
-
+use crate::HpoError;
+use crate::HpoTermId;
+use crate::Ontology;
 
 pub type OmimDiseases = HashSet<OmimDiseaseId>;
 
 #[derive(Clone, Copy, Default, Debug, Hash, PartialEq, Eq)]
 pub struct OmimDiseaseId {
-    inner: usize
+    inner: usize,
 }
 
 impl TryFrom<&str> for OmimDiseaseId {
     type Error = HpoError;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(OmimDiseaseId {inner: value.parse::<usize>()?})
+        Ok(OmimDiseaseId {
+            inner: value.parse::<usize>()?,
+        })
     }
 }
-
 
 pub struct OmimDisease {
     id: OmimDiseaseId,
     name: String,
-    hpos: HpoGroup
+    hpos: HpoGroup,
 }
 
 impl OmimDisease {
     pub fn new(id: OmimDiseaseId, name: &str) -> OmimDisease {
-        Self { 
+        Self {
             name: name.to_string(),
             id,
-            hpos: HpoGroup::default()
+            hpos: HpoGroup::default(),
         }
     }
 
@@ -62,7 +60,6 @@ impl PartialEq for OmimDisease {
 }
 impl Eq for OmimDisease {}
 
-
 pub struct OmimDiseaseIterator<'a> {
     ontology: &'a Ontology,
     diseases: std::collections::hash_set::Iter<'a, OmimDiseaseId>,
@@ -81,9 +78,7 @@ impl<'a> std::iter::Iterator for OmimDiseaseIterator<'a> {
     type Item = &'a OmimDisease;
     fn next(&mut self) -> Option<Self::Item> {
         match self.diseases.next() {
-            Some(omim_id) => {
-                Some(self.ontology.get_omim_disease(omim_id).unwrap())
-            }
+            Some(omim_id) => Some(self.ontology.get_omim_disease(omim_id).unwrap()),
             None => None,
         }
     }

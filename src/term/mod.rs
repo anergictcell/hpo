@@ -1,26 +1,23 @@
-use std::collections::HashSet;
 use core::fmt::Debug;
-
+use std::collections::HashSet;
 
 use crate::Ontology;
 
+mod group;
+mod hpoterm;
+mod hpotermid;
 mod information_content;
 mod internal;
 mod parents;
-mod hpoterm;
-mod hpotermid;
-mod group;
 
-pub use information_content::InformationContent;
-pub use internal::HpoTermInternal;
+pub use group::{HpoGroup, HpoGroupIterator};
 pub use hpoterm::HpoTerm;
 pub use hpotermid::HpoTermId;
-pub use group::{HpoGroup, HpoGroupIterator};
+pub use information_content::InformationContent;
+pub use internal::HpoTermInternal;
 
 pub type HpoParents = HpoGroup;
 pub type HpoChildren = HashSet<HpoTermId>;
-
-
 
 pub struct HpoTermIterator<'a> {
     ontology: &'a Ontology,

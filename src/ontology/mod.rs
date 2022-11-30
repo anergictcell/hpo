@@ -1,22 +1,21 @@
-use std::ops::BitOr;
 use std::collections::HashMap;
 use std::ops::BitAnd;
+use std::ops::BitOr;
 use std::slice::Iter;
 
-use crate::term::HpoTermIterator;
+use crate::annotations::{Gene, GeneId};
+use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::term::HpoTerm;
 use crate::term::HpoTermInternal;
+use crate::term::HpoTermIterator;
 use crate::HpoParents;
 use crate::HpoTermId;
 use crate::OntologyResult;
-use crate::annotations::{GeneId, Gene};
-use crate::annotations::{OmimDiseaseId, OmimDisease};
 
 use core::fmt::Debug;
 
 mod termarena;
 use termarena::Arena;
-
 
 #[derive(Default)]
 pub struct Ontology {
@@ -107,9 +106,7 @@ impl Ontology {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
 }
-
 
 /// Methods to add annotations
 impl Ontology {
@@ -125,7 +122,9 @@ impl Ontology {
     }
 
     pub fn link_gene_term(&mut self, term_id: &HpoTermId, gene_id: GeneId) {
-        let term = self.get_mut(term_id).expect("Cannot add gene to non-existing term");
+        let term = self
+            .get_mut(term_id)
+            .expect("Cannot add gene to non-existing term");
 
         if term.add_gene(gene_id) {
             // this part can be skipped, if the gene is already linked to the term,
@@ -134,7 +133,9 @@ impl Ontology {
             for parent in &parents {
                 self.link_gene_term(parent, gene_id);
             }
-            self.get_gene_mut(&gene_id).expect("Cannot find gene").add_term(*term_id);
+            self.get_gene_mut(&gene_id)
+                .expect("Cannot find gene")
+                .add_term(*term_id);
         }
     }
 }
@@ -150,7 +151,6 @@ impl Ontology {
     pub fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
         self.hpo_terms.get_unchecked(term_id)
     }
-
 
     fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
         self.hpo_terms.get_mut(term_id)
@@ -172,7 +172,10 @@ impl Ontology {
         self.omim_diseases.get(omim_disease_id)
     }
 
-    pub fn get_omim_disease_mut(&mut self, omim_disease_id: &OmimDiseaseId) -> Option<&mut OmimDisease> {
+    pub fn get_omim_disease_mut(
+        &mut self,
+        omim_disease_id: &OmimDiseaseId,
+    ) -> Option<&mut OmimDisease> {
         self.omim_diseases.get_mut(omim_disease_id)
     }
 
@@ -205,13 +208,16 @@ impl Ontology {
     }
 
     pub fn iter_terms(&self) -> OntologyIterator {
-        OntologyIterator { inner: self.hpo_terms.values().iter() , ontology: self}
+        OntologyIterator {
+            inner: self.hpo_terms.values().iter(),
+            ontology: self,
+        }
     }
 }
 
 pub struct OntologyIterator<'a> {
     inner: std::slice::Iter<'a, HpoTermInternal>,
-    ontology: &'a Ontology
+    ontology: &'a Ontology,
 }
 
 impl<'a> std::iter::Iterator for OntologyIterator<'a> {
@@ -219,7 +225,7 @@ impl<'a> std::iter::Iterator for OntologyIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.inner.next() {
             Some(term) => Some(HpoTerm::new(self.ontology, term)),
-            None => None
+            None => None,
         }
     }
 }

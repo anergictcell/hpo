@@ -3,12 +3,14 @@ use crate::HpoTermId;
 const TERM_ARRAY_SIZE: usize = 10_000_000;
 
 struct HpoParents {
-    inner: [bool; TERM_ARRAY_SIZE]
+    inner: [bool; TERM_ARRAY_SIZE],
 }
 
 impl Default for HpoParents {
     fn default() -> Self {
-        Self {inner: [false; TERM_ARRAY_SIZE]}
+        Self {
+            inner: [false; TERM_ARRAY_SIZE],
+        }
     }
 }
 
@@ -20,16 +22,17 @@ impl IntoIterator for HpoParents {
     }
 }
 
-
 struct HpoParentIdIterator {
     idx: usize,
-    parents: [bool; TERM_ARRAY_SIZE]
+    parents: [bool; TERM_ARRAY_SIZE],
 }
-
 
 impl HpoParentIdIterator {
     pub fn new(parents: &[bool; TERM_ARRAY_SIZE]) -> Self {
-        Self { idx: 0, parents: *parents }
+        Self {
+            idx: 0,
+            parents: *parents,
+        }
     }
 }
 
@@ -45,6 +48,5 @@ impl Iterator for HpoParentIdIterator {
                 return Some(HpoTermId::from(self.idx));
             }
         }
-       
     }
 }

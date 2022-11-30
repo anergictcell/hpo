@@ -1,26 +1,27 @@
-use std::collections::HashSet;
 use core::fmt::Debug;
 use std::cmp::PartialEq;
+use std::collections::HashSet;
 use std::convert::TryFrom;
 
-use crate::Ontology;
 use crate::term::HpoGroup;
-use crate::HpoTermId;
 use crate::HpoError;
+use crate::HpoTermId;
+use crate::Ontology;
 use crate::OntologyResult;
 
 pub type Genes = HashSet<GeneId>;
 
-
 #[derive(Clone, Copy, Default, Debug, Hash, PartialEq, Eq)]
 pub struct GeneId {
-    inner: usize
+    inner: usize,
 }
 
 impl TryFrom<&str> for GeneId {
     type Error = HpoError;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Ok(GeneId {inner: value.parse::<usize>()?})
+        Ok(GeneId {
+            inner: value.parse::<usize>()?,
+        })
     }
 }
 
@@ -33,13 +34,17 @@ pub struct Gene {
 
 impl Gene {
     pub fn new(id: GeneId, name: &str) -> Gene {
-        Gene {id, name:name.to_string(), hpos: HpoGroup::default()}
+        Gene {
+            id,
+            name: name.to_string(),
+            hpos: HpoGroup::default(),
+        }
     }
     pub fn from_parts(id: &str, name: &str) -> OntologyResult<Gene> {
-        Ok(Gene{
+        Ok(Gene {
             id: GeneId::try_from(id)?,
             name: name.to_string(),
-            hpos: HpoGroup::default()
+            hpos: HpoGroup::default(),
         })
     }
 
@@ -67,8 +72,6 @@ impl PartialEq for Gene {
 }
 impl Eq for Gene {}
 
-
-
 pub struct GeneIterator<'a> {
     ontology: &'a Ontology,
     genes: std::collections::hash_set::Iter<'a, GeneId>,
@@ -87,9 +90,7 @@ impl<'a> std::iter::Iterator for GeneIterator<'a> {
     type Item = &'a Gene;
     fn next(&mut self) -> Option<Self::Item> {
         match self.genes.next() {
-            Some(gene_id) => {
-                Some(self.ontology.get_gene(gene_id).unwrap())
-            }
+            Some(gene_id) => Some(self.ontology.get_gene(gene_id).unwrap()),
             None => None,
         }
     }

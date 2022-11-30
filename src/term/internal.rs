@@ -1,7 +1,6 @@
 use crate::annotations::{Genes, GeneId};
 use crate::annotations::{OmimDiseases, OmimDiseaseId};
 use crate::term::{HpoChildren, HpoParents, HpoTermId};
-use crate::HashSet;
 use crate::DEFAULT_NUM_ALL_PARENTS;
 use crate::DEFAULT_NUM_PARENTS;
 use crate::DEFAULT_NUM_GENES;
@@ -43,9 +42,9 @@ impl HpoTermInternal {
             name: name.to_string(),
             parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
             all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
-            children: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
-            genes: HashSet::with_capacity(DEFAULT_NUM_GENES),
-            omim_diseases: HashSet::with_capacity(DEFAULT_NUM_OMIM),
+            children: HpoChildren::with_capacity(DEFAULT_NUM_PARENTS),
+            genes: Genes::with_capacity(DEFAULT_NUM_GENES),
+            omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
             ic: InformationContent::default()
         }
     }

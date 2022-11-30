@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use core::fmt::Debug;
-use std::collections::HashSet;
 use std::num::ParseIntError;
 
 use thiserror::Error;

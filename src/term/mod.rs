@@ -13,7 +13,7 @@ mod parents;
 pub use group::{HpoGroup, HpoGroupIterator};
 pub use hpoterm::HpoTerm;
 pub use hpotermid::HpoTermId;
-pub use information_content::InformationContent;
+pub use information_content::{InformationContent, InformationContentKind};
 pub use internal::HpoTermInternal;
 
 pub type HpoParents = HpoGroup;
@@ -25,7 +25,7 @@ pub struct HpoTermIterator<'a> {
 }
 
 impl<'a> HpoTermIterator<'a> {
-    pub fn new(parents: &'a HpoParents, ontology: &'a Ontology) -> Self {
+    pub fn new(parents: &'a HpoGroup, ontology: &'a Ontology) -> Self {
         HpoTermIterator {
             parents: parents.iter(),
             ontology,

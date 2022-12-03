@@ -23,20 +23,22 @@ fn from_file(collection: &mut Ontology) {
     collection.create_cache();
 
     parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
+    parser::phenotype_hpoa::parse("phenotype.hpoa", collection);
+
+    collection.calculate_information_content();
 }
 
 fn main() {
     let mut collection = Ontology::default();
     from_file(&mut collection);
 
-    let mut parents: Vec<String> = Vec::new();
     for term in collection.iter_terms() {
-        parents.clear();
-        for parent in term.all_parents() {
-            parents.push(parent.id().to_string());
-        }
-        parents.sort();
-        println!("{}\t{}", term.id(), parents.join(","));
+        println!(
+            "{}\t{}\t{}",
+            term.id(),
+            term.information_content().gene(),
+            term.information_content().omim_disease(),
+        );
     }
 }
 
@@ -46,12 +48,8 @@ from pyhpo import Ontology
 
 _ = Ontology()
 
-with open("term2parents.py.txt", "w") as fh:
+with open("term2ic.py.txt", "w") as fh:
     for term in Ontology:
-        parents = []
-        for parent in term.all_parents:
-            parents.append(parent.id)
-        parents = ",".join(sorted(parents))
-        _ = fh.write(f"{term.id}\t{parents}\n")
+        _ = fh.write(f"{term.id}\t{term.information_content.gene}\t{term.information_content.omim}\n")
 
 */

@@ -3,6 +3,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::time::SystemTime;
 
+use hpo::parser;
 use hpo::HpoTermId;
 use hpo::Ontology;
 
@@ -27,18 +28,14 @@ fn from_file(collection: &mut Ontology) {
     collection.create_cache();
     println!("finished caching");
 
-    let file = File::open("phenotype_to_genes.txt").unwrap();
-    let reader = BufReader::new(file);
-    for line in reader.lines() {
-        let line = line.unwrap();
-        if line.starts_with('#') {
-            continue;
-        }
-        let cols: Vec<&str> = line.trim().split('\t').collect();
-        let gene_id = collection.add_gene(cols[3], cols[2]).unwrap();
-        collection.link_gene_term(&cols[0].into(), gene_id);
-    }
+    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
     println!("finished linking genes");
+
+    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
+    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
+    parser::phenotype_hpoa::parse("phenotype.hpoa", collection);
+    collection.calculate_information_content();
+    println!("finished IC calculation");
 }
 
 fn bench(collection: &Ontology, times: usize) {
@@ -48,7 +45,7 @@ fn bench(collection: &Ontology, times: usize) {
     let start = SystemTime::now();
     for term1 in collection.iter_terms() {
         for term2 in collection.iter_terms().take(times) {
-            let overlap = term1.overlap(&term2).len();
+            let overlap = term1.common_ancestor_ids(&term2).len();
             if overlap > count {
                 count = overlap;
                 terms = (*term1.id(), *term2.id());
@@ -58,7 +55,7 @@ fn bench(collection: &Ontology, times: usize) {
     let end = SystemTime::now();
     let duration = end.duration_since(start).unwrap();
     println!(
-        "Term: it took {} seconds for {} terms. {} and {} have {} overlaps",
+        "It took {} seconds for {} terms. {} and {} have {} overlaps",
         duration.as_secs(),
         std::cmp::min(times, collection.len()),
         terms.0,
@@ -67,16 +64,46 @@ fn bench(collection: &Ontology, times: usize) {
     );
 }
 
+fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology) {
+    let term1 = ontology.get_term(&termid1).unwrap();
+    let term2 = ontology.get_term(&termid2).unwrap();
+    for term in term1.common_ancestors(&term2) {
+        println!(
+            "Term {} | IC {} | nOmim {} | nGene {}",
+            term.id(),
+            term.information_content().omim_disease(),
+            term.omim_diseases().count(),
+            term.genes().count()
+        );
+    }
+}
+
 fn main() {
     let mut collection = Ontology::default();
     from_file(&mut collection);
 
     println!("finished creating Ontology");
 
-    bench(&collection, 500);
-    bench(&collection, 1000);
-    bench(&collection, 10000);
-    bench(&collection, 20000);
+    let mut args = std::env::args();
+    if args.len() == 3 {
+       let term_id1 = args.nth(1).unwrap();
+       let term_id2 = args.next().unwrap();
+       common_ancestors(term_id1.into(), term_id2.into(), &collection);
+    } else {
+        bench(&collection, 500);
+        bench(&collection, 1000);
+        bench(&collection, 10000);
+        bench(&collection, 20000);
+    }
+
+
+    /*
+    Expected times:
+    It took 0 seconds for 500 terms. HP:0007768 and HP:0000631 have 24 overlaps
+    It took 1 seconds for 1000 terms. HP:0005617 and HP:0001215 have 35 overlaps
+    It took 13 seconds for 10000 terms. HP:0009640 and HP:0009640 have 42 overlaps
+    It took 22 seconds for 17059 terms. HP:0009640 and HP:0009640 have 42 overlaps
+    */
 }
 
 /*

@@ -35,13 +35,6 @@ impl HpoGroup {
                 true
             }
         }
-
-        // if !self.ids.contains(&id) {
-        //     self.ids.push(id);
-        //     true
-        // } else {
-        //     false
-        // }
     }
 
     fn insert_unchecked(&mut self, id: HpoTermId) {
@@ -52,16 +45,17 @@ impl HpoGroup {
         self.ids.iter()
     }
 
-    pub fn into_inner(self) -> Vec<HpoTermId> {
-        self.ids
-    }
-
     pub fn contains(&self, id: &HpoTermId) -> bool {
         self.ids.binary_search(id).is_ok()
     }
 
     pub fn iter(&self) -> HpoGroupIterator {
         HpoGroupIterator::new(self.ids.iter())
+    }
+
+    // TODO: Is this really needed or makes sense?
+    pub fn pop(&mut self) -> Option<HpoTermId> {
+        self.ids.pop()
     }
 }
 
@@ -179,7 +173,7 @@ mod tests {
 
         let result = group1.bitor(&group2);
         let expected: Vec<HpoTermId> = vec![1.into(), 2.into(), 3.into(), 4.into()];
-        assert_eq!(result.into_inner(), expected);
+        assert_eq!(result.ids, expected);
     }
 
     #[test]
@@ -190,14 +184,14 @@ mod tests {
         group1.insert(3.into());
 
         let mut group2 = HpoGroup::new();
+        group2.insert(1.into());
         group2.insert(2.into());
         group2.insert(4.into());
         group2.insert(5.into());
-        group2.insert(1.into());
 
         let result = group1.bitor(&group2);
-        let expected: Vec<HpoTermId> = vec![2.into(), 4.into(), 5.into(), 1.into(), 3.into()];
-        assert_eq!(result.into_inner(), expected);
+        let expected: Vec<HpoTermId> = vec![1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
+        assert_eq!(result.ids, expected);
     }
 
     #[test]
@@ -215,6 +209,6 @@ mod tests {
 
         let result = group1.bitand(&group2);
         let expected: Vec<HpoTermId> = vec![1.into(), 2.into()];
-        assert_eq!(result.into_inner(), expected);
+        assert_eq!(result.ids, expected);
     }
 }

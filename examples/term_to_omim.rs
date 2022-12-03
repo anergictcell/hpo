@@ -22,21 +22,23 @@ fn from_file(collection: &mut Ontology) {
 
     collection.create_cache();
 
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
+    // parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
+
+    parser::phenotype_hpoa::parse("phenotype.hpoa", collection);
 }
 
 fn main() {
     let mut collection = Ontology::default();
     from_file(&mut collection);
 
-    let mut parents: Vec<String> = Vec::new();
+    let mut omim_diseases: Vec<String> = Vec::new();
     for term in collection.iter_terms() {
-        parents.clear();
-        for parent in term.all_parents() {
-            parents.push(parent.id().to_string());
+        omim_diseases.clear();
+        for disease in term.omim_diseases() {
+            omim_diseases.push(disease.id().to_string());
         }
-        parents.sort();
-        println!("{}\t{}", term.id(), parents.join(","));
+        omim_diseases.sort();
+        println!("{}\t{}", term.id(), omim_diseases.join(","));
     }
 }
 
@@ -46,12 +48,12 @@ from pyhpo import Ontology
 
 _ = Ontology()
 
-with open("term2parents.py.txt", "w") as fh:
+with open("term2omim.py.txt", "w") as fh:
     for term in Ontology:
-        parents = []
-        for parent in term.all_parents:
-            parents.append(parent.id)
-        parents = ",".join(sorted(parents))
-        _ = fh.write(f"{term.id}\t{parents}\n")
+        omim_diseases = []
+        for disease in term.omim_diseases:
+            omim_diseases.append(f"OMIM:{disease.id}")
+        omim_diseases = ",".join(sorted(omim_diseases))
+        _ = fh.write(f"{term.id}\t{omim_diseases}\n")
 
 */

@@ -4,8 +4,6 @@ use crate::HpoTermId;
 
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
-// const HPO_TERM_NUMBERS: usize = 10_000_000;
-
 pub struct Arena {
     terms: Vec<HpoTermInternal>,
     ids: Vec<usize>,
@@ -56,6 +54,10 @@ impl Arena {
         &self.terms[self.ids[id.to_usize()]]
     }
 
+    pub fn get_unchecked_mut(&mut self, id: &HpoTermId) -> &mut HpoTermInternal {
+        &mut self.terms[self.ids[id.to_usize()]]
+    }
+
     pub fn get_mut(&mut self, id: &HpoTermId) -> Option<&mut HpoTermInternal> {
         match self.ids[id.to_usize()] {
             0 => None,
@@ -69,6 +71,11 @@ impl Arena {
         &self.terms[1..]
     }
 
+    pub fn values_mut(&mut self) -> &mut [HpoTermInternal] {
+        &mut self.terms[1..]
+    }
+
+    /// Returns the keys of this [`Arena`].
     pub fn keys(&mut self) -> Vec<HpoTermId> {
         self.terms[1..].iter().map(|term| *term.id()).collect()
     }

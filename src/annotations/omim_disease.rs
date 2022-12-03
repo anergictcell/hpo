@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Display;
 
 use crate::term::HpoGroup;
 use crate::HpoError;
@@ -18,6 +19,12 @@ impl TryFrom<&str> for OmimDiseaseId {
         Ok(OmimDiseaseId {
             inner: value.parse::<usize>()?,
         })
+    }
+}
+
+impl Display for OmimDiseaseId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "OMIM:{}", self.inner)
     }
 }
 
@@ -50,6 +57,10 @@ impl OmimDisease {
 
     pub fn add_term(&mut self, term_id: HpoTermId) -> bool {
         self.hpos.insert(term_id)
+    }
+
+    pub fn hpo_terms(&self) -> &HpoGroup {
+        &self.hpos
     }
 }
 

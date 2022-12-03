@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 
+use hpo::parser;
 use hpo::Ontology;
 
 fn from_file(collection: &mut Ontology) {
@@ -21,17 +22,7 @@ fn from_file(collection: &mut Ontology) {
 
     collection.create_cache();
 
-    let file = File::open("phenotype_to_genes.txt").unwrap();
-    let reader = BufReader::new(file);
-    for line in reader.lines() {
-        let line = line.unwrap();
-        if line.starts_with('#') {
-            continue;
-        }
-        let cols: Vec<&str> = line.trim().split('\t').collect();
-        let gene_id = collection.add_gene(cols[3], cols[2]).unwrap();
-        collection.link_gene_term(&cols[0].into(), gene_id);
-    }
+    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
 }
 
 fn main() {

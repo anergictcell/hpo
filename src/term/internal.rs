@@ -73,6 +73,10 @@ impl HpoTermInternal {
         &self.genes
     }
 
+    pub fn omim_diseases(&self) -> &OmimDiseases {
+        &self.omim_diseases
+    }
+
     pub fn parents_cached(&self) -> bool {
         if self.parents.is_empty() {
             true
@@ -95,6 +99,14 @@ impl HpoTermInternal {
 
     pub fn add_omim_disease(&mut self, omim_disease_id: OmimDiseaseId) -> bool {
         self.omim_diseases.insert(omim_disease_id)
+    }
+
+    pub fn information_content(&self) -> &InformationContent {
+        &self.ic
+    }
+
+    pub fn information_content_mut(&mut self) -> &mut InformationContent {
+        &mut self.ic
     }
 }
 

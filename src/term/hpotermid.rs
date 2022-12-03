@@ -24,6 +24,13 @@ impl From<&str> for HpoTermId {
     }
 }
 
+impl From<String> for HpoTermId {
+    fn from(s: String) -> Self {
+        HpoTermId::new(&s)
+    }
+}
+
+
 impl From<usize> for HpoTermId {
     fn from(n: usize) -> Self {
         Self {

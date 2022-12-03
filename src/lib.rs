@@ -7,6 +7,7 @@ pub mod parser;
 pub mod term;
 pub mod annotations;
 mod ontology;
+mod matrix;
 
 pub use term::{HpoTerm, HpoTermId, HpoParents, InformationContentKind};
 pub use ontology::Ontology;

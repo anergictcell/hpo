@@ -69,6 +69,7 @@ impl From<HashSet<HpoTermId>> for HpoGroup {
     }
 }
 
+
 impl<'a> IntoIterator for &'a HpoGroup {
     type Item = &'a HpoTermId;
 
@@ -78,6 +79,7 @@ impl<'a> IntoIterator for &'a HpoGroup {
         HpoGroupIterator::new(self.ids.iter())
     }
 }
+
 
 pub struct HpoGroupIterator<'a> {
     inner: std::slice::Iter<'a, HpoTermId>,

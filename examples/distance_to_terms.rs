@@ -3,21 +3,17 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::time::SystemTime;
 
-use hpo::parser;
+use hpo::HpoTerm;
 use hpo::HpoTermId;
 use hpo::Ontology;
 
-
 fn from_file(collection: &mut Ontology) {
-    println!("Reading terms");
     let file = File::open("terms.txt").unwrap();
     let reader = BufReader::new(file);
     for term in reader.lines() {
         collection.add_term_by_name(&term.unwrap());
     }
     collection.shrink_to_fit();
-    println!("finished adding terms");
-
     let file = File::open("connections.txt").unwrap();
     let reader = BufReader::new(file);
     for line in reader.lines() {
@@ -25,60 +21,24 @@ fn from_file(collection: &mut Ontology) {
         let cols: Vec<&str> = line.splitn(2, '\t').collect();
         collection.add_parent(cols[1].into(), cols[0].into());
     }
-    println!("finished adding connections");
     collection.create_cache();
-    println!("finished caching");
-
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    println!("finished linking genes");
-
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    parser::phenotype_hpoa::parse("phenotype.hpoa", collection);
-    collection.calculate_information_content();
-    println!("finished IC calculation");
 }
 
 fn bench(collection: &Ontology, times: usize) {
-    let mut count = 0;
-    let mut terms: (HpoTermId, HpoTermId) =
-        (HpoTermId::from("HP:0000001"), HpoTermId::from("HP:0000001"));
     let start = SystemTime::now();
-    // for term1 in collection.iter_terms() {
-    // let term = collection.
-    collection.into_iter()
-        .for_each(|term1|
+    for term1 in collection.iter_terms() {
         for term2 in collection.iter_terms().take(times) {
-            let overlap = term1.common_ancestor_ids(&term2).len();
-            if overlap > count {
-                count = overlap;
-                terms = (*term1.id(), *term2.id());
-            }
+            print_distance(&term1, &term2)
         }
-    );
+    }
     let end = SystemTime::now();
     let duration = end.duration_since(start).unwrap();
-    println!(
-        "It took {} seconds for {} terms. {} and {} have {} overlaps",
-        duration.as_secs(),
-        std::cmp::min(times, collection.len()),
-        terms.0,
-        terms.1,
-        count
-    );
+    println!("It took {} seconds for {} terms", duration.as_secs(), times);
 }
 
-fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology) {
-    let term1 = ontology.get_term(&termid1).unwrap();
-    let term2 = ontology.get_term(&termid2).unwrap();
-    for term in term1.common_ancestors(&term2) {
-        println!(
-            "Term {} | IC {} | nOmim {} | nGene {}",
-            term.id(),
-            term.information_content().omim_disease(),
-            term.omim_diseases().count(),
-            term.genes().count()
-        );
+fn print_distance(term1: &HpoTerm, term2: &HpoTerm) {
+    if let Some(dist) = term1.distance_to_term(term2){
+        println!("{}\t{}\t{}", term1.id(), term2.id(), dist);
     }
 }
 
@@ -90,9 +50,25 @@ fn main() {
 
     let mut args = std::env::args();
     if args.len() == 3 {
-       let term_id1 = args.nth(1).unwrap();
-       let term_id2 = args.next().unwrap();
-       common_ancestors(term_id1.into(), term_id2.into(), &collection);
+        let termid1 = HpoTermId::from(args.nth(1).unwrap());
+        let termid2 = HpoTermId::from(args.next().unwrap());
+        let term1 = collection.get_term(&termid1).unwrap();
+        let term2 = collection.get_term(&termid2).unwrap();
+        print_distance(&term1, &term2);
+        for t in term1.common_ancestors(&term2) {
+            println!("{}", t.id());
+        }
+        println!("----");
+        println!(">> {} <<", term1.id());
+        for t in term1.all_parents() {
+            println!("{}", t.id());
+        }
+        println!("----");
+        println!(">> {} <<", term2.id());
+        for t in term2.all_parents() {
+            println!("{}", t.id());
+        }
+
     } else {
         bench(&collection, 500);
         bench(&collection, 1000);

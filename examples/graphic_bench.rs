@@ -1,7 +1,12 @@
+use std::env::args;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::time::SystemTime;
+
+use hpo::HpoTerm;
+use hpo::HpoTermId;
+use rayon::prelude::*;
 
 use hpo::GraphIc;
 use hpo::parser;
@@ -58,27 +63,75 @@ fn bench(collection: &Ontology, times: usize) {
     );
 }
 
+fn parallel(collection: &Ontology, times: usize) {
+    let start = SystemTime::now();
+    let ic = GraphIc::new(hpo::InformationContentKind::Omim);
+
+
+    let terms: Vec<HpoTerm> = collection.into_iter().collect();
+    let scores: Vec<(HpoTermId, HpoTermId, f32)> = terms.par_iter()
+    .map(|term1| {
+        let mut inner_score = Vec::new();
+        for term2 in collection.into_iter().take(times) {
+            let overlap = term1.similarity_score(&term2, &ic);
+            inner_score.push((*term1.id(), *term2.id(), overlap));
+            if overlap > 1.1 {
+                println!("This part is never reached but is left so that the compiler doesn't optimize the loop away :)")
+            }
+        }
+        inner_score
+    }).flatten().collect();
+
+    let end = SystemTime::now();
+    let duration = end.duration_since(start).unwrap();
+    println!(
+        "It took {} seconds for {} x {} terms: {}.",
+        duration.as_secs(),
+        collection.len(),
+        std::cmp::min(times, collection.len()),
+        scores.len()
+    );
+}
+
 fn main() {
     let mut collection = Ontology::default();
     from_file(&mut collection);
 
     println!("finished creating Ontology");
 
-    bench(&collection, 5);
-    bench(&collection, 50);
-    bench(&collection, 500);
-    bench(&collection, 1000);
-    bench(&collection, 10000);
-    bench(&collection, 20000);
+    if args().len() == 2 {
+        parallel(&collection, 5);
+        parallel(&collection, 50);
+        parallel(&collection, 500);
+        parallel(&collection, 1000);
+        parallel(&collection, 10000);
+        parallel(&collection, 20000);
+    } else {
+        bench(&collection, 5);
+        bench(&collection, 50);
+        bench(&collection, 500);
+        bench(&collection, 1000);
+        bench(&collection, 10000);
+        // bench(&collection, 20000);
+    }
 
     /*
-    Expected times:
+    Expected times (single threaded):
     It took 0 seconds for 17059 x 5 terms.
     It took 0 seconds for 17059 x 50 terms.
     It took 1 seconds for 17059 x 500 terms.
     It took 3 seconds for 17059 x 1000 terms.
     It took 42 seconds for 17059 x 10000 terms.
     It took 70 seconds for 17059 x 17059 terms.
+
+    
+    Expected times (using rayon):
+    It took 0 seconds for 17059 x 5 terms: 85295.
+    It took 0 seconds for 17059 x 50 terms: 852950.
+    It took 0 seconds for 17059 x 500 terms: 8529500.
+    It took 0 seconds for 17059 x 1000 terms: 17059000.
+    It took 8 seconds for 17059 x 10000 terms: 170590000.
+    It took 13 seconds for 17059 x 17059 terms: 291009481.
     */
 }
 

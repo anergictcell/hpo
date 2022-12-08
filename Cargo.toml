@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 thiserror = "1.0.37"
+
+[dev-dependencies]
+rayon = "1.6.0"

@@ -38,14 +38,14 @@
 //!
 use std::fmt::Debug;
 
-pub struct Matrix<T> {
+pub struct Matrix<'a, T> {
     rows: usize,
     cols: usize,
-    data: Vec<T>
+    data: &'a [T]
 }
 
-impl<T> Matrix<T> {
-    pub fn new(rows: usize, cols: usize, data: Vec<T>) -> Self {
+impl<'a, T> Matrix<'a, T> {
+    pub fn new(rows: usize, cols: usize, data: &'a [T]) -> Self {
         Self {
             rows,
             cols,
@@ -53,16 +53,24 @@ impl<T> Matrix<T> {
         }
     }
 
-    pub fn push(&mut self, value: T) {
-        self.data.push(value)
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
+    pub fn dim(&self) -> (usize, usize) {
+        (self.rows, self.cols)
     }
 
     pub fn rows(&self) -> RowIterator<T> {
-        RowIterator::new(&self.data, self.row_indicies())
+        RowIterator::new(self.data, self.row_indicies())
     }
 
     pub fn cols(&self) -> ColumnIterator<T> {
-        ColumnIterator::new(&self.data, self.col_indicies())
+        ColumnIterator::new(self.data, self.col_indicies())
     }
 
     fn row_indicies(&self) -> RowIndexIterator {
@@ -74,7 +82,7 @@ impl<T> Matrix<T> {
     }
 }
 
-impl<T: std::fmt::Display> Debug for Matrix<T> {
+impl<T: std::fmt::Display> Debug for Matrix<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in self.rows() {
             let v: Vec<String> = row.map(|v| format!("{}", v)).collect();
@@ -104,11 +112,11 @@ impl<'a, T> Iterator for Row<'a, T> {
 /// Iterates through the rows, returning an Iterator over individual row values
 pub struct RowIterator<'a, T> {
     iter: RowIndexIterator,
-    data: &'a Vec<T>
+    data: &'a [T]
 }
 
 impl<'a, T> RowIterator<'a, T> {
-    fn new(data: &'a Vec<T>, iter: RowIndexIterator) -> Self {
+    fn new(data: &'a [T], iter: RowIndexIterator) -> Self {
         Self {data, iter}
     }
 }
@@ -166,12 +174,12 @@ impl<'a, T> Iterator for Column<'a, T> {
 }
 
 pub struct ColumnIterator<'a, T>{
-    data: &'a Vec<T>,
+    data: &'a [T],
     iter: ColumnIndexIterator
 }
 
 impl<'a, T> ColumnIterator<'a, T> {
-    fn new(data: &'a Vec<T>, iter: ColumnIndexIterator) -> Self {
+    fn new(data: &'a [T], iter: ColumnIndexIterator) -> Self {
         Self {data, iter}
     }
 }

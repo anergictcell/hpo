@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::ops::BitOr;
-use std::slice::Iter;
 
 use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
@@ -279,9 +278,9 @@ impl Ontology {
     //     term1.all_parents() & term2.all_parents()
     // }
 
-    pub fn iter(&self) -> Iter<HpoTermId> {
-        self.hpo_ids.iter()
-    }
+    // pub fn iter(&self) -> Iter<HpoTermId> {
+    //     self.hpo_ids.iter()
+    // }
 
     pub fn iter_terms(&self) -> OntologyIterator {
         OntologyIterator {
@@ -303,5 +302,15 @@ impl<'a> std::iter::Iterator for OntologyIterator<'a> {
             Some(term) => Some(HpoTerm::new(self.ontology, term)),
             None => None,
         }
+    }
+}
+
+
+impl<'a> IntoIterator for &'a Ontology {
+    type Item = HpoTerm<'a>;
+    type IntoIter = OntologyIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_terms()
     }
 }

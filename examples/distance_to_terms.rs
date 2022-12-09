@@ -26,8 +26,8 @@ fn from_file(collection: &mut Ontology) {
 
 fn bench(collection: &Ontology, times: usize) {
     let start = SystemTime::now();
-    for term1 in collection.iter_terms() {
-        for term2 in collection.iter_terms().take(times) {
+    for term1 in collection.hpos() {
+        for term2 in collection.hpos().take(times) {
             print_distance(&term1, &term2)
         }
     }
@@ -37,7 +37,7 @@ fn bench(collection: &Ontology, times: usize) {
 }
 
 fn print_distance(term1: &HpoTerm, term2: &HpoTerm) {
-    if let Some(dist) = term1.distance_to_term(term2){
+    if let Some(dist) = term1.distance_to_term(term2) {
         println!("{}\t{}\t{}", term1.id(), term2.id(), dist);
     }
 }
@@ -52,8 +52,8 @@ fn main() {
     if args.len() == 3 {
         let termid1 = HpoTermId::from(args.nth(1).unwrap());
         let termid2 = HpoTermId::from(args.next().unwrap());
-        let term1 = collection.get_term(&termid1).unwrap();
-        let term2 = collection.get_term(&termid2).unwrap();
+        let term1 = collection.hpo(&termid1).unwrap();
+        let term2 = collection.hpo(&termid2).unwrap();
         print_distance(&term1, &term2);
         for t in term1.common_ancestors(&term2) {
             println!("{}", t.id());
@@ -68,14 +68,12 @@ fn main() {
         for t in term2.all_parents() {
             println!("{}", t.id());
         }
-
     } else {
         bench(&collection, 500);
         bench(&collection, 1000);
         bench(&collection, 10000);
         bench(&collection, 20000);
     }
-
 
     /*
     Expected times:

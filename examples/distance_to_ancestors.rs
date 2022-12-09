@@ -1,9 +1,9 @@
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
 use hpo::HpoTerm;
 use hpo::HpoTermId;
 use hpo::Ontology;
+use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
 
 fn from_file(collection: &mut Ontology) {
     let file = File::open("terms.txt").unwrap();
@@ -23,8 +23,8 @@ fn from_file(collection: &mut Ontology) {
 }
 
 fn bench(collection: &Ontology, times: usize) {
-    for term1 in collection.iter_terms() {
-        for term2 in collection.iter_terms().take(times) {
+    for term1 in collection.hpos() {
+        for term2 in collection.hpos().take(times) {
             print_distance(&term1, &term2)
         }
     }
@@ -45,8 +45,8 @@ fn main() {
     if args.len() == 3 {
         let termid1 = HpoTermId::from(args.nth(1).unwrap());
         let termid2 = HpoTermId::from(args.next().unwrap());
-        let term1 = collection.get_term(&termid1).unwrap();
-        let term2 = collection.get_term(&termid2).unwrap();
+        let term1 = collection.hpo(&termid1).unwrap();
+        let term2 = collection.hpo(&termid2).unwrap();
         print_distance(&term1, &term2);
         if let Some(path) = term1.path_to_ancestor(&term2) {
             for term in path {
@@ -61,7 +61,6 @@ fn main() {
         bench(&collection, 10000);
         bench(&collection, 20000);
     }
-
 
     /*
     Expected times:

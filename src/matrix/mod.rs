@@ -9,7 +9,8 @@
 //! 1  ||  21|  22|  23|  24|
 //! 2  ||  31|  32|  33|  34|
 //! ```
-//! ```no-run
+//! ```ignore
+//! use crate::matrix::Matrix;
 //! let m = Matrix::new(3, 4, vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34]);
 //!
 //! for row in m.rows() {
@@ -17,9 +18,9 @@
 //!     println!("[{}]", v.join(", "));
 //! }
 //!
-//! >> [11, 12, 13, 14]
-//! >> [21, 22, 23, 24]
-//! >> [31, 32, 33, 34]
+//! // >> [11, 12, 13, 14]
+//! // >> [21, 22, 23, 24]
+//! // >> [31, 32, 33, 34]
 //!
 //!
 //! for col in m.cols() {
@@ -27,10 +28,10 @@
 //!     println!("[{}]", v.join(", "));
 //! }
 //!
-//! >> [11, 21, 31]
-//! >> [12, 22, 32]
-//! >> [13, 23, 33]
-//! >> [14, 24, 34]
+//! // >> [11, 21, 31]
+//! // >> [12, 22, 32]
+//! // >> [13, 23, 33]
+//! // >> [14, 24, 34]
 //! ```
 //!
 //! There are no logic checks to ensure that the rows and column
@@ -41,16 +42,12 @@ use std::fmt::Debug;
 pub struct Matrix<'a, T> {
     rows: usize,
     cols: usize,
-    data: &'a [T]
+    data: &'a [T],
 }
 
 impl<'a, T> Matrix<'a, T> {
     pub fn new(rows: usize, cols: usize, data: &'a [T]) -> Self {
-        Self {
-            rows,
-            cols,
-            data,
-        }
+        Self { rows, cols, data }
     }
 
     pub fn len(&self) -> usize {
@@ -93,7 +90,7 @@ impl<T: std::fmt::Display> Debug for Matrix<'_, T> {
 }
 
 pub struct Row<'a, T> {
-    iter: std::slice::Iter<'a, T>
+    iter: std::slice::Iter<'a, T>,
 }
 
 impl<'a, T> Row<'a, T> {
@@ -112,12 +109,12 @@ impl<'a, T> Iterator for Row<'a, T> {
 /// Iterates through the rows, returning an Iterator over individual row values
 pub struct RowIterator<'a, T> {
     iter: RowIndexIterator,
-    data: &'a [T]
+    data: &'a [T],
 }
 
 impl<'a, T> RowIterator<'a, T> {
     fn new(data: &'a [T], iter: RowIndexIterator) -> Self {
-        Self {data, iter}
+        Self { data, iter }
     }
 }
 
@@ -125,31 +122,31 @@ impl<'a, T> Iterator for RowIterator<'a, T> {
     type Item = Row<'a, T>;
     fn next(&mut self) -> Option<Self::Item> {
         match self.iter.next() {
-            Some(range) => {
-                Some(Row::new(self.data[range].iter()))
-            },
-            None => None
+            Some(range) => Some(Row::new(self.data[range].iter())),
+            None => None,
         }
     }
 }
 
 /// Yields a tuple with start and end position for each row
 struct RowIndexIterator {
-    rows:usize,
+    rows: usize,
     cols: usize,
     idx: usize,
 }
 
 impl RowIndexIterator {
     fn new(rows: usize, cols: usize) -> Self {
-        Self {rows, cols, idx: 0}
+        Self { rows, cols, idx: 0 }
     }
 }
 
 impl Iterator for RowIndexIterator {
     type Item = std::ops::RangeInclusive<usize>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.idx >= self.rows * self.cols { return None }
+        if self.idx >= self.rows * self.cols {
+            return None;
+        }
         let res = std::ops::RangeInclusive::new(self.idx, self.idx + self.cols - 1);
         self.idx += self.cols;
         Some(res)
@@ -157,12 +154,12 @@ impl Iterator for RowIndexIterator {
 }
 
 pub struct Column<'a, T> {
-    iter: std::iter::StepBy<std::slice::Iter<'a, T>>
+    iter: std::iter::StepBy<std::slice::Iter<'a, T>>,
 }
 
 impl<'a, T> Column<'a, T> {
     fn new(iter: std::iter::StepBy<std::slice::Iter<'a, T>>) -> Self {
-        Self {iter}
+        Self { iter }
     }
 }
 
@@ -173,14 +170,14 @@ impl<'a, T> Iterator for Column<'a, T> {
     }
 }
 
-pub struct ColumnIterator<'a, T>{
+pub struct ColumnIterator<'a, T> {
     data: &'a [T],
-    iter: ColumnIndexIterator
+    iter: ColumnIndexIterator,
 }
 
 impl<'a, T> ColumnIterator<'a, T> {
     fn new(data: &'a [T], iter: ColumnIndexIterator) -> Self {
-        Self {data, iter}
+        Self { data, iter }
     }
 }
 
@@ -204,7 +201,7 @@ impl<'a, T> Iterator for ColumnIterator<'a, T> {
 #[derive(Debug, PartialEq, Eq)]
 struct ColumnRange {
     idx: usize,
-    step: usize
+    step: usize,
 }
 
 impl ColumnRange {
@@ -214,21 +211,23 @@ impl ColumnRange {
 }
 
 struct ColumnIndexIterator {
-    rows:usize,
+    rows: usize,
     cols: usize,
     idx: usize,
 }
 
 impl ColumnIndexIterator {
     fn new(rows: usize, cols: usize) -> Self {
-        Self {rows, cols, idx: 0}
+        Self { rows, cols, idx: 0 }
     }
 }
 
 impl Iterator for ColumnIndexIterator {
     type Item = ColumnRange;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.idx >= self.cols {return None}
+        if self.idx >= self.cols {
+            return None;
+        }
         let res = ColumnRange::new(self.idx, self.cols);
         self.idx += 1;
         Some(res)
@@ -272,10 +271,7 @@ mod tests {
     #[test]
     fn test_row_iterator() {
         let data = vec![1, 2, 3, 4, 5, 6];
-        let mut rowiter = RowIterator::new(
-            &data,
-            RowIndexIterator::new(2, 3)
-        );
+        let mut rowiter = RowIterator::new(&data, RowIndexIterator::new(2, 3));
 
         let mut row = rowiter.next().unwrap();
         assert_eq!(row.next(), Some(&1));
@@ -295,28 +291,20 @@ mod tests {
     #[test]
     fn test_empty_row_iterator() {
         let data = vec![1, 2, 3, 4, 5, 6];
-        let mut rowiter = RowIterator::new(
-            &data,
-            RowIndexIterator::new(0, 3)
-        );
+        let mut rowiter = RowIterator::new(&data, RowIndexIterator::new(0, 3));
         assert!(rowiter.next().is_none());
     }
-
 
     #[test]
     fn test_row_iterator_sums() {
         let data = vec![1, 2, 3, 4, 5, 6];
-        let mut rowiter = RowIterator::new(
-            &data,
-            RowIndexIterator::new(2, 3)
-        );
+        let mut rowiter = RowIterator::new(&data, RowIndexIterator::new(2, 3));
 
         let row = rowiter.next().unwrap();
         assert_eq!(row.sum::<i32>(), 6);
 
         let row = rowiter.next().unwrap();
         assert_eq!(row.sum::<i32>(), 15);
-
     }
 
     #[test]
@@ -344,10 +332,7 @@ mod tests {
     #[test]
     fn test_column_iterator() {
         let data = vec![1, 2, 3, 4, 5, 6];
-        let mut coliter = ColumnIterator::new(
-            &data,
-            ColumnIndexIterator::new(2, 3)
-        );
+        let mut coliter = ColumnIterator::new(&data, ColumnIndexIterator::new(2, 3));
 
         let mut col = coliter.next().unwrap();
         assert_eq!(col.next(), Some(&1));
@@ -370,10 +355,7 @@ mod tests {
     #[test]
     fn test_col_iterator_sums() {
         let data = vec![1, 2, 3, 4, 5, 6];
-        let mut coliter = ColumnIterator::new(
-            &data,
-            ColumnIndexIterator::new(2, 3)
-        );
+        let mut coliter = ColumnIterator::new(&data, ColumnIndexIterator::new(2, 3));
 
         let col = coliter.next().unwrap();
         assert_eq!(col.sum::<i32>(), 5);

@@ -29,8 +29,7 @@ impl InformationContent {
     }
 }
 
-
 pub enum InformationContentKind {
     Gene,
-    Omim
+    Omim,
 }

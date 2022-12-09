@@ -1,19 +1,20 @@
+#![doc = include_str!("../README.md")]
 #![allow(dead_code)]
 use core::fmt::Debug;
 use std::num::ParseIntError;
 use thiserror::Error;
 
-pub mod parser;
-pub mod term;
 pub mod annotations;
-pub mod similarity;
-mod ontology;
 mod matrix;
+mod ontology;
+pub mod parser;
 mod set;
+pub mod similarity;
+pub mod term;
 
-pub use term::{HpoTerm, HpoTermId, HpoParents, InformationContentKind};
 pub use ontology::Ontology;
 pub use similarity::{GraphIc, Similarity};
+pub use term::{HpoParents, HpoTerm, HpoTermId, InformationContentKind};
 
 const DEFAULT_NUM_PARENTS: usize = 10;
 const DEFAULT_NUM_ALL_PARENTS: usize = 50;
@@ -38,4 +39,3 @@ impl From<ParseIntError> for HpoError {
 }
 
 type OntologyResult<T> = Result<T, HpoError>;
-

@@ -30,7 +30,7 @@ fn main() {
     from_file(&mut collection);
 
     let mut genes: Vec<&str> = Vec::new();
-    for term in collection.iter_terms() {
+    for term in collection.hpos() {
         genes.clear();
         for gene in term.genes() {
             genes.push(gene.name());

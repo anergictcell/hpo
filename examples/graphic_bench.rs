@@ -8,8 +8,8 @@ use hpo::HpoTerm;
 use hpo::HpoTermId;
 use rayon::prelude::*;
 
-use hpo::GraphIc;
 use hpo::parser;
+use hpo::GraphIc;
 use hpo::Ontology;
 
 fn from_file(collection: &mut Ontology) {
@@ -45,8 +45,8 @@ fn from_file(collection: &mut Ontology) {
 fn bench(collection: &Ontology, times: usize) {
     let start = SystemTime::now();
     let ic = GraphIc::new(hpo::InformationContentKind::Omim);
-    for term1 in collection.iter_terms() {
-        for term2 in collection.iter_terms().take(times) {
+    for term1 in collection.hpos() {
+        for term2 in collection.hpos().take(times) {
             let overlap = term1.similarity_score(&term2, &ic);
             if overlap > 1.1 {
                 println!("This part is never reached but is left so that the compiler doesn't optimize the loop away :)")
@@ -66,7 +66,6 @@ fn bench(collection: &Ontology, times: usize) {
 fn parallel(collection: &Ontology, times: usize) {
     let start = SystemTime::now();
     let ic = GraphIc::new(hpo::InformationContentKind::Omim);
-
 
     let terms: Vec<HpoTerm> = collection.into_iter().collect();
     let scores: Vec<(HpoTermId, HpoTermId, f32)> = terms.par_iter()
@@ -124,7 +123,7 @@ fn main() {
     It took 42 seconds for 17059 x 10000 terms.
     It took 70 seconds for 17059 x 17059 terms.
 
-    
+
     Expected times (using rayon):
     It took 0 seconds for 17059 x 5 terms: 85295.
     It took 0 seconds for 17059 x 50 terms: 852950.

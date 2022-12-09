@@ -89,7 +89,7 @@ impl<'a> std::iter::Iterator for OmimDiseaseIterator<'a> {
     type Item = &'a OmimDisease;
     fn next(&mut self) -> Option<Self::Item> {
         match self.diseases.next() {
-            Some(omim_id) => Some(self.ontology.get_omim_disease(omim_id).unwrap()),
+            Some(omim_id) => Some(self.ontology.omim_disease(omim_id).unwrap()),
             None => None,
         }
     }

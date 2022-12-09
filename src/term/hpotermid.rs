@@ -9,7 +9,7 @@ pub struct HpoTermId {
 impl HpoTermId {
     fn new(s: &str) -> HpoTermId {
         HpoTermId {
-            inner: s[3..].parse::<u32>().unwrap(),
+            inner: s[3..].parse::<u32>().expect("Invalid HPO-Term ID"),
         }
     }
 
@@ -30,23 +30,10 @@ impl From<String> for HpoTermId {
     }
 }
 
-
 impl From<usize> for HpoTermId {
     fn from(n: usize) -> Self {
         Self {
             inner: n.try_into().unwrap(),
-        }
-    }
-}
-
-impl From<[char; 10]> for HpoTermId {
-    fn from(s: [char; 10]) -> Self {
-        let mut num = String::with_capacity(7);
-        for c in &s[3..] {
-            num.push(*c);
-        }
-        HpoTermId {
-            inner: num.parse::<u32>().unwrap(),
         }
     }
 }

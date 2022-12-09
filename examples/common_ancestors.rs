@@ -7,7 +7,6 @@ use hpo::parser;
 use hpo::HpoTermId;
 use hpo::Ontology;
 
-
 fn from_file(collection: &mut Ontology) {
     println!("Reading terms");
     let file = File::open("terms.txt").unwrap();
@@ -46,16 +45,15 @@ fn bench(collection: &Ontology, times: usize) {
     let start = SystemTime::now();
     // for term1 in collection.iter_terms() {
     // let term = collection.
-    collection.into_iter()
-        .for_each(|term1|
-        for term2 in collection.iter_terms().take(times) {
+    collection.into_iter().for_each(|term1| {
+        for term2 in collection.hpos().take(times) {
             let overlap = term1.common_ancestor_ids(&term2).len();
             if overlap > count {
                 count = overlap;
                 terms = (*term1.id(), *term2.id());
             }
         }
-    );
+    });
     let end = SystemTime::now();
     let duration = end.duration_since(start).unwrap();
     println!(
@@ -69,8 +67,8 @@ fn bench(collection: &Ontology, times: usize) {
 }
 
 fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology) {
-    let term1 = ontology.get_term(&termid1).unwrap();
-    let term2 = ontology.get_term(&termid2).unwrap();
+    let term1 = ontology.hpo(&termid1).unwrap();
+    let term2 = ontology.hpo(&termid2).unwrap();
     for term in term1.common_ancestors(&term2) {
         println!(
             "Term {} | IC {} | nOmim {} | nGene {}",
@@ -90,16 +88,15 @@ fn main() {
 
     let mut args = std::env::args();
     if args.len() == 3 {
-       let term_id1 = args.nth(1).unwrap();
-       let term_id2 = args.next().unwrap();
-       common_ancestors(term_id1.into(), term_id2.into(), &collection);
+        let term_id1 = args.nth(1).unwrap();
+        let term_id2 = args.next().unwrap();
+        common_ancestors(term_id1.into(), term_id2.into(), &collection);
     } else {
         bench(&collection, 500);
         bench(&collection, 1000);
         bench(&collection, 10000);
         bench(&collection, 20000);
     }
-
 
     /*
     Expected times:

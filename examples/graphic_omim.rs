@@ -2,12 +2,12 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 
+use hpo::annotations::OmimDiseaseId;
+use hpo::parser;
+use hpo::term::HpoTermIterator;
 use hpo::GraphIc;
 use hpo::HpoTerm;
-use hpo::parser;
 use hpo::Ontology;
-use hpo::annotations::OmimDiseaseId;
-use hpo::term::HpoTermIterator;
 
 fn from_file(collection: &mut Ontology) {
     let file = File::open("terms.txt").unwrap();
@@ -32,17 +32,21 @@ fn from_file(collection: &mut Ontology) {
     collection.calculate_information_content();
 }
 
-
 fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
     let ic = GraphIc::new(hpo::InformationContentKind::Omim);
 
-    let disease = ontology.get_omim_disease(&omimid).unwrap();
+    let disease = ontology.omim_disease(&omimid).unwrap();
     println!("Using Disease [{}] {}", disease.id(), disease.name());
     let terms: Vec<HpoTerm> = HpoTermIterator::new(disease.hpo_terms(), ontology).collect();
     for term1 in &terms {
         for term2 in &terms {
             let overlap = term1.similarity_score(term2, &ic);
-            println!("{}\t{}\t{}", term1.id(), term2.id(), (overlap * 10_000_000.0).floor());
+            println!(
+                "{}\t{}\t{}",
+                term1.id(),
+                term2.id(),
+                (overlap * 10_000_000.0).floor()
+            );
         }
     }
 }
@@ -50,7 +54,6 @@ fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
 fn main() {
     let mut collection = Ontology::default();
     from_file(&mut collection);
-
 
     scores_for_disease("300486".try_into().unwrap(), &collection);
 

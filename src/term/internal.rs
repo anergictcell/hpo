@@ -18,20 +18,13 @@ pub struct HpoTermInternal {
     genes: Genes,
     omim_diseases: OmimDiseases,
     ic: InformationContent,
+    obsolete: bool,
+    replacement: Option<HpoTermId>,
 }
 
 impl Default for HpoTermInternal {
     fn default() -> Self {
-        Self {
-            id: 0.into(),
-            name: "Not present".to_string(),
-            parents: HpoParents::default(),
-            all_parents: HpoParents::default(),
-            children: HpoChildren::default(),
-            genes: Genes::default(),
-            omim_diseases: OmimDiseases::default(),
-            ic: InformationContent::default(),
-        }
+        HpoTermInternal::new("HP:0000000")
     }
 }
 
@@ -46,6 +39,8 @@ impl HpoTermInternal {
             genes: Genes::with_capacity(DEFAULT_NUM_GENES),
             omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
             ic: InformationContent::default(),
+            obsolete: false,
+            replacement: None,
         }
     }
 

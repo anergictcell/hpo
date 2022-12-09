@@ -32,7 +32,7 @@ fn main() {
     from_file(&mut collection);
 
     let mut omim_diseases: Vec<String> = Vec::new();
-    for term in collection.iter_terms() {
+    for term in collection.hpos() {
         omim_diseases.clear();
         for disease in term.omim_diseases() {
             omim_diseases.push(disease.id().to_string());

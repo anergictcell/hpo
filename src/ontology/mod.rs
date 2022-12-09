@@ -5,7 +5,6 @@ use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::term::HpoTerm;
 use crate::term::HpoTermInternal;
-use crate::term::HpoTermIterator;
 use crate::HpoParents;
 use crate::HpoTermId;
 use crate::OntologyResult;
@@ -226,67 +225,44 @@ impl Ontology {
         self.hpo_terms.get_unchecked_mut(term_id)
     }
 
-    pub fn get_term(&self, term_id: &HpoTermId) -> OntologyResult<HpoTerm> {
+    pub fn hpo(&self, term_id: &HpoTermId) -> OntologyResult<HpoTerm> {
         HpoTerm::try_new(self, term_id)
     }
 
-    pub fn get_gene(&self, gene_id: &GeneId) -> Option<&Gene> {
+    pub fn hpos(&self) -> OntologyIterator {
+        OntologyIterator {
+            inner: self.hpo_terms.values().iter(),
+            ontology: self,
+        }
+    }
+
+    pub fn gene(&self, gene_id: &GeneId) -> Option<&Gene> {
         self.genes.get(gene_id)
     }
 
-    pub fn get_gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
+    pub fn gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
         self.genes.get_mut(gene_id)
     }
 
-    pub fn get_omim_disease(&self, omim_disease_id: &OmimDiseaseId) -> Option<&OmimDisease> {
+    pub fn genes(&self) -> std::collections::hash_map::Values<'_, GeneId, Gene> {
+        self.genes.values()
+    }
+
+    pub fn omim_disease(&self, omim_disease_id: &OmimDiseaseId) -> Option<&OmimDisease> {
         self.omim_diseases.get(omim_disease_id)
     }
 
-    pub fn get_omim_disease_mut(
+    pub fn omim_disease_mut(
         &mut self,
         omim_disease_id: &OmimDiseaseId,
     ) -> Option<&mut OmimDisease> {
         self.omim_diseases.get_mut(omim_disease_id)
     }
 
-    /// Returns an iterator over all direct parents of the term
-    ///
-    /// Same as `HpoTerm.parents()`, but (one would think) it is more performant.
-    /// Turns out, there is no measurable difference
-    ///
-    /// TODO: Probably not needed
-    pub fn parents(&self, term_id: &HpoTermId) -> HpoTermIterator {
-        let term = self.get(term_id).unwrap();
-        HpoTermIterator::new(term.parents(), self)
-    }
-
-    /// Returns an iterator over all direct parents of the term
-    ///
-    /// Same as `HpoTerm.parents()`, but (one would think) it is more performant.
-    /// Turns out, there is no measurable difference
-    ///
-    /// TODO: Probably not needed
-    pub fn all_parents(&self, term_id: &HpoTermId) -> HpoTermIterator {
-        let term = self.get(term_id).unwrap();
-        HpoTermIterator::new(term.all_parents(), self)
-    }
-
-    /// TODO: Probably not needed
-    // pub fn common_ancestors(&self, t1: &HpoTermId, t2: &HpoTermId) -> HpoParents {
-    //     let term1 = self.get_unchecked(t1);
-    //     let term2 = self.get_unchecked(t2);
-    //     term1.all_parents() & term2.all_parents()
-    // }
-
-    // pub fn iter(&self) -> Iter<HpoTermId> {
-    //     self.hpo_ids.iter()
-    // }
-
-    pub fn iter_terms(&self) -> OntologyIterator {
-        OntologyIterator {
-            inner: self.hpo_terms.values().iter(),
-            ontology: self,
-        }
+    pub fn omim_diseases(
+        &self,
+    ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
+        self.omim_diseases.values()
     }
 }
 
@@ -305,12 +281,11 @@ impl<'a> std::iter::Iterator for OntologyIterator<'a> {
     }
 }
 
-
 impl<'a> IntoIterator for &'a Ontology {
     type Item = HpoTerm<'a>;
     type IntoIter = OntologyIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.iter_terms()
+        self.hpos()
     }
 }

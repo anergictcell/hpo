@@ -1,5 +1,12 @@
 /// Module to parse `hp.obo` file
-pub mod hp_obo {}
+pub mod hp_obo {
+
+//! This will work the following way:
+//! 1. Add new terms
+//! 2. Replace obsolete ones
+//! 3. Connect parents
+
+}
 
 /// Module to parse HPO - Gene associations from `phenotype_to_genes.txt` file
 pub mod phenotype_to_genes {
@@ -24,7 +31,8 @@ pub mod phenotype_to_genes {
             let term_id = HpoTermId::from(cols[0]);
             collection.link_gene_term(&term_id, gene_id);
 
-            collection.get_gene_mut(&gene_id)
+            collection
+                .gene_mut(&gene_id)
                 .expect("Cannot find gene")
                 .add_term(term_id);
         }
@@ -43,20 +51,20 @@ pub mod phenotype_hpoa {
     struct Omim<'a> {
         id: &'a str,
         name: &'a str,
-        hpo_id: HpoTermId
+        hpo_id: HpoTermId,
     }
 
     fn parse_line(line: &str) -> Option<Omim<'_>> {
         if line.starts_with('#') {
-            return None
+            return None;
         }
         if !line.starts_with("OMIM") {
-            return None
+            return None;
         }
 
         let cols: Vec<&str> = line.trim().split('\t').collect();
         if cols[2] == "NOT" {
-            return None
+            return None;
         }
 
         let (_, omim_id) = cols[0].split_once(':').unwrap();
@@ -64,7 +72,7 @@ pub mod phenotype_hpoa {
         Some(Omim {
             id: omim_id,
             name: cols[1],
-            hpo_id: HpoTermId::from(cols[3])
+            hpo_id: HpoTermId::from(cols[3]),
         })
     }
 
@@ -73,17 +81,16 @@ pub mod phenotype_hpoa {
         let file = File::open(file).unwrap();
         let reader = BufReader::new(file);
         for line in reader.lines() {
-
             let line = line.unwrap();
             if let Some(omim) = parse_line(&line) {
                 let omim_disease_id = collection.add_omim_disease(omim.name, omim.id).unwrap();
                 collection.link_omim_disease_term(&omim.hpo_id, omim_disease_id);
 
-                collection.get_omim_disease_mut(&omim_disease_id)
+                collection
+                    .omim_disease_mut(&omim_disease_id)
                     .expect("Cannot find gene")
                     .add_term(omim.hpo_id);
             }
-
         }
     }
 

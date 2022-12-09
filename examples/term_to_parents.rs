@@ -30,7 +30,7 @@ fn main() {
     from_file(&mut collection);
 
     let mut parents: Vec<String> = Vec::new();
-    for term in collection.iter_terms() {
+    for term in collection.hpos() {
         parents.clear();
         for parent in term.all_parents() {
             parents.push(parent.id().to_string());

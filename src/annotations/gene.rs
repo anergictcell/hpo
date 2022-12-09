@@ -90,7 +90,7 @@ impl<'a> std::iter::Iterator for GeneIterator<'a> {
     type Item = &'a Gene;
     fn next(&mut self) -> Option<Self::Item> {
         match self.genes.next() {
-            Some(gene_id) => Some(self.ontology.get_gene(gene_id).unwrap()),
+            Some(gene_id) => Some(self.ontology.gene(gene_id).unwrap()),
             None => None,
         }
     }

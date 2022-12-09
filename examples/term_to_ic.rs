@@ -32,7 +32,7 @@ fn main() {
     let mut collection = Ontology::default();
     from_file(&mut collection);
 
-    for term in collection.iter_terms() {
+    for term in collection.hpos() {
         println!(
             "{}\t{}\t{}",
             term.id(),

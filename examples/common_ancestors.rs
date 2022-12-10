@@ -3,11 +3,12 @@ use std::time::SystemTime;
 use hpo::HpoTermId;
 use hpo::Ontology;
 
-
 fn bench(ontology: &Ontology, times: usize) {
     let mut count = 0;
-    let mut terms: (HpoTermId, HpoTermId) =
-        (HpoTermId::try_from("HP:0000001").unwrap(), HpoTermId::try_from("HP:0000001").unwrap());
+    let mut terms: (HpoTermId, HpoTermId) = (
+        HpoTermId::try_from("HP:0000001").unwrap(),
+        HpoTermId::try_from("HP:0000001").unwrap(),
+    );
     let start = SystemTime::now();
     ontology.hpos().for_each(|term1| {
         for term2 in ontology.hpos().take(times) {

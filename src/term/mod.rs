@@ -1,11 +1,11 @@
-use core::fmt::Debug;
 use crate::Ontology;
+use core::fmt::Debug;
 
 mod group;
 mod hpoterm;
 mod hpotermid;
 mod information_content;
-pub (crate) mod internal;
+pub(crate) mod internal;
 mod parents;
 
 pub use group::{HpoGroup, HpoGroupIterator};
@@ -15,7 +15,6 @@ pub use information_content::{InformationContent, InformationContentKind};
 
 pub type HpoParents = HpoGroup;
 pub type HpoChildren = HpoGroup;
-
 
 pub struct HpoTermIterator<'a> {
     ontology: &'a Ontology,
@@ -36,7 +35,10 @@ impl<'a> std::iter::Iterator for HpoTermIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.parents.next() {
             Some(term) => {
-                let term = self.ontology.get(term).unwrap_or_else(|| panic!("Invalid HPO-Term: {}", term));
+                let term = self
+                    .ontology
+                    .get(term)
+                    .unwrap_or_else(|| panic!("Invalid HPO-Term: {}", term));
                 Some(HpoTerm::new(self.ontology, term))
             }
             None => None,

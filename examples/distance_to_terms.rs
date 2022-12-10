@@ -19,7 +19,6 @@ fn print_distance(term1: &HpoTerm, term2: &HpoTerm) {
 fn main() {
     let ontology = Ontology::from_standard("./example_data/");
 
-
     println!("finished creating Ontology");
 
     let mut args = std::env::args();

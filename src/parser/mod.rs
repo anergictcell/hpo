@@ -1,6 +1,5 @@
 use std::path::Path;
 
-
 use crate::Ontology;
 
 /// Module to parse `hp.obo` file
@@ -40,11 +39,11 @@ pub mod phenotype_to_genes {
 
 /// Module to parse HPO - OmimDisease associations from `phenotype.hpoa` file
 pub mod phenotype_hpoa {
-    use std::path::Path;
     use crate::HpoTermId;
     use std::fs::File;
     use std::io::BufRead;
     use std::io::BufReader;
+    use std::path::Path;
 
     use crate::Ontology;
 
@@ -106,13 +105,12 @@ pub mod phenotype_hpoa {
     }
 }
 
-
-pub (crate) fn load_from_standard_files<P: AsRef<Path>>(
+pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
     obo_file: P,
     gene_file: P,
     disease_file: P,
-    ontology: &mut Ontology
-    ) {
+    ontology: &mut Ontology,
+) {
     hp_obo::read_obo_file(obo_file, ontology);
     phenotype_to_genes::parse(gene_file, ontology);
     phenotype_hpoa::parse(disease_file, ontology);

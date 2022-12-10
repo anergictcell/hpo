@@ -4,11 +4,11 @@ use std::path::Path;
 
 use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
-use crate::term::HpoTerm;
 use crate::term::internal::HpoTermInternal;
-use crate::{HpoParents, parser};
+use crate::term::HpoTerm;
 use crate::HpoTermId;
 use crate::OntologyResult;
+use crate::{parser, HpoParents};
 
 use core::fmt::Debug;
 
@@ -38,7 +38,7 @@ impl Ontology {
             hpo_terms: Arena::default(),
             hpo_ids: Vec::with_capacity(crate::MAX_HPO_ID_INTEGER),
             genes: HashMap::default(),
-            omim_diseases: HashMap::default()
+            omim_diseases: HashMap::default(),
         }
     }
 
@@ -50,7 +50,6 @@ impl Ontology {
         let disease = path.join(crate::DISEASE_FILENAME);
         parser::load_from_standard_files(&obo, &gene, &disease, &mut ont);
         ont
-
     }
     fn all_grandparents(&mut self, term_id: &HpoTermId) -> &HpoParents {
         // This looks weird, but I could not find another way to statisfy the Borrow checker
@@ -236,11 +235,11 @@ impl Ontology {
         self.len() == 0
     }
 
-    pub (crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
+    pub(crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
         self.hpo_terms.get(term_id)
     }
 
-    pub (crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
+    pub(crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
         self.hpo_terms.get_unchecked(term_id)
     }
 

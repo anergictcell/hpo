@@ -190,7 +190,13 @@ mod tests {
         group2.insert(5u32.into());
 
         let result = group1.bitor(&group2);
-        let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into(), 3u32.into(), 4u32.into(), 5u32.into()];
+        let expected: Vec<HpoTermId> = vec![
+            1u32.into(),
+            2u32.into(),
+            3u32.into(),
+            4u32.into(),
+            5u32.into(),
+        ];
         assert_eq!(result.ids, expected);
     }
 

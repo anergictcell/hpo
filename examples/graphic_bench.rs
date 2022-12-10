@@ -8,7 +8,6 @@ use rayon::prelude::*;
 use hpo::GraphIc;
 use hpo::Ontology;
 
-
 fn bench(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
     let ic = GraphIc::new(hpo::InformationContentKind::Omim);

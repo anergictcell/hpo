@@ -3,13 +3,13 @@ use crate::annotations::{OmimDiseaseId, OmimDiseases};
 use crate::term::HpoGroup;
 use crate::term::InformationContent;
 use crate::term::{HpoChildren, HpoParents, HpoTermId};
-use crate::{DEFAULT_NUM_ALL_PARENTS, OntologyResult};
 use crate::DEFAULT_NUM_GENES;
 use crate::DEFAULT_NUM_OMIM;
 use crate::DEFAULT_NUM_PARENTS;
+use crate::{OntologyResult, DEFAULT_NUM_ALL_PARENTS};
 
 #[derive(Debug)]
-pub (crate) struct HpoTermInternal {
+pub(crate) struct HpoTermInternal {
     id: HpoTermId,
     name: String,
     parents: HpoParents,
@@ -124,7 +124,6 @@ impl HpoTermInternal {
         &mut self.ic
     }
 
-
     pub fn obsolete(&self) -> bool {
         self.obsolete
     }
@@ -140,7 +139,6 @@ impl HpoTermInternal {
     pub fn replacement_mut(&mut self) -> &mut Option<HpoTermId> {
         &mut self.replacement
     }
-
 }
 
 impl PartialEq for HpoTermInternal {

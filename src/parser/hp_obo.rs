@@ -1,36 +1,20 @@
-// //! This will work the following way:
-// //! 1. Add new terms
-// //! 2. Replace obsolete ones
-// //! 3. Connect parents
-
-
-/*
-Different options provided by lib:
-1. Read from OBO
-2. Have 
-    - one file with HPOTerm(id,name)
-    - one file with term->parents mapping
-
-*/
-
-// // }
 use log::{trace, warn};
 
 use crate::parser::Path;
 use std::fs;
 
-use crate::{HpoTermId, term::internal::HpoTermInternal, Ontology};
+use crate::{term::internal::HpoTermInternal, HpoTermId, Ontology};
 
 type Connections = Vec<(HpoTermId, HpoTermId)>;
 
-pub (super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology)  {
+pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology) {
     // stores tuples of Term - Parent
     let mut connections: Connections = Vec::new();
 
     let file_content = fs::read_to_string(filename).unwrap();
     for term in file_content.split("\n\n") {
         if let Some(term) = term.strip_prefix("[Term]\n") {
-            if let Some(raw_term) = term_from_obo(term){
+            if let Some(raw_term) = term_from_obo(term) {
                 let id = ontology.add_term(raw_term);
                 add_connections(&mut connections, term, id);
             } else {
@@ -55,10 +39,10 @@ fn term_from_obo(term: &str) -> Option<HpoTermInternal> {
         match parse_line(line) {
             ("id", value) => id = Some(value),
             ("name", value) => name = Some(value),
-            _ => ()
+            _ => (),
         }
         if let (Some(id), Some(name)) = (id, name) {
-            return Some(HpoTermInternal::try_new(id, name).unwrap())
+            return Some(HpoTermInternal::try_new(id, name).unwrap());
         }
     }
     None
@@ -68,20 +52,17 @@ fn add_connections(connections: &mut Connections, term: &str, id: HpoTermId) {
     for line in term.lines() {
         if let Some(value) = line.strip_prefix("is_a: ") {
             if let Some((term_id, _)) = value.split_once(' ') {
-                connections.push((id, HpoTermId::try_from(term_id).unwrap()))    
+                connections.push((id, HpoTermId::try_from(term_id).unwrap()))
             } else {
                 println!("Unable to parse HPO ID from {}", value)
             }
-            
         }
     }
 }
 
-
 fn parse_line(line: &str) -> (&str, &str) {
     line.split_once(": ").expect("unable to parse line")
 }
-
 
 #[cfg(test)]
 mod test {

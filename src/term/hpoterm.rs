@@ -1,4 +1,3 @@
-use crate::Similarity;
 use crate::annotations::GeneIterator;
 use crate::annotations::Genes;
 use crate::annotations::OmimDiseaseIterator;
@@ -8,6 +7,7 @@ use crate::term::HpoTermIterator;
 use crate::HpoParents;
 use crate::HpoTermId;
 use crate::Ontology;
+use crate::Similarity;
 
 use crate::HpoError;
 
@@ -46,7 +46,7 @@ impl<'a> HpoTerm<'a> {
         })
     }
 
-    pub (crate) fn new(ontology: &'a Ontology, term: &'a HpoTermInternal) -> HpoTerm<'a> {
+    pub(crate) fn new(ontology: &'a Ontology, term: &'a HpoTermInternal) -> HpoTerm<'a> {
         HpoTerm {
             id: term.id(),
             name: term.name(),
@@ -92,7 +92,7 @@ impl<'a> HpoTerm<'a> {
         }
 
         if self.all_parent_ids().contains(other.id()) {
-            res.insert(*other.id());    
+            res.insert(*other.id());
         }
 
         res
@@ -130,13 +130,13 @@ impl<'a> HpoTerm<'a> {
 
     pub fn distance_to_ancestor(&self, other: &HpoTerm) -> Option<usize> {
         if self.id() == other.id() {
-            return Some(0)
+            return Some(0);
         }
         if self.parent_ids().contains(other.id()) {
-            return Some(1)
+            return Some(1);
         }
         if !self.all_parent_ids().contains(other.id()) {
-            return None
+            return None;
         }
         self.parents()
             .filter_map(|p| p.distance_to_ancestor(other))
@@ -154,32 +154,32 @@ impl<'a> HpoTerm<'a> {
 
     pub fn path_to_ancestor(&self, other: &HpoTerm) -> Option<Vec<HpoTermId>> {
         if self.id() == other.id() {
-            return Some(vec![])
+            return Some(vec![]);
         }
         if self.parent_ids().contains(other.id()) {
-            return Some(vec![*other.id()])
+            return Some(vec![*other.id()]);
         }
         if !self.all_parent_ids().contains(other.id()) {
-            return None
+            return None;
         }
         self.parents()
-            .filter_map(|p| {
-                match p.path_to_ancestor(other) {
-                    Some(mut x) => {
-                        x.insert(0, *p.id);
-                        Some(x)
-                    },
-                    None => None
+            .filter_map(|p| match p.path_to_ancestor(other) {
+                Some(mut x) => {
+                    x.insert(0, *p.id);
+                    Some(x)
                 }
+                None => None,
             })
             .min_by_key(|x| x.len())
     }
 
     pub fn distance_to_term(&self, other: &HpoTerm) -> Option<usize> {
-        self.common_ancestors(other).map(
-            |parent|
-            self.distance_to_ancestor(&parent).unwrap() + other.distance_to_ancestor(&parent).unwrap()
-        ).min()
+        self.common_ancestors(other)
+            .map(|parent| {
+                self.distance_to_ancestor(&parent).unwrap()
+                    + other.distance_to_ancestor(&parent).unwrap()
+            })
+            .min()
     }
 }
 
@@ -190,10 +190,7 @@ pub struct HpoTermOverlap<'a> {
 
 impl<'a> HpoTermOverlap<'a> {
     fn new(overlap: HpoGroup, ontology: &'a Ontology) -> Self {
-        Self {
-            overlap,
-            ontology
-        }
+        Self { overlap, ontology }
     }
 }
 
@@ -203,11 +200,8 @@ impl<'a> Iterator for HpoTermOverlap<'a> {
         match self.overlap.pop() {
             Some(x) => {
                 let term = self.ontology.get_unchecked(&x);
-                Some(HpoTerm::new(
-                    self.ontology,
-                    term
-                ))
-            },
+                Some(HpoTerm::new(self.ontology, term))
+            }
             None => None,
         }
     }

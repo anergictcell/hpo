@@ -8,7 +8,7 @@ fn main() {
         parents.clear();
         for parent in term.all_parents() {
             parents.push(parent.id().to_string());
-        };
+        }
         parents.sort();
         println!("{}\t{}", term.id(), parents.join(","));
     }

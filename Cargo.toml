@@ -8,7 +8,7 @@ readme = "README.md"
 homepage = "https://github.com/anergictcell/hpo"
 repository = "https://github.com/anergictcell/hpo"
 license = "MIT"
-keywords = ["human phenotype ontology", "phenomics", "ontology", "omim", "similarity"]
+keywords = ["hpo", "phenomics", "ontology", "omim", "similarity"]
 categories = ["science", "data-structures", "parser-implementations"]
 
 

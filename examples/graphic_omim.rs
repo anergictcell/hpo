@@ -1,7 +1,7 @@
 use hpo::annotations::OmimDiseaseId;
-use hpo::HpoTermIterator;
 use hpo::GraphIc;
 use hpo::HpoTerm;
+use hpo::HpoTermIterator;
 use hpo::Ontology;
 
 fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {

@@ -6,7 +6,7 @@ use crate::HpoTermId;
 
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
-pub (crate) struct Arena {
+pub(crate) struct Arena {
     terms: Vec<HpoTermInternal>,
     ids: Vec<usize>,
 }

@@ -1,106 +1,35 @@
 # HPO
-This crate is currently a placeholder. I am trying to build a Rust version of [PyhPO](https://pypi.org/project/pyhpo/).
 
-Since the library is not yet in a working state, this crate is empty.
+This crate is a draft for a Rust implementation of [PyHPO](https://pypi.org/project/pyhpo/).
 
-If you find this project interesting, please get in touch, I could definitely need some help.
+> :warning: **Warning:** The library is a work in progress and I don't recommend using it at this stage.
 
-If you have another usecase for the `hpo` crate namespace and would like to use it, please let me know. I don't want to block the crate name if there are other or better use-cases for it.
+If you find this project interesting and want to contribute, please get in touch, I could definitely need some help. The code is not yet well documented and does not yet have many tests. At the moment, I'm primarily trying to get a working PoC. Once I'm there, I will adjust many method names and functionality and add more documentation and tests. The library does not contain any error handling and uses `unwrap` a lot - I plan to change this once I am ready to stabilize the overall API a bit more.
 
-## Basic requirements and use-cases
-- Parse `obo` files and build an internal HPO ontology
-- Parse annotation and metadata (genes and diseases)
-- Connect HPO terms to genes and diseases
-- Calculate the Information coefficient for all HPO terms
-- Implement various similarity score algorithms
-- Allow grouping of HPO terms into Sets, corresponding with the clinical information of a patient
-- Implement similarity scores for sets
-- Getting a single term from the ontology must be an O(1) operation
-    - Access must be possible by ID and by name
-- Traversing the hierarchy starting with one term must be fast
-- Search functionality by term name (substring) (can be O(n) complex)
-- Visualization of the ontology and relationshoips (e.g. via Graphviz)
-- Implement Python bindings
-- Be faster than PyHPO
+If you have another usecase for the `hpo` crate namespace and would like to use it, please let me know. I don't want to block the crate name if there are better use-cases for it.
 
-### HPO-Term requirement
-- Links to parent and child terms
-- Links to genes and diseases
+## What is this?
 
-### Ontology requirements
-- Allows iterating all terms
-- Allows iterating all genes or diseases
-- contains both HPO terms and annotations
-- Provides methods to get terms and annotation in O(1) time
+HPO, the [Human Phenotype Ontology](https://hpo.jax.org/app/) is a standard vocabulary of phenotypic abnormalities in human diseases. It is an Ontology, so all terms are connected to each other, similar to a directed graph.  
+This crate should give some convinient APIs to work with the ontology. The main goals are to compare terms to each other and also compare group of terms to each other.
+For example, the terms `Migraine without aura` and `Migraine with aura` are more similar to each other than `Migraine` and `Seizure`. To add more complexity, patients usually have more than one phenotypical abnormality. So in order to compare two patients to each other, we must cross-compare all individual terms. Eventually we might want to cluster hundreds or thousands of patients based on phenotypical similarity.
 
-### Misc requirements
-- API must provide an easy way to jump from one term to a related term. No need to pass around references to an arena and a term or something like it
-- HPOTerms must be mutable initially and then can/should become immutable
-    - We can only create the links to parents and children once all HPO terms are parsed
+The [PyHPO](https://pypi.org/project/pyhpo/) Python library provides functionality for these comparisons, providing several different similarity and grouping algorithms. However, since its written in Python it is rather slow. Unfortunately the design of PyHPO does not allow multithreading or parallel processing, which makes scaling rather difficult.
 
-## Assumptions and Preconditions
-- Ontology has around 20,000 terms (currently around 18.000)
-- Around 20,000 genes and diseases (genes < 20,000, diseases ~10,000)
-- Term ID can be easily converted to a unique integer
-- Term ID is not continuous and there are huge gaps in between. The IDs are defined in batches
-- The term ID is unique
-- The term name is unique
-- Diseases have a unique integer ID (non continuos)
-- Genes have a unique integer ID (non continuos) and a unique name
-- Focus only on human phenotypes, genes and diseases
-- Currently disease sources are Omim, Orpha and Decipher
+I want to overcome these limitations here with a Rust library.
 
-## Problems
-- The ontology can have mixed types that are connected to each other
-- HPO - HPO
-- HPO - Gene
-- HPO - Disease
-- Gene - Disease
-
-## Architecture and Design
-### Data model of the Ontology
-Setting up the ontology and individual terms brings some issues that complicate the overall setup. We must have a way to traverse the ontology from one term to another. This means that we must record all edges (connections) between the nodes (terms) in an efficient manner.
-The `PyHPO` library utilzes Python's reference counting and aliasing functionality so that every term has references to all its direct children and direct parent terms. This allows efficient traversal, while at the same time allowing mutability of terms without sacrificing memory safety.
-The mutability is important, because we can only link the references to parents and children after all terms are created. So we must rely on mutability during initialization. Once all terms and the ontology is fully built, we don't require mutability anymore.
-
-Rust has a much stricter type system and it does not allow one object to have multiple references together with a mutable reference.
-In [this very helpfully article](https://github.com/nrc/r4cppp/blob/master/graphs/README.md) two different options are suggesed. Using `Rc` (similar to Python's implementation) or using `UnsafeCell` and manage terms through an `arena`. Another option would similar to the arena approach: We could initialize all terms in a `Vec<HpoTerm>` and use the term-id (which is an integer) as the index of the record in the Vector. This would mean that the vector contains many empty records, but the Term-IDs are (almost) like an auto-increment number, so empty records would be sparse and should not be a problem for the memory.
-However, this does not work if we want to work with pointers, since the memory location of the items changes when the vector is moved or resized.
-
-Another option would be a dedicated graph data backend. The advantage would be that it includes several graph traversal and path finding algoriths that we could use. [petgraph](https://docs.rs/petgraph/latest/petgraph/index.html) looks very promising and could also print visual representations. In order to have constant time lookup, we would need a Hashmap that holds the HPO-Term-ID or HPO-Term-Name as key (`&str`) and the internal `NodeIndex` as value.
-
-The main problem with a Graph is that we must have access to the Graph for all functions. So we could not call a method on HpoTerm or we would have to keep a reference to the Graph in every node (which sounds like it would cause a lot of issues with the borrow checker). Or every HPO term must keep references to all directly related HPO-terms.
-```rust
-struct HpoTerm {
-    parents: Vec<&HpoTerm>,
-    children: Vec<&HpoTerm>
-}
-```
+There is some info about the plans for the implementation in the [Technical Design document](https://github.com/anergictcell/hpo/blob/main/TechnicalDesign.md)
 
 
-I'm currently favoring the following idea:
-Use a `typedArena::Arena` to store all `HpoTerm`s. Create a vector with `len() == max-id of HPO-terms` and fill with Option<&HpoTerm>
+## API suggestions
+At the moment, not all functionality in here is working, but most of it is. Check out the `examples` folder in the Github repository for some ways to use it.
 
-- Data model for Ontology
-    - check existing ontology crates (e.g. `fastobo`), append functionality
-    - check graph data structure implementations <>
-    - provide some serialization of the data for faster startups
-- obo file parser (input: File; output: Ontology)
-- annotation metadata parser (input: File, ontology; output: Ontology)
-- term similarity calculator (input: term-a, term-b; output: sim-score)
-- HPO-set similarity calculator (input: term-a, term-b; output: sim-score)
-
-Use <https://mermaid.live> for documentation
-
-
-### API suggestions
-
-#### Ontology
-```rust
+### Ontology
+```ignore
 let ontology = some_function();
 
 // iterate HPO terms
-for term in ontology.hpos() {
+for term in ontology {
     // do something with term
 }
 
@@ -134,8 +63,8 @@ let disease = ontology.omim_disease(disease_id);
 let disease = ontology.omim_by_name("Gaucher");
 ```
 
-#### HPO term
-```rust
+### HPO term
+```ignore
 let term = some_function();
 
 assert_eq!("Abnormality of the nervous system", term.name());
@@ -158,4 +87,12 @@ assert!(term2.child_of(term));
 
 assert!(!term2.parent_of(term));
 assert!(!term.child_of(term2));
+```
+
+### Similarity
+```ignore
+let term = some_function();
+let term2 = some_other_function()
+let ic = GraphIc::new(hpo::InformationContentKind::Omim);
+let similarity = term1.similarity_score(&term2, &ic);
 ```

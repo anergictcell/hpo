@@ -1,19 +1,31 @@
+#![doc = include_str!("../README.md")]
 #![allow(dead_code)]
 use core::fmt::Debug;
-use std::collections::HashSet;
 use std::num::ParseIntError;
-
 use thiserror::Error;
+
+pub mod annotations;
+mod matrix;
 mod ontology;
+pub mod parser;
+mod set;
+pub mod similarity;
 mod term;
-mod annotations;
-pub use crate::term::HpoParents;
-pub use crate::term::HpoTermId;
+
 pub use ontology::Ontology;
+pub use similarity::{GraphIc, Similarity};
+pub use term::{HpoParents, HpoTerm, HpoTermId, InformationContentKind};
+pub use term::HpoTermIterator;
 
 const DEFAULT_NUM_PARENTS: usize = 10;
 const DEFAULT_NUM_ALL_PARENTS: usize = 50;
 const DEFAULT_NUM_GENES: usize = 50;
+const DEFAULT_NUM_OMIM: usize = 20;
+const MAX_HPO_ID_INTEGER: usize = 10_000_000;
+
+const OBO_FILENAME : &str = "hp.obo";
+const GENE_FILENAME: &str  = "phenotype_to_genes.txt";
+const DISEASE_FILENAME: &str = "phenotype.hpoa";
 
 #[derive(Error, Debug)]
 pub enum HpoError {
@@ -22,7 +34,7 @@ pub enum HpoError {
     #[error("term does not exist")]
     DoesNotExist,
     #[error("unable to parse Integer")]
-    ParseIntError
+    ParseIntError,
 }
 
 impl From<ParseIntError> for HpoError {
@@ -32,7 +44,3 @@ impl From<ParseIntError> for HpoError {
 }
 
 type OntologyResult<T> = Result<T, HpoError>;
-
-enum HpoLink {
-    Parent,
-}

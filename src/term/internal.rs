@@ -1,33 +1,63 @@
-use crate::annotations::{Genes, GeneId};
-use crate::term::{HpoChildren, HpoParents, HpoTermId};
-use crate::HashSet;
-use crate::DEFAULT_NUM_ALL_PARENTS;
-use crate::DEFAULT_NUM_PARENTS;
-use crate::DEFAULT_NUM_GENES;
+use crate::annotations::{GeneId, Genes};
+use crate::annotations::{OmimDiseaseId, OmimDiseases};
+use crate::term::HpoGroup;
 use crate::term::InformationContent;
+use crate::term::{HpoChildren, HpoParents, HpoTermId};
+use crate::{DEFAULT_NUM_ALL_PARENTS, OntologyResult};
+use crate::DEFAULT_NUM_GENES;
+use crate::DEFAULT_NUM_OMIM;
+use crate::DEFAULT_NUM_PARENTS;
 
 #[derive(Debug)]
-pub struct HpoTermInternal {
+pub (crate) struct HpoTermInternal {
     id: HpoTermId,
     name: String,
     parents: HpoParents,
     all_parents: HpoParents,
     children: HpoChildren,
     genes: Genes,
+    omim_diseases: OmimDiseases,
     ic: InformationContent,
+    obsolete: bool,
+    replacement: Option<HpoTermId>,
+}
+
+impl Default for HpoTermInternal {
+    fn default() -> Self {
+        HpoTermInternal::new(String::from("HP:0000000"), 0u32.into())
+    }
 }
 
 impl HpoTermInternal {
-    pub fn new(name: &str) -> HpoTermInternal {
+    pub fn new(name: String, id: HpoTermId) -> HpoTermInternal {
         HpoTermInternal {
-            id: name.into(),
-            name: name.to_string(),
-            parents: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
-            all_parents: HashSet::with_capacity(DEFAULT_NUM_ALL_PARENTS),
-            children: HashSet::with_capacity(DEFAULT_NUM_PARENTS),
-            genes: HashSet::with_capacity(DEFAULT_NUM_GENES),
-            ic: InformationContent::default()
+            id,
+            name,
+            parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
+            all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
+            children: HpoChildren::with_capacity(DEFAULT_NUM_PARENTS),
+            genes: Genes::with_capacity(DEFAULT_NUM_GENES),
+            omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
+            ic: InformationContent::default(),
+            obsolete: false,
+            replacement: None,
         }
+    }
+
+    pub fn try_new(id: &str, name: &str) -> OntologyResult<HpoTermInternal> {
+        let id = HpoTermId::try_from(id)?;
+        Ok(HpoTermInternal {
+            id,
+            name: name.to_string(),
+            parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
+            all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
+            children: HpoChildren::with_capacity(DEFAULT_NUM_PARENTS),
+            genes: Genes::with_capacity(DEFAULT_NUM_GENES),
+            omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
+            ic: InformationContent::default(),
+            obsolete: false,
+            replacement: None,
+        })
     }
 
     pub fn id(&self) -> &HpoTermId {
@@ -42,6 +72,10 @@ impl HpoTermInternal {
         &self.parents
     }
 
+    pub fn children(&self) -> &HpoChildren {
+        &self.children
+    }
+
     pub fn all_parents(&self) -> &HpoParents {
         &self.all_parents
     }
@@ -52,6 +86,10 @@ impl HpoTermInternal {
 
     pub fn genes(&self) -> &Genes {
         &self.genes
+    }
+
+    pub fn omim_diseases(&self) -> &OmimDiseases {
+        &self.omim_diseases
     }
 
     pub fn parents_cached(&self) -> bool {
@@ -73,8 +111,37 @@ impl HpoTermInternal {
     pub fn add_gene(&mut self, gene_id: GeneId) -> bool {
         self.genes.insert(gene_id)
     }
-}
 
+    pub fn add_omim_disease(&mut self, omim_disease_id: OmimDiseaseId) -> bool {
+        self.omim_diseases.insert(omim_disease_id)
+    }
+
+    pub fn information_content(&self) -> &InformationContent {
+        &self.ic
+    }
+
+    pub fn information_content_mut(&mut self) -> &mut InformationContent {
+        &mut self.ic
+    }
+
+
+    pub fn obsolete(&self) -> bool {
+        self.obsolete
+    }
+
+    pub fn obsolete_mut(&mut self) -> &mut bool {
+        &mut self.obsolete
+    }
+
+    pub fn replacement(&self) -> Option<HpoTermId> {
+        self.replacement
+    }
+
+    pub fn replacement_mut(&mut self) -> &mut Option<HpoTermId> {
+        &mut self.replacement
+    }
+
+}
 
 impl PartialEq for HpoTermInternal {
     fn eq(&self, other: &Self) -> bool {

@@ -1,10 +1,12 @@
 #![allow(clippy::slow_vector_initialization)]
-use crate::term::HpoTermInternal;
+use log::trace;
+
+use crate::term::internal::HpoTermInternal;
 use crate::HpoTermId;
 
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
-pub struct Arena {
+pub (crate) struct Arena {
     terms: Vec<HpoTermInternal>,
     ids: Vec<usize>,
 }
@@ -43,7 +45,7 @@ impl Arena {
     pub fn get(&self, id: &HpoTermId) -> Option<&HpoTermInternal> {
         match self.ids[id.to_usize()] {
             0 => {
-                println!("0 lookup: {}", id);
+                trace!("Term does not exist in Arena: {}", id);
                 None
             }
             n => Some(&self.terms[n]),

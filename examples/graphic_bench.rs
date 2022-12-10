@@ -1,52 +1,19 @@
 use std::env::args;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
 use std::time::SystemTime;
 
 use hpo::HpoTerm;
 use hpo::HpoTermId;
 use rayon::prelude::*;
 
-use hpo::parser;
 use hpo::GraphIc;
 use hpo::Ontology;
 
-fn from_file(collection: &mut Ontology) {
-    println!("Reading terms");
-    let file = File::open("terms.txt").unwrap();
-    let reader = BufReader::new(file);
-    for term in reader.lines() {
-        collection.add_term_by_name(&term.unwrap());
-    }
-    collection.shrink_to_fit();
-    println!("finished adding terms");
 
-    let file = File::open("connections.txt").unwrap();
-    let reader = BufReader::new(file);
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let cols: Vec<&str> = line.splitn(2, '\t').collect();
-        collection.add_parent(cols[1].try_into().unwrap(), cols[0].try_into().unwrap());
-    }
-    println!("finished adding connections");
-    collection.create_cache();
-    println!("finished caching");
-
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    println!("finished linking genes");
-
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    parser::phenotype_hpoa::parse("phenotype.hpoa", collection);
-    collection.calculate_information_content();
-    println!("Finished Information content calculation");
-}
-
-fn bench(collection: &Ontology, times: usize) {
+fn bench(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
     let ic = GraphIc::new(hpo::InformationContentKind::Omim);
-    for term1 in collection.hpos() {
-        for term2 in collection.hpos().take(times) {
+    for term1 in ontology.hpos() {
+        for term2 in ontology.hpos().take(times) {
             let overlap = term1.similarity_score(&term2, &ic);
             if overlap > 1.1 {
                 println!("This part is never reached but is left so that the compiler doesn't optimize the loop away :)")
@@ -58,20 +25,20 @@ fn bench(collection: &Ontology, times: usize) {
     println!(
         "It took {} seconds for {} x {} terms.",
         duration.as_secs(),
-        collection.len(),
-        std::cmp::min(times, collection.len()),
+        ontology.len(),
+        std::cmp::min(times, ontology.len()),
     );
 }
 
-fn parallel(collection: &Ontology, times: usize) {
+fn parallel(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
     let ic = GraphIc::new(hpo::InformationContentKind::Omim);
 
-    let terms: Vec<HpoTerm> = collection.into_iter().collect();
+    let terms: Vec<HpoTerm> = ontology.into_iter().collect();
     let scores: Vec<(HpoTermId, HpoTermId, f32)> = terms.par_iter()
     .map(|term1| {
         let mut inner_score = Vec::new();
-        for term2 in collection.into_iter().take(times) {
+        for term2 in ontology.into_iter().take(times) {
             let overlap = term1.similarity_score(&term2, &ic);
             inner_score.push((*term1.id(), *term2.id(), overlap));
             if overlap > 1.1 {
@@ -86,32 +53,32 @@ fn parallel(collection: &Ontology, times: usize) {
     println!(
         "It took {} seconds for {} x {} terms: {}.",
         duration.as_secs(),
-        collection.len(),
-        std::cmp::min(times, collection.len()),
+        ontology.len(),
+        std::cmp::min(times, ontology.len()),
         scores.len()
     );
 }
 
 fn main() {
-    let mut collection = Ontology::default();
-    from_file(&mut collection);
+    let mut ontology = Ontology::from_standard("./example_data/");
+    ontology.calculate_information_content();
 
     println!("finished creating Ontology");
 
     if args().len() == 2 {
-        parallel(&collection, 5);
-        parallel(&collection, 50);
-        parallel(&collection, 500);
-        parallel(&collection, 1000);
-        parallel(&collection, 10000);
-        parallel(&collection, 20000);
+        parallel(&ontology, 5);
+        parallel(&ontology, 50);
+        parallel(&ontology, 500);
+        parallel(&ontology, 1000);
+        parallel(&ontology, 10000);
+        parallel(&ontology, 20000);
     } else {
-        bench(&collection, 5);
-        bench(&collection, 50);
-        bench(&collection, 500);
-        bench(&collection, 1000);
-        bench(&collection, 10000);
-        // bench(&collection, 20000);
+        bench(&ontology, 5);
+        bench(&ontology, 50);
+        bench(&ontology, 500);
+        bench(&ontology, 1000);
+        bench(&ontology, 10000);
+        bench(&ontology, 20000);
     }
 
     /*

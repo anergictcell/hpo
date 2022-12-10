@@ -1,0 +1,67 @@
+format-version: 1.2
+data-version: hp/releases/2022-10-05
+other: values
+
+[Term]
+id: HP:0000217
+name: Xerostomia
+alt_id: HP:0002709
+alt_id: HP:0100756
+def: "Dryness of the mouth due to salivary gland dysfunction." [HPO:probinson]
+subset: hposlim_core
+synonym: "Decreased salivary flow" BROAD layperson [ORCID:0000-0001-5889-4463]
+synonym: "Dry mouth" EXACT layperson []
+synonym: "Dry mouth syndrome" EXACT layperson []
+synonym: "Reduced salivation" EXACT layperson []
+xref: MSH:D014987
+xref: SNOMEDCT_US:300268000
+xref: SNOMEDCT_US:56893005
+xref: SNOMEDCT_US:87715008
+xref: UMLS:C0043352
+
+[Term]
+id: HP:0000218
+name: High palate
+alt_id: HP:0000156
+alt_id: HP:0009080
+alt_id: HP:0009082
+alt_id: HP:0009097
+def: "Height of the palate more than 2 SD above the mean (objective) or palatal height at the level of the first permanent molar more than twice the height of the teeth (subjective)." [PMID:19125428]
+comment: The measuring device for this assessment is described in (Hall JG, Froster-Iskenius UG, Allanson JE, Gripp K, Slavotinek A. 2006. Handbook of Normal Physical Measurements. 2nd edition. Oxford Medical, publishers). A high palate is often associated with a narrow palate. However, a narrow palate can easily give a false appearance of a high palate. Height and width of the palate should be assessed and coded separately. We do not recommend the subjective determination because this term can be overused and\napplied inaccurately.
+synonym: "Elevated palate" EXACT layperson [ORCID:0000-0001-5889-4463]
+synonym: "High arched palate" EXACT []
+synonym: "High palate" EXACT layperson []
+synonym: "High, arched palate" EXACT []
+synonym: "High-arched palate" EXACT []
+synonym: "Increased palatal height" EXACT layperson [ORCID:0000-0001-5889-4463]
+synonym: "Ogival palate" RELATED []
+synonym: "Palate high-arched" EXACT []
+synonym: "Palate, high-arched" EXACT []
+xref: SNOMEDCT_US:27272007
+xref: UMLS:C0240635
+is_a: HP:0000217 ! Xerostomia
+
+[Term]
+id: HP:0000219
+name: Thin upper lip vermilion
+alt_id: HP:0200062
+alt_id: HP:0200086
+def: "Height of the vermilion of the upper lip in the midline more than 2 SD below the mean. Alternatively, an apparently reduced height of the vermilion of the upper lip in the frontal view (subjective)." [PMID:19125428]
+comment: Normal values for the height of the vermilion are available [Farkas, 1981], but measurements are not commonly used. Most clinicians determine this feature subjectively or use the Likert scale for Caucasians and African Americans [Astley and Clarren, 2000]. The height of the vermilion of the upper lip varies among ethnic groups, and the vermilion should be compared to a population of same ethnic background. The thinness of the upper lip vermilion is sensitive to facial expression. On profile view, a thin vermilion is less convex than usual. A thin upper lip vermilion may be associated with a smooth philtrum and an absence of the Cupid's bow, but these should be assessed separately.
+subset: hposlim_core
+synonym: "Decreased height of upper lip vermilion" EXACT [ORCID:0000-0001-5889-4463]
+synonym: "Decreased volume of upper lip" EXACT [ORCID:0000-0001-5889-4463]
+synonym: "Decreased volume of upper lip vermilion" EXACT [ORCID:0000-0001-5889-4463]
+synonym: "Thin red part of the upper lip" NARROW layperson [ORCID:0000-0001-5889-4463]
+synonym: "Thin upper lip" EXACT layperson [HPO:skoehler]
+synonym: "Thin upper lips" RELATED [HPO:skoehler]
+synonym: "Thin vermilion border of upper lip" EXACT []
+xref: UMLS:C1865017
+is_a: HP:0000218 ! High palate
+is_a: HP:0000217 ! Xerostomia
+
+[Term]
+id: HP:0000284
+name: obsolete Abnormality of the ocular region
+is_obsolete: true
+replaced_by: HP:0000315

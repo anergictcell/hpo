@@ -144,9 +144,9 @@ mod tests {
     #[test]
     fn test_hpogroup_iter() {
         let mut group = HpoGroup::new();
-        group.insert(1.into());
-        group.insert(2.into());
-        group.insert(3.into());
+        group.insert(1u32.into());
+        group.insert(2u32.into());
+        group.insert(3u32.into());
 
         let mut ids = Vec::new();
         for id in &group {
@@ -163,52 +163,52 @@ mod tests {
     #[test]
     fn test_bitor_set1() {
         let mut group1 = HpoGroup::new();
-        group1.insert(1.into());
-        group1.insert(2.into());
-        group1.insert(3.into());
+        group1.insert(1u32.into());
+        group1.insert(2u32.into());
+        group1.insert(3u32.into());
 
         let mut group2 = HpoGroup::new();
-        group2.insert(2.into());
-        group2.insert(4.into());
+        group2.insert(2u32.into());
+        group2.insert(4u32.into());
 
         let result = group1.bitor(&group2);
-        let expected: Vec<HpoTermId> = vec![1.into(), 2.into(), 3.into(), 4.into()];
+        let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into(), 3u32.into(), 4u32.into()];
         assert_eq!(result.ids, expected);
     }
 
     #[test]
     fn test_bitor_set2() {
         let mut group1 = HpoGroup::new();
-        group1.insert(1.into());
-        group1.insert(2.into());
-        group1.insert(3.into());
+        group1.insert(1u32.into());
+        group1.insert(2u32.into());
+        group1.insert(3u32.into());
 
         let mut group2 = HpoGroup::new();
-        group2.insert(1.into());
-        group2.insert(2.into());
-        group2.insert(4.into());
-        group2.insert(5.into());
+        group2.insert(1u32.into());
+        group2.insert(2u32.into());
+        group2.insert(4u32.into());
+        group2.insert(5u32.into());
 
         let result = group1.bitor(&group2);
-        let expected: Vec<HpoTermId> = vec![1.into(), 2.into(), 3.into(), 4.into(), 5.into()];
+        let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into(), 3u32.into(), 4u32.into(), 5u32.into()];
         assert_eq!(result.ids, expected);
     }
 
     #[test]
     fn test_bitand() {
         let mut group1 = HpoGroup::new();
-        group1.insert(1.into());
-        group1.insert(2.into());
-        group1.insert(3.into());
+        group1.insert(1u32.into());
+        group1.insert(2u32.into());
+        group1.insert(3u32.into());
 
         let mut group2 = HpoGroup::new();
-        group2.insert(2.into());
-        group2.insert(4.into());
-        group2.insert(5.into());
-        group2.insert(1.into());
+        group2.insert(2u32.into());
+        group2.insert(4u32.into());
+        group2.insert(5u32.into());
+        group2.insert(1u32.into());
 
         let result = group1.bitand(&group2);
-        let expected: Vec<HpoTermId> = vec![1.into(), 2.into()];
+        let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into()];
         assert_eq!(result.ids, expected);
     }
 }

@@ -18,6 +18,7 @@ The [PyHPO](https://pypi.org/project/pyhpo/) Python library provides functionali
 
 I want to overcome these limitations here with a Rust library.
 
+There is some info about the plans for the implementation in the [Technical Design document](https://github.com/anergictcell/hpo/blob/main/TechnicalDesign.md)
 
 
 ## API suggestions

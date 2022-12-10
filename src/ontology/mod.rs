@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::ops::BitOr;
+use std::path::Path;
 
 use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::term::HpoTerm;
-use crate::term::HpoTermInternal;
-use crate::HpoParents;
+use crate::term::internal::HpoTermInternal;
+use crate::{HpoParents, parser};
 use crate::HpoTermId;
 use crate::OntologyResult;
 
@@ -32,6 +33,25 @@ impl Debug for Ontology {
 ///
 /// Those methods should not be exposed publicly
 impl Ontology {
+    pub fn empty() -> Self {
+        Self {
+            hpo_terms: Arena::default(),
+            hpo_ids: Vec::with_capacity(crate::MAX_HPO_ID_INTEGER),
+            genes: HashMap::default(),
+            omim_diseases: HashMap::default()
+        }
+    }
+
+    pub fn from_standard(folder: &str) -> Self {
+        let mut ont = Ontology::empty();
+        let path = Path::new(folder);
+        let obo = path.join(crate::OBO_FILENAME);
+        let gene = path.join(crate::GENE_FILENAME);
+        let disease = path.join(crate::DISEASE_FILENAME);
+        parser::load_from_standard_files(&obo, &gene, &disease, &mut ont);
+        ont
+
+    }
     fn all_grandparents(&mut self, term_id: &HpoTermId) -> &HpoParents {
         // This looks weird, but I could not find another way to statisfy the Borrow checker
         let cached = {
@@ -59,6 +79,7 @@ impl Ontology {
         *term.all_parents_mut() = res.bitor(&parents);
     }
 
+    /// TODO: Limit pub to pub (crate)
     pub fn create_cache(&mut self) {
         let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
 
@@ -67,18 +88,20 @@ impl Ontology {
         }
     }
 
-    fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
+    pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
         let id = *term.id();
         self.hpo_terms.insert(id, term);
         self.hpo_ids.push(id);
         id
     }
 
+    /// This method is only for initial mocking TODO: Remove
     pub fn add_term_by_name(&mut self, name: &str) -> HpoTermId {
-        let t = HpoTermInternal::new(name);
+        let t = HpoTermInternal::new(String::from(name), name.try_into().unwrap());
         self.add_term(t)
     }
 
+    /// This method is only for initial mocking TODO: Remove
     pub fn add_parent(&mut self, parent_id: HpoTermId, child_id: HpoTermId) {
         let parent = self.get_unchecked_mut(&parent_id);
         parent.add_child(child_id);
@@ -91,17 +114,13 @@ impl Ontology {
     pub fn shrink_to_fit(&mut self) {
         self.hpo_terms.shrink_to_fit();
     }
-
-    pub fn len(&self) -> usize {
-        self.hpo_terms.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
 }
 
 /// Methods to add annotations
+///
+/// These methods should rarely (if ever) be used by clients.
+/// Calling these functions might disrupt or otherwise modify
+/// the Ontology and associated terms.
 impl Ontology {
     pub fn add_gene(&mut self, gene_name: &str, gene_id: &str) -> OntologyResult<GeneId> {
         let id = GeneId::try_from(gene_id)?;
@@ -209,11 +228,19 @@ impl Ontology {
 ///
 /// Those methods are all safe to use
 impl Ontology {
-    pub fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
+    pub fn len(&self) -> usize {
+        self.hpo_terms.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub (crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
         self.hpo_terms.get(term_id)
     }
 
-    pub fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
+    pub (crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
         self.hpo_terms.get_unchecked(term_id)
     }
 
@@ -225,8 +252,8 @@ impl Ontology {
         self.hpo_terms.get_unchecked_mut(term_id)
     }
 
-    pub fn hpo(&self, term_id: &HpoTermId) -> OntologyResult<HpoTerm> {
-        HpoTerm::try_new(self, term_id)
+    pub fn hpo(&self, term_id: &HpoTermId) -> Option<HpoTerm> {
+        HpoTerm::try_new(self, term_id).ok()
     }
 
     pub fn hpos(&self) -> OntologyIterator {

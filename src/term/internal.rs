@@ -9,7 +9,7 @@ use crate::DEFAULT_NUM_OMIM;
 use crate::DEFAULT_NUM_PARENTS;
 
 #[derive(Debug)]
-pub struct HpoTermInternal {
+pub (crate) struct HpoTermInternal {
     id: HpoTermId,
     name: String,
     parents: HpoParents,
@@ -24,15 +24,15 @@ pub struct HpoTermInternal {
 
 impl Default for HpoTermInternal {
     fn default() -> Self {
-        HpoTermInternal::new("HP:0000000")
+        HpoTermInternal::new(String::from("HP:0000000"), 0u32.into())
     }
 }
 
 impl HpoTermInternal {
-    pub fn new(name: &str) -> HpoTermInternal {
+    pub fn new(name: String, id: HpoTermId) -> HpoTermInternal {
         HpoTermInternal {
-            id: name.try_into().unwrap(),
-            name: name.to_string(),
+            id,
+            name,
             parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
             all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
             children: HpoChildren::with_capacity(DEFAULT_NUM_PARENTS),
@@ -70,6 +70,10 @@ impl HpoTermInternal {
 
     pub fn parents(&self) -> &HpoParents {
         &self.parents
+    }
+
+    pub fn children(&self) -> &HpoChildren {
+        &self.children
     }
 
     pub fn all_parents(&self) -> &HpoParents {

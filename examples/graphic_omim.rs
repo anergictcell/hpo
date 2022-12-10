@@ -1,36 +1,8 @@
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-
 use hpo::annotations::OmimDiseaseId;
-use hpo::parser;
-use hpo::term::HpoTermIterator;
+use hpo::HpoTermIterator;
 use hpo::GraphIc;
 use hpo::HpoTerm;
 use hpo::Ontology;
-
-fn from_file(collection: &mut Ontology) {
-    let file = File::open("terms.txt").unwrap();
-    let reader = BufReader::new(file);
-    for term in reader.lines() {
-        collection.add_term_by_name(&term.unwrap());
-    }
-    collection.shrink_to_fit();
-
-    let file = File::open("connections.txt").unwrap();
-    let reader = BufReader::new(file);
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let cols: Vec<&str> = line.splitn(2, '\t').collect();
-        collection.add_parent(cols[1].try_into().unwrap(), cols[0].try_into().unwrap());
-    }
-    collection.create_cache();
-
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    parser::phenotype_hpoa::parse("phenotype.hpoa", collection);
-    collection.calculate_information_content();
-}
 
 fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
     let ic = GraphIc::new(hpo::InformationContentKind::Omim);
@@ -52,19 +24,10 @@ fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
 }
 
 fn main() {
-    let mut collection = Ontology::default();
-    from_file(&mut collection);
+    let mut ontology = Ontology::from_standard("./example_data/");
+    ontology.calculate_information_content();
 
-    scores_for_disease("300486".try_into().unwrap(), &collection);
-
-    /*
-    Expected times:
-    It took 0 seconds for 5 terms. HP:0000001 and HP:0000001 have 1 score
-    It took 0 seconds for 50 terms. HP:0000001 and HP:0000001 have 1 score
-    It took 1 seconds for 500 terms. HP:0000001 and HP:0000001 have 1 score
-    It took 3 seconds for 1000 terms. HP:0000001 and HP:0000001 have 1 score
-    It took 40 seconds for 10000 terms. HP:0000001 and HP:0000001 have 1 score
-    */
+    scores_for_disease("300486".try_into().unwrap(), &ontology);
 }
 
 /*
@@ -85,5 +48,4 @@ with open("graphic_omim.py.txt", "w") as fh:
         for term2 in terms:
             ic = term1.similarity_score(term2, kind="omim", method="graphic")
             _ = fh.write(f"{term1.id}\t{term2.id}\t{int(ic * 10_000_000)}\n")
-
 */

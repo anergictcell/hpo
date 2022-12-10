@@ -27,16 +27,34 @@ impl TryFrom<&str> for HpoTermId {
     }
 }
 
-// impl From<&str> for HpoTermId {
-//     fn from(s: &str) -> Self {
-//         HpoTermId::new(s)
-//     }
-// }
-
 impl From<String> for HpoTermId {
     fn from(s: String) -> Self {
         HpoTermId::new(&s)
     }
+}
+
+impl From<u16> for HpoTermId {
+    fn from(n: u16) -> Self {
+        Self {
+            inner: n.into(),
+        }
+    }    
+}
+
+impl From<u32> for HpoTermId {
+    fn from(inner: u32) -> Self {
+        Self {
+            inner
+        }
+    }    
+}
+
+impl From<u64> for HpoTermId {
+    fn from(n: u64) -> Self {
+        Self {
+            inner: n.try_into().unwrap(),
+        }
+    }    
 }
 
 impl From<usize> for HpoTermId {

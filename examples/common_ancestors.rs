@@ -1,52 +1,16 @@
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
 use std::time::SystemTime;
 
-use hpo::parser;
 use hpo::HpoTermId;
 use hpo::Ontology;
 
-fn from_file(collection: &mut Ontology) {
-    println!("Reading terms");
-    let file = File::open("terms.txt").unwrap();
-    let reader = BufReader::new(file);
-    for term in reader.lines() {
-        collection.add_term_by_name(&term.unwrap());
-    }
-    collection.shrink_to_fit();
-    println!("finished adding terms");
 
-    let file = File::open("connections.txt").unwrap();
-    let reader = BufReader::new(file);
-    for line in reader.lines() {
-        let line = line.unwrap();
-        let cols: Vec<&str> = line.splitn(2, '\t').collect();
-        collection.add_parent(cols[1].try_into().unwrap(), cols[0].try_into().unwrap());
-    }
-    println!("finished adding connections");
-    collection.create_cache();
-    println!("finished caching");
-
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    println!("finished linking genes");
-
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    parser::phenotype_to_genes::parse("phenotype_to_genes.txt", collection);
-    parser::phenotype_hpoa::parse("phenotype.hpoa", collection);
-    collection.calculate_information_content();
-    println!("finished IC calculation");
-}
-
-fn bench(collection: &Ontology, times: usize) {
+fn bench(ontology: &Ontology, times: usize) {
     let mut count = 0;
     let mut terms: (HpoTermId, HpoTermId) =
         (HpoTermId::try_from("HP:0000001").unwrap(), HpoTermId::try_from("HP:0000001").unwrap());
     let start = SystemTime::now();
-    // for term1 in collection.iter_terms() {
-    // let term = collection.
-    collection.into_iter().for_each(|term1| {
-        for term2 in collection.hpos().take(times) {
+    ontology.hpos().for_each(|term1| {
+        for term2 in ontology.hpos().take(times) {
             let overlap = term1.common_ancestor_ids(&term2).len();
             if overlap > count {
                 count = overlap;
@@ -59,7 +23,7 @@ fn bench(collection: &Ontology, times: usize) {
     println!(
         "It took {} seconds for {} terms. {} and {} have {} overlaps",
         duration.as_secs(),
-        std::cmp::min(times, collection.len()),
+        std::cmp::min(times, ontology.len()),
         terms.0,
         terms.1,
         count
@@ -81,21 +45,18 @@ fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology)
 }
 
 fn main() {
-    let mut collection = Ontology::default();
-    from_file(&mut collection);
-
-    println!("finished creating Ontology");
+    let ontology = Ontology::from_standard("./example_data/");
 
     let mut args = std::env::args();
     if args.len() == 3 {
         let term_id1 = args.nth(1).unwrap();
         let term_id2 = args.next().unwrap();
-        common_ancestors(term_id1.into(), term_id2.into(), &collection);
+        common_ancestors(term_id1.into(), term_id2.into(), &ontology);
     } else {
-        bench(&collection, 500);
-        bench(&collection, 1000);
-        bench(&collection, 10000);
-        bench(&collection, 20000);
+        bench(&ontology, 500);
+        bench(&ontology, 1000);
+        bench(&ontology, 10000);
+        bench(&ontology, 20000);
     }
 
     /*

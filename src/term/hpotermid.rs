@@ -1,6 +1,8 @@
 use core::fmt::Debug;
 use std::fmt::Display;
 
+use crate::{OntologyResult, HpoError};
+
 #[derive(Copy, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct HpoTermId {
     inner: u32,
@@ -18,11 +20,18 @@ impl HpoTermId {
     }
 }
 
-impl From<&str> for HpoTermId {
-    fn from(s: &str) -> Self {
-        HpoTermId::new(s)
+impl TryFrom<&str> for HpoTermId {
+    type Error = HpoError;
+    fn try_from(s: &str) -> OntologyResult<Self> {
+        Ok(HpoTermId {inner: s[3..].parse::<u32>()?})
     }
 }
+
+// impl From<&str> for HpoTermId {
+//     fn from(s: &str) -> Self {
+//         HpoTermId::new(s)
+//     }
+// }
 
 impl From<String> for HpoTermId {
     fn from(s: String) -> Self {

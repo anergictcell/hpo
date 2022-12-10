@@ -17,7 +17,7 @@ fn from_file(collection: &mut Ontology) {
     for line in reader.lines() {
         let line = line.unwrap();
         let cols: Vec<&str> = line.splitn(2, '\t').collect();
-        collection.add_parent(cols[1].into(), cols[0].into());
+        collection.add_parent(cols[1].try_into().unwrap(), cols[0].try_into().unwrap());
     }
     collection.create_cache();
 }

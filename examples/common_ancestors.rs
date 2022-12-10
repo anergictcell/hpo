@@ -22,7 +22,7 @@ fn from_file(collection: &mut Ontology) {
     for line in reader.lines() {
         let line = line.unwrap();
         let cols: Vec<&str> = line.splitn(2, '\t').collect();
-        collection.add_parent(cols[1].into(), cols[0].into());
+        collection.add_parent(cols[1].try_into().unwrap(), cols[0].try_into().unwrap());
     }
     println!("finished adding connections");
     collection.create_cache();
@@ -41,7 +41,7 @@ fn from_file(collection: &mut Ontology) {
 fn bench(collection: &Ontology, times: usize) {
     let mut count = 0;
     let mut terms: (HpoTermId, HpoTermId) =
-        (HpoTermId::from("HP:0000001"), HpoTermId::from("HP:0000001"));
+        (HpoTermId::try_from("HP:0000001").unwrap(), HpoTermId::try_from("HP:0000001").unwrap());
     let start = SystemTime::now();
     // for term1 in collection.iter_terms() {
     // let term = collection.

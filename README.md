@@ -4,7 +4,7 @@ This crate is a draft for a Rust implementation of [PyHPO](https://pypi.org/proj
 
 > :warning: **Warning:** The library is a work in progress and I don't recommend using it at this stage.
 
-If you find this project interesting and want to contribute, please get in touch, I could definitely need some help. The code is not yet well documented and does not yet have many tests. At the moment, I'm primarily trying to get a working PoC. Once I'm there, I will adjust many method names and functionality and add more documentation and tests.
+If you find this project interesting and want to contribute, please get in touch, I could definitely need some help. The code is not yet well documented and does not yet have many tests. At the moment, I'm primarily trying to get a working PoC. Once I'm there, I will adjust many method names and functionality and add more documentation and tests. The library does not contain any error handling and uses `unwrap` a lot - I plan to change this once I am ready to stabilize the overall API a bit more.
 
 If you have another usecase for the `hpo` crate namespace and would like to use it, please let me know. I don't want to block the crate name if there are better use-cases for it.
 

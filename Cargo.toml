@@ -2,8 +2,15 @@
 name = "hpo"
 version = "0.1.0"
 edition = "2021"
+authors = ["Jonas Marcello <jonas.marcello@esbme.com>"]
+description = "Human Phenotyoe Ontology Similarity"
+readme = "README.md"
+homepage = "https://github.com/anergictcell/hpo"
+repository = "https://github.com/anergictcell/hpo"
+license = "MIT"
+keywords = ["human phenotype ontology", "phenomics", "ontology", "omim", "similarity"]
+categories = ["science", "data-structures", "parser-implementations"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 thiserror = "1.0.37"

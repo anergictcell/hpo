@@ -75,7 +75,7 @@ impl<'a, T> Matrix<'a, T> {
     }
 
     fn col_indicies(&self) -> ColumnIndexIterator {
-        ColumnIndexIterator::new(self.rows, self.cols)
+        ColumnIndexIterator::new(self.cols)
     }
 }
 
@@ -211,14 +211,13 @@ impl ColumnRange {
 }
 
 struct ColumnIndexIterator {
-    rows: usize,
     cols: usize,
     idx: usize,
 }
 
 impl ColumnIndexIterator {
-    fn new(rows: usize, cols: usize) -> Self {
-        Self { rows, cols, idx: 0 }
+    fn new(cols: usize) -> Self {
+        Self { cols, idx: 0 }
     }
 }
 
@@ -309,30 +308,30 @@ mod tests {
 
     #[test]
     fn test_column_index_iterator() {
-        let mut iter = ColumnIndexIterator::new(2, 4);
+        let mut iter = ColumnIndexIterator::new(4);
         assert_eq!(iter.next(), Some(ColumnRange::new(0, 4)));
         assert_eq!(iter.next(), Some(ColumnRange::new(1, 4)));
         assert_eq!(iter.next(), Some(ColumnRange::new(2, 4)));
         assert_eq!(iter.next(), Some(ColumnRange::new(3, 4)));
         assert_eq!(iter.next(), None);
 
-        let mut iter = ColumnIndexIterator::new(3, 2);
+        let mut iter = ColumnIndexIterator::new(2);
         assert_eq!(iter.next(), Some(ColumnRange::new(0, 2)));
         assert_eq!(iter.next(), Some(ColumnRange::new(1, 2)));
         assert_eq!(iter.next(), None);
 
-        let mut iter = ColumnIndexIterator::new(10, 1);
+        let mut iter = ColumnIndexIterator::new(1);
         assert_eq!(iter.next(), Some(ColumnRange::new(0, 1)));
         assert_eq!(iter.next(), None);
 
-        let mut iter = ColumnIndexIterator::new(10, 0);
+        let mut iter = ColumnIndexIterator::new(0);
         assert_eq!(iter.next(), None);
     }
 
     #[test]
     fn test_column_iterator() {
         let data = vec![1, 2, 3, 4, 5, 6];
-        let mut coliter = ColumnIterator::new(&data, ColumnIndexIterator::new(2, 3));
+        let mut coliter = ColumnIterator::new(&data, ColumnIndexIterator::new(3));
 
         let mut col = coliter.next().unwrap();
         assert_eq!(col.next(), Some(&1));
@@ -355,7 +354,7 @@ mod tests {
     #[test]
     fn test_col_iterator_sums() {
         let data = vec![1, 2, 3, 4, 5, 6];
-        let mut coliter = ColumnIterator::new(&data, ColumnIndexIterator::new(2, 3));
+        let mut coliter = ColumnIterator::new(&data, ColumnIndexIterator::new(3));
 
         let col = coliter.next().unwrap();
         assert_eq!(col.sum::<i32>(), 5);

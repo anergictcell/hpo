@@ -33,17 +33,7 @@ pub struct HpoTerm<'a> {
 impl<'a> HpoTerm<'a> {
     pub fn try_new(ontology: &'a Ontology, term: &HpoTermId) -> OntologyResult<HpoTerm<'a>> {
         let term = ontology.get(term).ok_or(HpoError::DoesNotExist)?;
-        Ok(HpoTerm {
-            id: term.id(),
-            name: term.name(),
-            parents: term.parents(),
-            all_parents: term.all_parents(),
-            children: term.children(),
-            genes: term.genes(),
-            omim_diseases: term.omim_diseases(),
-            information_content: term.information_content(),
-            ontology,
-        })
+        Ok(HpoTerm::new(ontology, term))
     }
 
     pub(crate) fn new(ontology: &'a Ontology, term: &'a HpoTermInternal) -> HpoTerm<'a> {
@@ -62,6 +52,10 @@ impl<'a> HpoTerm<'a> {
 
     pub fn id(&self) -> &HpoTermId {
         self.id
+    }
+
+    pub fn name(&self) -> &str {
+        self.name
     }
 
     pub fn parents(&self) -> HpoTermIterator<'a> {

@@ -142,7 +142,7 @@ impl<T: Similarity, C: SimilarityCombiner> GroupSimilarity<T, C> {
         }
     }
 
-    fn calculate(&self, a: &HpoSet, b: &HpoSet) -> f32 {
+    pub fn calculate(&self, a: &HpoSet, b: &HpoSet) -> f32 {
         let mut v = Vec::with_capacity(a.len() * b.len());
         for t1 in a.into_iter() {
             for t2 in b.into_iter() {

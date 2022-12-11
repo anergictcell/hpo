@@ -29,10 +29,6 @@ impl Arena {
         self.terms.len() - 1
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     pub fn insert(&mut self, id: HpoTermId, term: HpoTermInternal) {
         let id = id.to_usize();
         if self.ids[id] == 0 {
@@ -66,8 +62,6 @@ impl Arena {
             n => Some(&mut self.terms[n]),
         }
     }
-
-    pub fn shrink_to_fit(&mut self) {}
 
     pub fn values(&self) -> &[HpoTermInternal] {
         &self.terms[1..]

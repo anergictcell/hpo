@@ -41,10 +41,6 @@ impl HpoGroup {
         self.ids.push(id)
     }
 
-    fn foo(&self) -> std::slice::Iter<'_, HpoTermId> {
-        self.ids.iter()
-    }
-
     pub fn contains(&self, id: &HpoTermId) -> bool {
         self.ids.binary_search(id).is_ok()
     }

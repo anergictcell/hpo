@@ -18,7 +18,9 @@ pub(crate) struct HpoTermInternal {
     genes: Genes,
     omim_diseases: OmimDiseases,
     ic: InformationContent,
+    #[allow(dead_code)]
     obsolete: bool,
+    #[allow(dead_code)]
     replacement: Option<HpoTermId>,
 }
 
@@ -124,18 +126,22 @@ impl HpoTermInternal {
         &mut self.ic
     }
 
+    #[allow(dead_code)]
     pub fn obsolete(&self) -> bool {
         self.obsolete
     }
 
+    #[allow(dead_code)]
     pub fn obsolete_mut(&mut self) -> &mut bool {
         &mut self.obsolete
     }
 
+    #[allow(dead_code)]
     pub fn replacement(&self) -> Option<HpoTermId> {
         self.replacement
     }
 
+    #[allow(dead_code)]
     pub fn replacement_mut(&mut self) -> &mut Option<HpoTermId> {
         &mut self.replacement
     }

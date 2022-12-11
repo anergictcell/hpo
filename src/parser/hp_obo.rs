@@ -73,7 +73,7 @@ mod test {
 
     #[test]
     fn split_terms() {
-        let mut ont = Ontology::empty();
+        let mut ont = Ontology::default();
         read_obo_file("tests/small.obo", &mut ont);
 
         assert_eq!(ont.len(), 4);

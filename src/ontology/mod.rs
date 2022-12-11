@@ -18,7 +18,6 @@ use termarena::Arena;
 #[derive(Default)]
 pub struct Ontology {
     hpo_terms: Arena,
-    hpo_ids: Vec<HpoTermId>,
     genes: HashMap<GeneId, Gene>,
     omim_diseases: HashMap<OmimDiseaseId, OmimDisease>,
 }
@@ -29,21 +28,12 @@ impl Debug for Ontology {
     }
 }
 
-/// Crate-only functions for setting up and building the Ontology
+/// Public API of the Ontology
 ///
-/// Those methods should not be exposed publicly
+/// Those methods are all safe to use
 impl Ontology {
-    pub fn empty() -> Self {
-        Self {
-            hpo_terms: Arena::default(),
-            hpo_ids: Vec::with_capacity(crate::MAX_HPO_ID_INTEGER),
-            genes: HashMap::default(),
-            omim_diseases: HashMap::default(),
-        }
-    }
-
     pub fn from_standard(folder: &str) -> Self {
-        let mut ont = Ontology::empty();
+        let mut ont = Ontology::default();
         let path = Path::new(folder);
         let obo = path.join(crate::OBO_FILENAME);
         let gene = path.join(crate::GENE_FILENAME);
@@ -51,67 +41,69 @@ impl Ontology {
         parser::load_from_standard_files(&obo, &gene, &disease, &mut ont);
         ont
     }
-    fn all_grandparents(&mut self, term_id: &HpoTermId) -> &HpoParents {
-        // This looks weird, but I could not find another way to statisfy the Borrow checker
-        let cached = {
-            let term = self.get_unchecked(term_id);
-            term.parents_cached()
-        };
-        if !cached {
-            self.create_cache_of_grandparents(term_id);
+
+    pub fn len(&self) -> usize {
+        self.hpo_terms.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    pub(crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
+        self.hpo_terms.get(term_id)
+    }
+
+    pub(crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
+        self.hpo_terms.get_unchecked(term_id)
+    }
+
+    fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
+        self.hpo_terms.get_mut(term_id)
+    }
+
+    fn get_unchecked_mut(&mut self, term_id: &HpoTermId) -> &mut HpoTermInternal {
+        self.hpo_terms.get_unchecked_mut(term_id)
+    }
+
+    pub fn hpo(&self, term_id: &HpoTermId) -> Option<HpoTerm> {
+        HpoTerm::try_new(self, term_id).ok()
+    }
+
+    pub fn hpos(&self) -> OntologyIterator {
+        OntologyIterator {
+            inner: self.hpo_terms.values().iter(),
+            ontology: self,
         }
-        let term = self.get_unchecked(term_id);
-        term.all_parents()
     }
 
-    fn create_cache_of_grandparents(&mut self, term_id: &HpoTermId) {
-        let term = self.get_unchecked(term_id);
-        let parents = term.parents().clone();
-        let mut res = HpoParents::default();
-        for parent in &parents {
-            let grandparents = self.all_grandparents(parent);
-            for gp in grandparents {
-                res.insert(*gp);
-            }
-        }
-        let term = self.get_unchecked_mut(term_id);
-        *term.all_parents_mut() = res.bitor(&parents);
+    pub fn gene(&self, gene_id: &GeneId) -> Option<&Gene> {
+        self.genes.get(gene_id)
     }
 
-    /// TODO: Limit pub to pub (crate)
-    pub fn create_cache(&mut self) {
-        let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
-
-        for id in term_ids {
-            self.create_cache_of_grandparents(&id);
-        }
+    pub fn gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
+        self.genes.get_mut(gene_id)
     }
 
-    pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
-        let id = *term.id();
-        self.hpo_terms.insert(id, term);
-        self.hpo_ids.push(id);
-        id
+    pub fn genes(&self) -> std::collections::hash_map::Values<'_, GeneId, Gene> {
+        self.genes.values()
     }
 
-    /// This method is only for initial mocking TODO: Remove
-    pub fn add_term_by_name(&mut self, name: &str) -> HpoTermId {
-        let t = HpoTermInternal::new(String::from(name), name.try_into().unwrap());
-        self.add_term(t)
+    pub fn omim_disease(&self, omim_disease_id: &OmimDiseaseId) -> Option<&OmimDisease> {
+        self.omim_diseases.get(omim_disease_id)
     }
 
-    /// This method is only for initial mocking TODO: Remove
-    pub fn add_parent(&mut self, parent_id: HpoTermId, child_id: HpoTermId) {
-        let parent = self.get_unchecked_mut(&parent_id);
-        parent.add_child(child_id);
-
-        let child = self.get_unchecked_mut(&child_id);
-        child.add_parent(parent_id);
+    pub fn omim_disease_mut(
+        &mut self,
+        omim_disease_id: &OmimDiseaseId,
+    ) -> Option<&mut OmimDisease> {
+        self.omim_diseases.get_mut(omim_disease_id)
     }
 
-    /// Is this method really needed or beneficial?
-    pub fn shrink_to_fit(&mut self) {
-        self.hpo_terms.shrink_to_fit();
+    pub fn omim_diseases(
+        &self,
+    ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
+        self.omim_diseases.values()
     }
 }
 
@@ -223,74 +215,60 @@ impl Ontology {
     }
 }
 
-/// Public API of the Ontology
+/// Crate-only functions for setting up and building the Ontology
 ///
-/// Those methods are all safe to use
+/// Those methods should not be exposed publicly
 impl Ontology {
-    pub fn len(&self) -> usize {
-        self.hpo_terms.len()
+    fn all_grandparents(&mut self, term_id: &HpoTermId) -> &HpoParents {
+        // This looks weird, but I could not find another way to statisfy the Borrow checker
+        let cached = {
+            let term = self.get_unchecked(term_id);
+            term.parents_cached()
+        };
+        if !cached {
+            self.create_cache_of_grandparents(term_id);
+        }
+        let term = self.get_unchecked(term_id);
+        term.all_parents()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
+    fn create_cache_of_grandparents(&mut self, term_id: &HpoTermId) {
+        let term = self.get_unchecked(term_id);
+        let parents = term.parents().clone();
+        let mut res = HpoParents::default();
+        for parent in &parents {
+            let grandparents = self.all_grandparents(parent);
+            for gp in grandparents {
+                res.insert(*gp);
+            }
+        }
+        let term = self.get_unchecked_mut(term_id);
+        *term.all_parents_mut() = res.bitor(&parents);
     }
 
-    pub(crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
-        self.hpo_terms.get(term_id)
-    }
+    pub(crate) fn create_cache(&mut self) {
+        let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
 
-    pub(crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
-        self.hpo_terms.get_unchecked(term_id)
-    }
-
-    fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
-        self.hpo_terms.get_mut(term_id)
-    }
-
-    fn get_unchecked_mut(&mut self, term_id: &HpoTermId) -> &mut HpoTermInternal {
-        self.hpo_terms.get_unchecked_mut(term_id)
-    }
-
-    pub fn hpo(&self, term_id: &HpoTermId) -> Option<HpoTerm> {
-        HpoTerm::try_new(self, term_id).ok()
-    }
-
-    pub fn hpos(&self) -> OntologyIterator {
-        OntologyIterator {
-            inner: self.hpo_terms.values().iter(),
-            ontology: self,
+        for id in term_ids {
+            self.create_cache_of_grandparents(&id);
         }
     }
 
-    pub fn gene(&self, gene_id: &GeneId) -> Option<&Gene> {
-        self.genes.get(gene_id)
+    pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
+        let id = *term.id();
+        self.hpo_terms.insert(id, term);
+        id
     }
 
-    pub fn gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
-        self.genes.get_mut(gene_id)
-    }
+    pub(crate) fn add_parent(&mut self, parent_id: HpoTermId, child_id: HpoTermId) {
+        let parent = self.get_unchecked_mut(&parent_id);
+        parent.add_child(child_id);
 
-    pub fn genes(&self) -> std::collections::hash_map::Values<'_, GeneId, Gene> {
-        self.genes.values()
-    }
-
-    pub fn omim_disease(&self, omim_disease_id: &OmimDiseaseId) -> Option<&OmimDisease> {
-        self.omim_diseases.get(omim_disease_id)
-    }
-
-    pub fn omim_disease_mut(
-        &mut self,
-        omim_disease_id: &OmimDiseaseId,
-    ) -> Option<&mut OmimDisease> {
-        self.omim_diseases.get_mut(omim_disease_id)
-    }
-
-    pub fn omim_diseases(
-        &self,
-    ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
-        self.omim_diseases.values()
+        let child = self.get_unchecked_mut(&child_id);
+        child.add_parent(parent_id);
     }
 }
+
 
 pub struct OntologyIterator<'a> {
     inner: std::slice::Iter<'a, HpoTermInternal>,

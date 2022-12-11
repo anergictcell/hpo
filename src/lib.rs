@@ -1,5 +1,8 @@
+// #![warn(missing_docs)]
+// #![warn(missing_doc_code_examples)]
+
+
 #![doc = include_str!("../README.md")]
-#![allow(dead_code)]
 use core::fmt::Debug;
 use std::num::ParseIntError;
 use thiserror::Error;

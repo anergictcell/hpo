@@ -2,8 +2,6 @@ use crate::term::HpoTermIterator;
 use crate::HpoTerm;
 use crate::Ontology;
 
-pub struct SetSimilarity {}
-
 pub struct HpoSet<'a> {
     inner: Vec<HpoTerm<'a>>,
 }

@@ -98,7 +98,7 @@ impl Gene {
         &self.name
     }
 
-    /// Connect another [HPO term](`HpoTerm`) to the gene 
+    /// Connect another [HPO term](`crate::HpoTerm`) to the gene 
     pub fn add_term(&mut self, term_id: HpoTermId) -> bool {
         self.hpos.insert(term_id)
     }

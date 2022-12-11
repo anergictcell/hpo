@@ -76,7 +76,7 @@ impl OmimDisease {
         &self.name
     }
 
-    /// Connect another [HPO term](`HpoTerm`) to the disease 
+    /// Connect another [HPO term](`crate::HpoTerm`) to the disease 
     pub fn add_term(&mut self, term_id: HpoTermId) -> bool {
         self.hpos.insert(term_id)
     }

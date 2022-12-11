@@ -17,8 +17,8 @@ mod term;
 
 pub use ontology::Ontology;
 pub use similarity::{GraphIc, Similarity};
-pub use term::HpoTermIterator;
-pub use term::{HpoParents, HpoTerm, HpoTermId, InformationContentKind};
+pub use term::{HpoParents, HpoTerm, HpoTermId, HpoTermIterator};
+pub use term::{InformationContent, InformationContentKind};
 
 const DEFAULT_NUM_PARENTS: usize = 10;
 const DEFAULT_NUM_ALL_PARENTS: usize = 50;

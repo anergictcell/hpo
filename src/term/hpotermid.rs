@@ -18,6 +18,14 @@ impl HpoTermId {
     pub fn to_usize(&self) -> usize {
         self.inner.try_into().unwrap()
     }
+
+    pub fn as_u32(&self) -> u32 {
+        self.inner
+    }
+
+    pub fn to_be_bytes(&self) -> [u8; 4] {
+        self.inner.to_be_bytes()
+    }
 }
 
 impl TryFrom<&str> for HpoTermId {
@@ -59,6 +67,14 @@ impl From<usize> for HpoTermId {
     fn from(n: usize) -> Self {
         Self {
             inner: n.try_into().unwrap(),
+        }
+    }
+}
+
+impl From<[u8; 4]> for HpoTermId {
+    fn from(bytes: [u8; 4]) -> Self {
+        Self {
+            inner: u32::from_be_bytes(bytes),
         }
     }
 }

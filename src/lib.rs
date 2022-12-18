@@ -1,7 +1,6 @@
 // #![warn(missing_docs)]
 // #![warn(missing_doc_code_examples)]
 
-
 #![doc = include_str!("../README.md")]
 use core::fmt::Debug;
 use std::num::ParseIntError;
@@ -38,6 +37,8 @@ pub enum HpoError {
     DoesNotExist,
     #[error("unable to parse Integer")]
     ParseIntError,
+    #[error("unable to parse binary data")]
+    ParseBinaryError,
 }
 
 impl From<ParseIntError> for HpoError {
@@ -47,3 +48,14 @@ impl From<ParseIntError> for HpoError {
 }
 
 type OntologyResult<T> = Result<T, HpoError>;
+
+/// Returns a u32 from the 4 first 4 bytes
+///
+/// This function is used in parsing binary ontology data
+/// where u32 are used frequently. It is not recommended
+/// to use this function elsewhere.
+///
+/// The u32 sould be big-endian encoded
+fn u32_from_bytes(bytes: &[u8]) -> u32 {
+    u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+}

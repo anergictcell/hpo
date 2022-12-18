@@ -134,6 +134,18 @@ impl Gene {
     /// | 9 + n | 4 | The number of associated HPO terms as big-endian `u32` |
     /// | 13 + n | x * 4 | The HPO Term IDs of the associated terms, each encoded as big-endian `u32` |
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::annotations::Gene;
+    ///
+    /// let mut gene = Gene::from_parts("123", "FooBar").unwrap();
+    /// let bytes = gene.as_bytes();
+    ///
+    /// assert_eq!(bytes.len(), 4 + 4 + 1 + 6 + 4);
+    /// assert_eq!(bytes[4..8], [0u8, 0u8, 0u8, 123u8]);
+    /// assert_eq!(bytes[8], 6u8);
+    /// ```
     pub fn as_bytes(&self) -> Vec<u8> {
         let name = self.name().as_bytes();
         let name_length = std::cmp::min(name.len(), 255);
@@ -178,6 +190,24 @@ impl TryFrom<&[u8]> for Gene {
     ///
     /// The byte layout for this method is defined in
     /// [`Gene::as_bytes`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::annotations::{Gene, GeneId};
+    ///
+    /// let bytes = vec![
+    ///     0u8, 0u8, 0u8, 19u8, // Total size of Blop
+    ///     0u8, 0u8, 0u8, 123u8, // ID of the gene => 123
+    ///     6u8, // Length of gene symbol
+    ///     b'F', b'o', b'o', b'b', b'a', b'r', // Foobar
+    ///     0u8, 0u8, 0u8, 0u8  // Number of associated HPO Terms => 0
+    /// ];
+    /// let gene = Gene::try_from(&bytes[..]).unwrap();
+    ///
+    /// assert_eq!(gene.name(), "Foobar");
+    /// assert_eq!(gene.id(), &GeneId::from(123u32));
+    /// ```
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         // minimum length for a Gene without name and no HPO terms
         // This check is important because we're accessing the bytes

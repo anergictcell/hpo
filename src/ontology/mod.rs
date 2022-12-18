@@ -95,7 +95,24 @@ impl Ontology {
     /// [`Ontology::as_bytes`]. This method adds all terms, creates the
     /// parent-child structure of the ontology, adds genes and Omim diseases
     /// and ensures proper inheritance of gene/disease annotations.
-    /// It also calculates the InformationContent for every term
+    /// It also calculates the InformationContent for every term.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoTermId};
+    ///
+    /// let ontology = Ontology::from_binary("./tests/ontology.hpo").unwrap();
+    ///
+    /// assert!(ontology.len() > 15_000);
+    ///
+    /// let absent_term = HpoTermId::try_from("HP:9999999").unwrap();
+    /// assert!(ontology.hpo(&absent_term).is_none());
+    ///
+    /// let present_term = HpoTermId::try_from("HP:0000001").unwrap();
+    /// let root_term = ontology.hpo(&present_term).unwrap();
+    /// assert_eq!(root_term.name(), "All");
+    /// ```
     pub fn from_binary<P: AsRef<Path>>(filename: P) -> OntologyResult<Self> {
         let mut ont = Ontology::default();
         let bytes = match File::open(filename) {
@@ -145,117 +162,22 @@ impl Ontology {
         }
     }
 
-    /// Adds an HpoTerm to the ontology
-    ///
-    /// This method is part of the Ontology-building, based on the binary
-    /// data format and requires a specified data layout.
-    ///
-    /// The method assumes that the data is in the right format and also
-    /// assumes that the caller takes care of handling all consistencies
-    /// like parent-child connection etc.
-    ///
-    /// See [`HpoTermInternal::as_bytes`] for explanation of the binary layout.
-    fn add_terms_from_bytes(&mut self, bytes: &[u8]) {
-        for term in BinaryTermBuilder::new(bytes) {
-            self.add_term(term);
-        }
-    }
-
-    /// Connects an HpoTerm to its parent term
-    ///
-    /// This method is part of the Ontology-building, based on the binary
-    /// data format and requires a specified data layout.
-    ///
-    /// The method assumes that the data is in the right format and also
-    /// assumes that the caller will populate the all_parents caches for
-    /// each term.
-    ///
-    /// See [`HpoTermInternal::parents_as_byte`] for explanation of the binary layout.
-    fn add_parent_from_bytes(&mut self, bytes: &[u8]) {
-        let mut idx: usize = 0;
-        loop {
-            if idx == bytes.len() {
-                break;
-            }
-            let n_parents = u32_from_bytes(&bytes[idx..]) as usize;
-            idx += 4;
-            let term =
-                HpoTermId::from([bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]]);
-            idx += 4;
-            for _ in 0..n_parents {
-                let parent =
-                    HpoTermId::from([bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]]);
-                self.add_parent(parent, term);
-                idx += 4;
-            }
-        }
-    }
-
-    /// Adds genes to the ontoloigy and connects them to connected terms
-    ///
-    /// This method is part of the Ontology-building, based on the binary
-    /// data format and requires a specified data layout.
-    ///
-    /// It connects all connected terms and their parents properly. The
-    /// method assumes that the bytes encode all gene-term connections.
-    ///
-    /// See [`Gene::as_bytes`] for explanation of the binary layout
-    fn add_genes_from_bytes(&mut self, bytes: &[u8]) -> OntologyResult<()> {
-        let mut idx: usize = 0;
-        loop {
-            if idx >= bytes.len() {
-                break;
-            }
-            let gene_len = u32_from_bytes(&bytes[idx..]) as usize;
-            let gene = Gene::try_from(&bytes[idx..idx + gene_len])?;
-            for term in gene.hpo_terms() {
-                self.link_gene_term(term, *gene.id())
-            }
-            self.genes.insert(*gene.id(), gene);
-            idx += gene_len;
-        }
-        Ok(())
-    }
-
-    /// Adds OmimDiseases to the ontoloigy and connects them to connected terms
-    ///
-    /// This method is part of the Ontology-building, based on the binary
-    /// data format and requires a specified data layout.
-    ///
-    /// It connects all connected terms and their parents properly. The
-    /// method assumes that the bytes encode all Disease-term connections.
-    ///
-    /// See [`OmimDisease::as_bytes`] for explanation of the binary layout
-    fn add_omim_disease_from_bytes(&mut self, bytes: &[u8]) -> OntologyResult<()> {
-        let mut idx: usize = 0;
-        loop {
-            if idx >= bytes.len() {
-                break;
-            }
-            let disease_len = u32_from_bytes(&bytes[idx..]) as usize;
-            let disease = OmimDisease::try_from(&bytes[idx..idx + disease_len])?;
-            for term in disease.hpo_terms() {
-                self.link_omim_disease_term(term, *disease.id())
-            }
-            self.omim_diseases.insert(*disease.id(), disease);
-            idx += disease_len;
-        }
-        Ok(())
-    }
-
     /// Returns a binary representation of the Ontology
     ///
-    /// Sections:
+    /// The binary data is separated into sections:
     ///
-    /// 1. Terms (Names + IDs) (see `HpoTermInternal::as_bytes`)
-    /// 2. Term - Parent connection (Child ID - Parent ID)
-    ///    (see `HpoTermInternal::parents_as_byte`)
-    /// 3. Genes (Names + IDs + Connected HPO Terms) ([`Gene::as_bytes`])
-    /// 4. OMIM Diseases (Names + IDs + Connected HPO Terms)
-    ///    ([`OmimDisease::as_bytes`])
+    /// - Terms (Names + IDs) (see `HpoTermInternal::as_bytes`)
+    /// - Term - Parent connection (Child ID - Parent ID)
+    ///   (see `HpoTermInternal::parents_as_byte`)
+    /// - Genes (Names + IDs + Connected HPO Terms) ([`Gene::as_bytes`])
+    /// - OMIM Diseases (Names + IDs + Connected HPO Terms)
+    ///   ([`OmimDisease::as_bytes`])
     ///
     /// Every section starts with 4 bytes to indicate its size
     /// (big-endian encoded `u32`)
+    ///
+    /// This method is only useful if you use are modifying the ontology
+    /// and want to save data for later re-use.
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut res = Vec::new();
 
@@ -299,7 +221,7 @@ impl Ontology {
         self.hpo_terms.len()
     }
 
-    /// Returns `true` if the Ontology holds no HPO-Terms
+    /// Returns `true` if the Ontology does not contain any HPO-Terms
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
@@ -319,14 +241,14 @@ impl Ontology {
         }
     }
 
-    /// Return a reference to the [`Gene`] of the provided [`GeneId`]
+    /// Returns a reference to the [`Gene`] of the provided [`GeneId`]
     ///
     /// If no such gene is present, `None` is returned
     pub fn gene(&self, gene_id: &GeneId) -> Option<&Gene> {
         self.genes.get(gene_id)
     }
 
-    /// Return a mutable reference to the [`Gene`] of the provided [`GeneId`]
+    /// Returns a mutable reference to the [`Gene`] of the provided [`GeneId`]
     ///
     /// If no such gene is present, `None` is returned
     pub fn gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
@@ -334,18 +256,20 @@ impl Ontology {
     }
 
     /// Returns an Iterator of all [`Gene`]s from the Ontology
+    ///
+    /// It is likely that the return type will change to a dedicated Iterator
     pub fn genes(&self) -> std::collections::hash_map::Values<'_, GeneId, Gene> {
         self.genes.values()
     }
 
-    /// Return a reference to the [`OmimDisease`] of the provided [`OmimDiseaseId`]
+    /// Returns a reference to the [`OmimDisease`] of the provided [`OmimDiseaseId`]
     ///
     /// If no such disease is present, `None` is returned
     pub fn omim_disease(&self, omim_disease_id: &OmimDiseaseId) -> Option<&OmimDisease> {
         self.omim_diseases.get(omim_disease_id)
     }
 
-    /// Return a mutable reference to the [`OmimDisease`] of the provided [`OmimDiseaseId`]
+    /// Returns a mutable reference to the [`OmimDisease`] of the provided [`OmimDiseaseId`]
     ///
     /// If no such disease is present, `None` is returned
     pub fn omim_disease_mut(
@@ -356,26 +280,12 @@ impl Ontology {
     }
 
     /// Returns an Iterator of all [`OmimDisease`]s from the Ontology
+    ///
+    /// It is likely that the return type will change to a dedicated Iterator
     pub fn omim_diseases(
         &self,
     ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
         self.omim_diseases.values()
-    }
-
-    pub(crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
-        self.hpo_terms.get(term_id)
-    }
-
-    pub(crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
-        self.hpo_terms.get_unchecked(term_id)
-    }
-
-    fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
-        self.hpo_terms.get_mut(term_id)
-    }
-
-    fn get_unchecked_mut(&mut self, term_id: &HpoTermId) -> &mut HpoTermInternal {
-        self.hpo_terms.get_unchecked_mut(term_id)
     }
 }
 
@@ -535,6 +445,104 @@ impl Ontology {
 ///
 /// Those methods should not be exposed publicly
 impl Ontology {
+    /// Adds an HpoTerm to the ontology
+    ///
+    /// This method is part of the Ontology-building, based on the binary
+    /// data format and requires a specified data layout.
+    ///
+    /// The method assumes that the data is in the right format and also
+    /// assumes that the caller takes care of handling all consistencies
+    /// like parent-child connection etc.
+    ///
+    /// See [`HpoTermInternal::as_bytes`] for explanation of the binary layout.
+    fn add_terms_from_bytes(&mut self, bytes: &[u8]) {
+        for term in BinaryTermBuilder::new(bytes) {
+            self.add_term(term);
+        }
+    }
+
+    /// Connects an HpoTerm to its parent term
+    ///
+    /// This method is part of the Ontology-building, based on the binary
+    /// data format and requires a specified data layout.
+    ///
+    /// The method assumes that the data is in the right format and also
+    /// assumes that the caller will populate the all_parents caches for
+    /// each term.
+    ///
+    /// See [`HpoTermInternal::parents_as_byte`] for explanation of the binary layout.
+    fn add_parent_from_bytes(&mut self, bytes: &[u8]) {
+        let mut idx: usize = 0;
+        loop {
+            if idx == bytes.len() {
+                break;
+            }
+            let n_parents = u32_from_bytes(&bytes[idx..]) as usize;
+            idx += 4;
+            let term =
+                HpoTermId::from([bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]]);
+            idx += 4;
+            for _ in 0..n_parents {
+                let parent =
+                    HpoTermId::from([bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]]);
+                self.add_parent(parent, term);
+                idx += 4;
+            }
+        }
+    }
+
+    /// Adds genes to the ontoloigy and connects them to connected terms
+    ///
+    /// This method is part of the Ontology-building, based on the binary
+    /// data format and requires a specified data layout.
+    ///
+    /// It connects all connected terms and their parents properly. The
+    /// method assumes that the bytes encode all gene-term connections.
+    ///
+    /// See [`Gene::as_bytes`] for explanation of the binary layout
+    fn add_genes_from_bytes(&mut self, bytes: &[u8]) -> OntologyResult<()> {
+        let mut idx: usize = 0;
+        loop {
+            if idx >= bytes.len() {
+                break;
+            }
+            let gene_len = u32_from_bytes(&bytes[idx..]) as usize;
+            let gene = Gene::try_from(&bytes[idx..idx + gene_len])?;
+            for term in gene.hpo_terms() {
+                self.link_gene_term(term, *gene.id())
+            }
+            self.genes.insert(*gene.id(), gene);
+            idx += gene_len;
+        }
+        Ok(())
+    }
+
+    /// Adds OmimDiseases to the ontoloigy and connects them to connected terms
+    ///
+    /// This method is part of the Ontology-building, based on the binary
+    /// data format and requires a specified data layout.
+    ///
+    /// It connects all connected terms and their parents properly. The
+    /// method assumes that the bytes encode all Disease-term connections.
+    ///
+    /// See [`OmimDisease::as_bytes`] for explanation of the binary layout
+    fn add_omim_disease_from_bytes(&mut self, bytes: &[u8]) -> OntologyResult<()> {
+        let mut idx: usize = 0;
+        loop {
+            if idx >= bytes.len() {
+                break;
+            }
+            let disease_len = u32_from_bytes(&bytes[idx..]) as usize;
+            let disease = OmimDisease::try_from(&bytes[idx..idx + disease_len])?;
+            for term in disease.hpo_terms() {
+                self.link_omim_disease_term(term, *disease.id())
+            }
+            self.omim_diseases.insert(*disease.id(), disease);
+            idx += disease_len;
+        }
+        Ok(())
+    }
+
     fn all_grandparents(&mut self, term_id: &HpoTermId) -> &HpoParents {
         // This looks weird, but I could not find another way to statisfy the Borrow checker
         let cached = {
@@ -582,6 +590,22 @@ impl Ontology {
 
         let child = self.get_unchecked_mut(&child_id);
         child.add_parent(parent_id);
+    }
+
+    pub(crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
+        self.hpo_terms.get(term_id)
+    }
+
+    pub(crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
+        self.hpo_terms.get_unchecked(term_id)
+    }
+
+    fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
+        self.hpo_terms.get_mut(term_id)
+    }
+
+    fn get_unchecked_mut(&mut self, term_id: &HpoTermId) -> &mut HpoTermInternal {
+        self.hpo_terms.get_unchecked_mut(term_id)
     }
 }
 

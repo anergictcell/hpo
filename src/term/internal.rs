@@ -216,6 +216,9 @@ impl Eq for HpoTermInternal {}
 
 impl TryFrom<&[u8]> for HpoTermInternal {
     type Error = HpoError;
+    /// Crates an `HpoTermInternal` from raw bytes
+    ///
+    /// See [`HpoTermInternal::as_bytes`] for description of the byte layout
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         if bytes.len() < 4 + 4 + 1 {
             return Err(HpoError::ParseBinaryError);
@@ -237,12 +240,14 @@ impl TryFrom<&[u8]> for HpoTermInternal {
     }
 }
 
+/// Builder to crate multiple [`HpoTermInternal`] from raw bytes
 pub(crate) struct BinaryTermBuilder<'a> {
     bytes: &'a [u8],
     idx: usize,
 }
 
 impl<'a> BinaryTermBuilder<'a> {
+    /// Crates a new [`BinaryTermBuilder`]
     pub fn new(bytes: &'a [u8]) -> Self {
         BinaryTermBuilder { bytes, idx: 0 }
     }

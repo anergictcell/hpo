@@ -114,6 +114,18 @@ impl OmimDisease {
     /// | 12 + n | 4 | The number of associated HPO terms as big-endian `u32` |
     /// | 16 + n | x * 4 | The HPO Term IDs of the associated terms, each encoded as big-endian `u32` |
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::annotations::OmimDisease;
+    ///
+    /// let mut disease = OmimDisease::new(123.into(), "FooBar");
+    /// let bytes = disease.as_bytes();
+    ///
+    /// assert_eq!(bytes.len(), 4 + 4 + 4 + 6 + 4);
+    /// assert_eq!(bytes[4..8], [0u8, 0u8, 0u8, 123u8]); // ID of disease => 123
+    /// assert_eq!(bytes[8..12], [0u8, 0u8, 0u8, 6u8]); // Length of Name => 6
+    /// ```
     pub fn as_bytes(&self) -> Vec<u8> {
         let name = self.name().as_bytes();
         let name_length = name.len();
@@ -158,6 +170,24 @@ impl TryFrom<&[u8]> for OmimDisease {
     ///
     /// The byte layout for this method is defined in
     /// [`OmimDisease::as_bytes`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::annotations::{OmimDisease, OmimDiseaseId};
+    ///
+    /// let bytes = vec![
+    ///     0u8, 0u8, 0u8, 22u8, // Total size of Blop
+    ///     0u8, 0u8, 0u8, 123u8, // ID of the disease => 123
+    ///     0u8, 0u8, 0u8, 6u8, // Length of name => 6
+    ///     b'F', b'o', b'o', b'b', b'a', b'r', // Foobar
+    ///     0u8, 0u8, 0u8, 0u8  // Number of associated HPO Terms => 0
+    /// ];
+    /// let disease = OmimDisease::try_from(&bytes[..]).unwrap();
+    ///
+    /// assert_eq!(disease.name(), "Foobar");
+    /// assert_eq!(disease.id(), &OmimDiseaseId::from(123u32));
+    /// ```
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
         // minimum length for a Disease without name and no HPO terms
         // This check is important because we're accessing the bytes

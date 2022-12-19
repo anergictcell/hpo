@@ -1,7 +1,16 @@
-//! Ontology is the heart and main interface of the full crate.
+//! Ontology is the heart and main interface of the `hpo` crate.
 //!
 //! The [`Ontology`] struct holds all information about the ontology
 //! and the ownership of all [`HpoTerm`]s, [`Gene`]s and [`OmimDisease`]s.
+//!
+//! It is recommended to use the public methods [`Ontology::from_standard`]
+//! to build the ontology
+//! from standard annotation data from Jax. You will need to download
+//! the data from [HPO](https://hpo.jax.org/) itself.
+//!
+//! This crate also provides a snapshot of all relevant data in binary format
+//! in `tests/ontology.hpo` which can be loaded via [`Ontology::from_binary`].
+//! You should check how up-to-date the snapshot is, though.
 
 use std::collections::HashMap;
 use std::fs::File;
@@ -25,12 +34,7 @@ use termarena::Arena;
 
 /// Main API interface that owns all data
 ///
-/// It is recommended to use the public methods to build the ontology
-/// from standard annotation data from Jax. You will need to download
-/// the data from [HPO](https://hpo.jax.org/) itself.
-///
-/// This crate provides a snapshot of all relevant data in binary format
-/// in `tests/ontology.hpo`. You should check how up-to-date the snapshot is, though.
+/// `Ontology` provides all interfaces to work with the HPO.
 #[derive(Default)]
 pub struct Ontology {
     hpo_terms: Arena,
@@ -318,6 +322,7 @@ impl Ontology {
     /// If the disease does not yet exist, a new [`OmimDisease`] entity is
     /// created and stored in the Ontology.
     /// If the disease already exists in the ontology, it is not added again.
+    ///
     /// # Note
     ///
     /// Adding a disease does not connect it to any HPO terms.
@@ -347,10 +352,8 @@ impl Ontology {
     /// # Panics
     ///
     /// If the HPO term is not present, the method will panic
-    pub fn link_gene_term(&mut self, term_id: &HpoTermId, gene_id: GeneId) {
-        let term = self
-            .get_mut(term_id)
-            .expect("Cannot add gene to non-existing term");
+    pub fn link_gene_term(&mut self, term_id: &HpoTermId, gene_id: GeneId) -> OntologyResult<()> {
+        let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
 
         if term.add_gene(gene_id) {
             // If the gene is already associated to the term, this branch will
@@ -358,9 +361,10 @@ impl Ontology {
             // all parent terms are already linked as well
             let parents = term.all_parents().clone();
             for parent in &parents {
-                self.link_gene_term(parent, gene_id);
+                self.link_gene_term(parent, gene_id)?;
             }
         }
+        Ok(())
     }
 
     /// Add the [`OmimDisease`] as annotation to the [`HpoTerm`]
@@ -373,7 +377,11 @@ impl Ontology {
     /// # Panics
     ///
     /// If the HPO term is not present, the method will panic
-    pub fn link_omim_disease_term(&mut self, term_id: &HpoTermId, omim_disease_id: OmimDiseaseId) {
+    pub fn link_omim_disease_term(
+        &mut self,
+        term_id: &HpoTermId,
+        omim_disease_id: OmimDiseaseId,
+    ) -> OntologyResult<()> {
         let term = self
             .get_mut(term_id)
             .expect("Cannot add omim_disease to non-existing term");
@@ -384,20 +392,28 @@ impl Ontology {
             // all parent terms are already linked as well
             let parents = term.all_parents().clone();
             for parent in &parents {
-                self.link_omim_disease_term(parent, omim_disease_id);
+                self.link_omim_disease_term(parent, omim_disease_id)?;
             }
         }
+        Ok(())
     }
 
     /// Calculates the [`crate::InformationContent`]s for every term
     ///
     /// This method should only be called **after** all terms are added,
     /// connected and all genes and diseases are linked as well.
+    ///
+    /// It can be called repeatedly, all values are recalculated each time,
+    /// as long as the Ontology contains at least 1 gene/disease.
+    /// When no genes/diseases are present, the IC is not calculated nor updated.
     pub fn calculate_information_content(&mut self) {
         self.calculate_gene_ic();
         self.calculate_omim_disease_ic();
     }
 
+    /// Calculates the gene-specific Information Content for every term
+    ///
+    /// If no genes are present in the Ontology, no IC are calculated
     fn calculate_gene_ic(&mut self) {
         let n_genes = self.genes.len() as f32;
 
@@ -418,6 +434,9 @@ impl Ontology {
         }
     }
 
+    /// Calculates the Omim-Disease-specific Information Content for every term
+    ///
+    /// If no diseases are present in the Ontology, no IC are calculated
     fn calculate_omim_disease_ic(&mut self) {
         let n_omim_diseases = self.omim_diseases.len() as f32;
 
@@ -469,6 +488,11 @@ impl Ontology {
     /// each term.
     ///
     /// See [`HpoTermInternal::parents_as_byte`] for explanation of the binary layout.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the length of bytes does not exactly correspond
+    /// to the contained data
     fn add_parent_from_bytes(&mut self, bytes: &[u8]) {
         let mut idx: usize = 0;
         loop {
@@ -476,6 +500,7 @@ impl Ontology {
                 break;
             }
             let n_parents = u32_from_bytes(&bytes[idx..]) as usize;
+
             idx += 4;
             let term =
                 HpoTermId::from([bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]]);
@@ -507,7 +532,7 @@ impl Ontology {
             let gene_len = u32_from_bytes(&bytes[idx..]) as usize;
             let gene = Gene::try_from(&bytes[idx..idx + gene_len])?;
             for term in gene.hpo_terms() {
-                self.link_gene_term(term, *gene.id())
+                self.link_gene_term(term, *gene.id())?;
             }
             self.genes.insert(*gene.id(), gene);
             idx += gene_len;
@@ -533,7 +558,7 @@ impl Ontology {
             let disease_len = u32_from_bytes(&bytes[idx..]) as usize;
             let disease = OmimDisease::try_from(&bytes[idx..idx + disease_len])?;
             for term in disease.hpo_terms() {
-                self.link_omim_disease_term(term, *disease.id())
+                self.link_omim_disease_term(term, *disease.id())?;
             }
             self.omim_diseases.insert(*disease.id(), disease);
             idx += disease_len;
@@ -541,23 +566,38 @@ impl Ontology {
         Ok(())
     }
 
+    /// This method is part of the cache creation to link all terms to their
+    /// direct and indirect parents (grandparents)
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the `term_id` is not present in the Ontology
     fn all_grandparents(&mut self, term_id: &HpoTermId) -> &HpoParents {
-        // This looks weird, but I could not find another way to statisfy the Borrow checker
-        let cached = {
-            let term = self.get_unchecked(term_id);
-            term.parents_cached()
-        };
-        if !cached {
+        if !self.get_unchecked(term_id).parents_cached() {
             self.create_cache_of_grandparents(term_id);
         }
         let term = self.get_unchecked(term_id);
         term.all_parents()
     }
 
+    /// This method is part of the cache creation to link all terms to their
+    /// direct and indirect parents (grandparents)
+    ///
+    /// It will (somewhat) recursively iterate all parents and copy all their parents.
+    /// During this recursion, the list of all_parents is cached in each term that was
+    /// iterated.
+    ///
+    /// The logic is that the recursion bubbles up all the way to the top of the ontolgy
+    /// and then caches the list of direct and indirect parents for every term bubbling
+    /// back down. The recursion does not reach the top level again, because it will stop
+    /// once it reaches a term with already cached `all_parents`.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the `term_id` is not present in the Ontology
     fn create_cache_of_grandparents(&mut self, term_id: &HpoTermId) {
-        let term = self.get_unchecked(term_id);
-        let parents = term.parents().clone();
         let mut res = HpoParents::default();
+        let parents = self.get_unchecked(term_id).parents().clone();
         for parent in &parents {
             let grandparents = self.all_grandparents(parent);
             for gp in grandparents {
@@ -568,6 +608,13 @@ impl Ontology {
         *term.all_parents_mut() = res.bitor(&parents);
     }
 
+    /// Crates and caches the `all_parents` values for every term
+    ///
+    /// This method can only be called once and afterwards no new terms
+    /// should be added to the Ontology anymore and no new term-parent connection
+    /// should be created.
+    /// Since this method caches the results, rerunning it will not cause a new
+    /// calculation.
     pub(crate) fn create_cache(&mut self) {
         let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
 
@@ -576,12 +623,24 @@ impl Ontology {
         }
     }
 
+    /// Insert an HpoTerm (`HpoTermInternal`) to the ontology
+    ///
+    /// This method does not link the term to its parents or to any annotations
     pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
         let id = *term.id();
         self.hpo_terms.insert(id, term);
         id
     }
 
+    /// Add a connection from an HpoTerm to its parent
+    ///
+    /// This method is called once for every dependency in the Ontology during the initialization.
+    ///
+    /// There should rarely be a need to call this method outside of the ontology building
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the `parent_id` or `child_id` is not present in the Ontology
     pub(crate) fn add_parent(&mut self, parent_id: HpoTermId, child_id: HpoTermId) {
         let parent = self.get_unchecked_mut(&parent_id);
         parent.add_child(child_id);
@@ -590,18 +649,40 @@ impl Ontology {
         child.add_parent(parent_id);
     }
 
+    /// Returns the `HpoTermInternal` with the given `HpoTermId`
+    ///
+    /// Returns `None` if no such term is present
     pub(crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
         self.hpo_terms.get(term_id)
     }
 
+    /// Returns the `HpoTermInternal` with the given `HpoTermId`
+    ///
+    /// This method should only be called if the caller is sure that the term actually
+    /// exists, e.g. during an iteration of all `HpoTermId`s.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the `term_id` is not present in the Ontology
     pub(crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
         self.hpo_terms.get_unchecked(term_id)
     }
 
+    /// Returns a mutable reference to the `HpoTermInternal` with the given `HpoTermId`
+    ///
+    /// Returns `None` if no such term is present
     fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
         self.hpo_terms.get_mut(term_id)
     }
 
+    /// Returns a mutable reference to the `HpoTermInternal` with the given `HpoTermId`
+    ///
+    /// This method should only be called if the caller is sure that the term actually
+    /// exists, e.g. during an iteration of all `HpoTermId`s.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the `term_id` is not present in the Ontology
     fn get_unchecked_mut(&mut self, term_id: &HpoTermId) -> &mut HpoTermInternal {
         self.hpo_terms.get_unchecked_mut(term_id)
     }

@@ -53,6 +53,14 @@ impl HpoGroup {
     pub fn pop(&mut self) -> Option<HpoTermId> {
         self.ids.pop()
     }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let mut res = Vec::with_capacity(self.len() * 4);
+        for id in &self.ids {
+            res.append(&mut id.to_be_bytes().to_vec())
+        }
+        res
+    }
 }
 
 impl From<HashSet<HpoTermId>> for HpoGroup {

@@ -25,11 +25,15 @@ There is some info about the plans for the implementation in the [Technical Desi
 At the moment, not all functionality in here is working, but most of it is. Check out the `examples` folder in the Github repository for some ways to use it.
 
 ### Ontology
-```ignore
-let ontology = some_function();
+```rust
+use hpo::Ontology;
+use hpo::annotations::{GeneId, OmimDiseaseId};
+
+# fn foobar() {
+let ontology = Ontology::from_standard("/path/to/master-data");
 
 // iterate HPO terms
-for term in ontology {
+for term in &ontology {
     // do something with term
 }
 
@@ -44,23 +48,16 @@ for disease in ontology.omim_diseases() {
 }
 
 // get a single HPO term
-let term = ontology.hpo("HP:0000123");
-let term = ontology.hpo_by_name("Abnormality of the nervous system");
-
-// search HPO terms
-for res in ontology.search_hpo("Abnormality") {
-    println!("{}", res.name());
-}
+let term = ontology.hpo(&"HP:0000123".try_into().unwrap());
 
 // get a single Gene
-let hgnc_id = 12345;
-let gene = ontology.gene(hgnc_id);
-let gene = ontology.gene_by_name("EZH2");
+let hgnc_id = GeneId::try_from("12345").unwrap();
+let gene = ontology.gene(&hgnc_id);
 
 // get a single Omim disease
-let disease_id = 12345;
-let disease = ontology.omim_disease(disease_id);
-let disease = ontology.omim_by_name("Gaucher");
+let disease_id = OmimDiseaseId::try_from("12345").unwrap();
+let disease = ontology.omim_disease(&disease_id);
+# }
 ```
 
 ### HPO term

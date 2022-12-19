@@ -18,3 +18,4 @@ log = "0.4"
 
 [dev-dependencies]
 rayon = "1.6.0"
+simple_logger = "4.0.0"

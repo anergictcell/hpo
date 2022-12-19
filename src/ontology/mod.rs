@@ -28,6 +28,9 @@ use termarena::Arena;
 /// It is recommended to use the public methods to build the ontology
 /// from standard annotation data from Jax. You will need to download
 /// the data from [HPO](https://hpo.jax.org/) itself.
+///
+/// This crate provides a snapshot of all relevant data in binary format
+/// in `tests/ontology.hpo`. You should check how up-to-date the snapshot is, though.
 #[derive(Default)]
 pub struct Ontology {
     hpo_terms: Arena,
@@ -55,18 +58,13 @@ impl Ontology {
     ///
     /// and then specify the folder where the data is stored.
     ///
-    /// # Note
-    ///
-    /// It is quite likely that the method signature will change and instead
-    /// return a `Result`
-    ///
     /// # Examples
     ///
     /// ```no_run
     /// use hpo::Ontology;
     /// use hpo::HpoTermId;
     ///
-    /// let ontology = Ontology::from_standard("./example_data/");
+    /// let ontology = Ontology::from_standard("./example_data/").unwrap();
     ///
     /// assert!(ontology.len() > 15_000);
     ///
@@ -78,7 +76,7 @@ impl Ontology {
     /// assert_eq!(root_term.name(), "Phenotypical abnormality");
     /// ```
     ///
-    pub fn from_standard(folder: &str) -> Self {
+    pub fn from_standard(folder: &str) -> OntologyResult<Self> {
         let mut ont = Ontology::default();
         let path = Path::new(folder);
         let obo = path.join(crate::OBO_FILENAME);
@@ -86,7 +84,7 @@ impl Ontology {
         let disease = path.join(crate::DISEASE_FILENAME);
         parser::load_from_standard_files(&obo, &gene, &disease, &mut ont);
         ont.calculate_information_content();
-        ont
+        Ok(ont)
     }
 
     /// Build an Ontology from a binary data blob

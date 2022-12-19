@@ -30,7 +30,7 @@ use hpo::Ontology;
 use hpo::annotations::{GeneId, OmimDiseaseId};
 
 # fn foobar() {
-let ontology = Ontology::from_standard("/path/to/master-data");
+let ontology = Ontology::from_standard("/path/to/master-data").unwrap();
 
 // iterate HPO terms
 for term in &ontology {

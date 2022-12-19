@@ -30,7 +30,7 @@ pub struct OmimDiseaseId {
 }
 
 impl OmimDiseaseId {
-    /// Return the memory representation of the inner integer as a byte array in big-endian (network) byte order.
+    /// Returns the memory representation of the inner integer as a byte array in big-endian (network) byte order.
     pub fn to_be_bytes(&self) -> [u8; 4] {
         self.inner.to_be_bytes()
     }

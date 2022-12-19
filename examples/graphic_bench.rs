@@ -59,8 +59,7 @@ fn parallel(ontology: &Ontology, times: usize) {
 }
 
 fn main() {
-    let mut ontology = Ontology::from_standard("./example_data/");
-    ontology.calculate_information_content();
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
 
     println!("finished creating Ontology");
 

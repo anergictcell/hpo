@@ -13,7 +13,7 @@ fn main() {
         let duration1 = end.duration_since(start).unwrap();
 
         let start = SystemTime::now();
-        let obo = Ontology::from_standard("./example_data/");
+        let obo = Ontology::from_standard("./example_data/").unwrap();
         let end = SystemTime::now();
         let duration2 = end.duration_since(start).unwrap();
 

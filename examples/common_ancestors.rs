@@ -46,7 +46,7 @@ fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology)
 }
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/");
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
 
     let mut args = std::env::args();
     if args.len() == 3 {

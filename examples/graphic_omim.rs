@@ -24,8 +24,7 @@ fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
 }
 
 fn main() {
-    let mut ontology = Ontology::from_standard("./example_data/");
-    ontology.calculate_information_content();
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
 
     scores_for_disease("300486".try_into().unwrap(), &ontology);
 }

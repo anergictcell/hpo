@@ -628,7 +628,7 @@ impl Ontology {
     /// This method does not link the term to its parents or to any annotations
     pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
         let id = *term.id();
-        self.hpo_terms.insert(id, term);
+        self.hpo_terms.insert(term);
         id
     }
 

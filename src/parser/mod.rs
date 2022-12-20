@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::Ontology;
+use crate::{Ontology, OntologyResult};
 
 /// Module to parse `hp.obo` file
 pub mod hp_obo;
@@ -115,8 +115,9 @@ pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
     gene_file: P,
     disease_file: P,
     ontology: &mut Ontology,
-) {
-    hp_obo::read_obo_file(obo_file, ontology);
-    phenotype_to_genes::parse(gene_file, ontology).unwrap();
-    phenotype_hpoa::parse(disease_file, ontology).unwrap();
+) -> OntologyResult<()> {
+    hp_obo::read_obo_file(obo_file, ontology)?;
+    phenotype_to_genes::parse(gene_file, ontology)?;
+    phenotype_hpoa::parse(disease_file, ontology)?;
+    Ok(())
 }

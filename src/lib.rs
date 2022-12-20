@@ -39,6 +39,8 @@ pub enum HpoError {
     ParseIntError,
     #[error("unable to parse binary data")]
     ParseBinaryError,
+    #[error("cannot open file {0}")]
+    CannotOpenFile(String),
 }
 
 impl From<ParseIntError> for HpoError {

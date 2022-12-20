@@ -86,7 +86,7 @@ impl Ontology {
         let obo = path.join(crate::OBO_FILENAME);
         let gene = path.join(crate::GENE_FILENAME);
         let disease = path.join(crate::DISEASE_FILENAME);
-        parser::load_from_standard_files(&obo, &gene, &disease, &mut ont);
+        parser::load_from_standard_files(&obo, &gene, &disease, &mut ont)?;
         ont.calculate_information_content();
         Ok(ont)
     }

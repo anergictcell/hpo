@@ -15,6 +15,7 @@ categories = ["science", "data-structures", "parser-implementations"]
 [dependencies]
 thiserror = "1.0.37"
 log = "0.4"
+aquamarine = "0.1" # used in Docs
 
 [dev-dependencies]
 rayon = "1.6.0"

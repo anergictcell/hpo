@@ -1,32 +1,48 @@
 use std::collections::HashSet;
 use std::ops::{BitAnd, BitOr};
 
-use crate::HpoTermId;
+use crate::{HpoTerm, HpoTermId, Ontology};
 
+/// HpoGroup is a set of [`HpoTermId`] representing a group of HPO terms
+///
+/// Each term can occur only once in the group.
+///
+/// This group is used e.g. for having a set of parent or child HPO Terms
 #[derive(Debug, Default, Clone)]
 pub struct HpoGroup {
     ids: Vec<HpoTermId>,
 }
 
 impl HpoGroup {
+    /// Constructs a new, empty [`HpoGroup`]
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Constructs a new, empty [`HpoGroup`] with the given capacity
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             ids: Vec::with_capacity(capacity),
         }
     }
 
+    /// Returns `true` if the group contains no [`HpoTermId`]s
     pub fn is_empty(&self) -> bool {
         self.ids.is_empty()
     }
 
+    /// Returns the number of [`HpoTermId`]s in the group
     pub fn len(&self) -> usize {
         self.ids.len()
     }
 
+    /// Adds a new [`HpoTermId`] to the group
+    ///
+    /// Returns whether the HpoTermId was newly inserted. That is:
+    ///
+    /// - If the group did not previously contain this iHpoTermId, true is returned.
+    /// - If the group already contained this HpoTermId, false is returned.
+    ///
     pub fn insert(&mut self, id: HpoTermId) -> bool {
         match self.ids.binary_search(&id) {
             Ok(_) => false,
@@ -37,23 +53,42 @@ impl HpoGroup {
         }
     }
 
+    /// Adds a new [`HpoTermId`] to the group
+    ///
+    /// # Note
+    ///
+    /// This method will not check if the HpoTermId already exists
+    /// and will add it to the end of the vector. That means the internal
+    /// sort order and uniqueness is not guaranteed.
+    ///
+    /// Using this method wrongly can have fatal effects on the correctness
+    /// of the Ontology's functionality
     fn insert_unchecked(&mut self, id: HpoTermId) {
         self.ids.push(id)
     }
 
+    /// Returns `true` if the group contains the [`HpoTermId`]
     pub fn contains(&self, id: &HpoTermId) -> bool {
         self.ids.binary_search(id).is_ok()
     }
 
-    pub fn iter(&self) -> HpoGroupIterator {
-        HpoGroupIterator::new(self.ids.iter())
+    /// Returns an Iterator of the [`HpoTermId`]s inside the group
+    pub fn iter(&self) -> HpoTermIds {
+        HpoTermIds::new(self.ids.iter())
     }
 
-    // TODO: Is this really needed or makes sense?
-    pub fn pop(&mut self) -> Option<HpoTermId> {
-        self.ids.pop()
+    /// Returns the [`HpoTermId`] at the given index
+    ///
+    /// If the index is out of bounds, `None` is returned.
+    fn get(&self, index: usize) -> Option<&HpoTermId> {
+        self.ids.get(index)
     }
 
+    /// Returns a byte representation of the group
+    ///
+    /// This method is only used for serializing the group
+    /// to indicate term - parent relationships when creating
+    /// the byte format of the Ontology
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut res = Vec::with_capacity(self.len() * 4);
         for id in &self.ids {
@@ -73,30 +108,67 @@ impl From<HashSet<HpoTermId>> for HpoGroup {
     }
 }
 
-impl<'a> IntoIterator for &'a HpoGroup {
-    type Item = &'a HpoTermId;
+/// Iterate [`HpoTerm`]s
+///
+/// This struct creates [`HpoTerm`]s from an owned [`HpoGroup`]
+///
+/// It is used in situations where we cannot reference the [`HpoGroup`]
+/// because it is short-lived and must own it instead
+pub struct GroupCombine<'a> {
+    inner: HpoGroup,
+    ontology: &'a Ontology,
+    idx: usize,
+}
 
-    type IntoIter = HpoGroupIterator<'a>;
-
-    fn into_iter(self) -> HpoGroupIterator<'a> {
-        HpoGroupIterator::new(self.ids.iter())
+impl<'a> GroupCombine<'a> {
+    /// Constructs a new [`GroupCombine`] from an [`HpoGroup`] and a reference
+    /// to the [`Ontology`]
+    pub fn new(inner: HpoGroup, ontology: &'a Ontology) -> Self {
+        Self {
+            inner,
+            idx: 0,
+            ontology,
+        }
     }
 }
 
-pub struct HpoGroupIterator<'a> {
+impl<'a> Iterator for GroupCombine<'a> {
+    type Item = HpoTerm<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = self.idx;
+        self.idx += 1;
+        match self.inner.get(index) {
+            Some(term_id) => self.ontology.hpo(term_id),
+            None => None,
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a HpoGroup {
+    type Item = HpoTermId;
+
+    type IntoIter = HpoTermIds<'a>;
+
+    fn into_iter(self) -> HpoTermIds<'a> {
+        HpoTermIds::new(self.ids.iter())
+    }
+}
+
+/// An iterator over [`HpoTermId`]s
+pub struct HpoTermIds<'a> {
     inner: std::slice::Iter<'a, HpoTermId>,
 }
 
-impl<'a> HpoGroupIterator<'a> {
+impl<'a> HpoTermIds<'a> {
     fn new(inner: std::slice::Iter<'a, HpoTermId>) -> Self {
         Self { inner }
     }
 }
 
-impl<'a> Iterator for HpoGroupIterator<'a> {
-    type Item = &'a HpoTermId;
-    fn next(&mut self) -> Option<&'a HpoTermId> {
-        self.inner.next()
+impl<'a> Iterator for HpoTermIds<'a> {
+    type Item = HpoTermId;
+    fn next(&mut self) -> Option<HpoTermId> {
+        self.inner.next().copied()
     }
 }
 

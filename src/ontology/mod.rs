@@ -1,17 +1,3 @@
-//! Ontology is the heart and main interface of the `hpo` crate.
-//!
-//! The [`Ontology`] struct holds all information about the ontology
-//! and the ownership of all [`HpoTerm`]s, [`Gene`]s and [`OmimDisease`]s.
-//!
-//! It is recommended to use the public methods [`Ontology::from_standard`]
-//! to build the ontology
-//! from standard annotation data from Jax. You will need to download
-//! the data from [HPO](https://hpo.jax.org/) itself.
-//!
-//! This crate also provides a snapshot of all relevant data in binary format
-//! in `tests/ontology.hpo` which can be loaded via [`Ontology::from_binary`].
-//! You should check how up-to-date the snapshot is, though.
-
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -20,11 +6,11 @@ use std::path::Path;
 
 use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
+use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
-use crate::term::HpoTerm;
+use crate::term::{HpoParents, HpoTerm};
 use crate::u32_from_bytes;
-use crate::OntologyResult;
-use crate::{parser, HpoParents};
+use crate::HpoResult;
 use crate::{HpoError, HpoTermId};
 
 use core::fmt::Debug;
@@ -32,9 +18,46 @@ use core::fmt::Debug;
 mod termarena;
 use termarena::Arena;
 
-/// Main API interface that owns all data
+#[cfg_attr(doc, aquamarine::aquamarine)]
+/// `Ontology` is the main interface of the `hpo` crate and contains all data
 ///
-/// `Ontology` provides all interfaces to work with the HPO.
+/// The [`Ontology`] struct holds all information about the ontology
+/// and the ownership of all [`HpoTerm`]s, [`Gene`]s and [`OmimDisease`]s.
+///
+/// It is recommended to use the public methods [`Ontology::from_standard`]
+/// to build the ontology
+/// from standard annotation data from Jax. You will need to download
+/// the data from [HPO](https://hpo.jax.org/) itself.
+///
+/// This crate also provides a snapshot of all relevant data in binary format
+/// in `tests/ontology.hpo` which can be loaded via [`Ontology::from_binary`].
+/// You should check how up-to-date the snapshot is, though.
+///
+/// ```mermaid
+/// erDiagram
+///     ONTOLOGY ||--|{ HPOTERM : contains
+///     HPOTERM ||--|{ HPOTERM : is_a
+///     HPOTERM }|--o{ DISEASE : phenotype_of
+///     HPOTERM }|--o{ GENE : phenotype_of
+///     HPOTERM {
+///         str name
+///         HpoTermId id
+///         HpoTerms parents
+///         HpoTerms children
+///         Genes genes
+///         OmimDiseases omim_diseases
+///     }
+///     DISEASE {
+///         str name
+///         OmimDiseaseId id
+///         HpoGroup hpo_terms
+///     }
+///     GENE {
+///         str name
+///         GeneId id
+///         HpoGroup hpo_terms
+///     }
+/// ```
 #[derive(Default)]
 pub struct Ontology {
     hpo_terms: Arena,
@@ -80,7 +103,7 @@ impl Ontology {
     /// assert_eq!(root_term.name(), "Phenotypical abnormality");
     /// ```
     ///
-    pub fn from_standard(folder: &str) -> OntologyResult<Self> {
+    pub fn from_standard(folder: &str) -> HpoResult<Self> {
         let mut ont = Ontology::default();
         let path = Path::new(folder);
         let obo = path.join(crate::OBO_FILENAME);
@@ -115,7 +138,7 @@ impl Ontology {
     /// let root_term = ontology.hpo(&present_term).unwrap();
     /// assert_eq!(root_term.name(), "All");
     /// ```
-    pub fn from_binary<P: AsRef<Path>>(filename: P) -> OntologyResult<Self> {
+    pub fn from_binary<P: AsRef<Path>>(filename: P) -> HpoResult<Self> {
         let mut ont = Ontology::default();
         let bytes = match File::open(filename) {
             Ok(mut file) => {
@@ -306,7 +329,7 @@ impl Ontology {
     ///
     /// Adding a gene does not connect it to any HPO terms.
     /// Use [`Ontology::link_gene_term`] for creating connections.
-    pub fn add_gene(&mut self, gene_name: &str, gene_id: &str) -> OntologyResult<GeneId> {
+    pub fn add_gene(&mut self, gene_name: &str, gene_id: &str) -> HpoResult<GeneId> {
         let id = GeneId::try_from(gene_id)?;
         match self.genes.entry(id) {
             std::collections::hash_map::Entry::Occupied(_) => Ok(id),
@@ -331,7 +354,7 @@ impl Ontology {
         &mut self,
         omim_disease_name: &str,
         omim_disease_id: &str,
-    ) -> OntologyResult<OmimDiseaseId> {
+    ) -> HpoResult<OmimDiseaseId> {
         let id = OmimDiseaseId::try_from(omim_disease_id)?;
         match self.omim_diseases.entry(id) {
             std::collections::hash_map::Entry::Occupied(_) => Ok(id),
@@ -352,7 +375,7 @@ impl Ontology {
     /// # Panics
     ///
     /// If the HPO term is not present, the method will panic
-    pub fn link_gene_term(&mut self, term_id: &HpoTermId, gene_id: GeneId) -> OntologyResult<()> {
+    pub fn link_gene_term(&mut self, term_id: &HpoTermId, gene_id: GeneId) -> HpoResult<()> {
         let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
 
         if term.add_gene(gene_id) {
@@ -361,7 +384,7 @@ impl Ontology {
             // all parent terms are already linked as well
             let parents = term.all_parents().clone();
             for parent in &parents {
-                self.link_gene_term(parent, gene_id)?;
+                self.link_gene_term(&parent, gene_id)?;
             }
         }
         Ok(())
@@ -381,7 +404,7 @@ impl Ontology {
         &mut self,
         term_id: &HpoTermId,
         omim_disease_id: OmimDiseaseId,
-    ) -> OntologyResult<()> {
+    ) -> HpoResult<()> {
         let term = self
             .get_mut(term_id)
             .expect("Cannot add omim_disease to non-existing term");
@@ -392,13 +415,13 @@ impl Ontology {
             // all parent terms are already linked as well
             let parents = term.all_parents().clone();
             for parent in &parents {
-                self.link_omim_disease_term(parent, omim_disease_id)?;
+                self.link_omim_disease_term(&parent, omim_disease_id)?;
             }
         }
         Ok(())
     }
 
-    /// Calculates the [`crate::InformationContent`]s for every term
+    /// Calculates the [`crate::term::InformationContent`]s for every term
     ///
     /// This method should only be called **after** all terms are added,
     /// connected and all genes and diseases are linked as well.
@@ -523,7 +546,7 @@ impl Ontology {
     /// method assumes that the bytes encode all gene-term connections.
     ///
     /// See [`Gene::as_bytes`] for explanation of the binary layout
-    fn add_genes_from_bytes(&mut self, bytes: &[u8]) -> OntologyResult<()> {
+    fn add_genes_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
         let mut idx: usize = 0;
         loop {
             if idx >= bytes.len() {
@@ -532,7 +555,7 @@ impl Ontology {
             let gene_len = u32_from_bytes(&bytes[idx..]) as usize;
             let gene = Gene::try_from(&bytes[idx..idx + gene_len])?;
             for term in gene.hpo_terms() {
-                self.link_gene_term(term, *gene.id())?;
+                self.link_gene_term(&term, *gene.id())?;
             }
             self.genes.insert(*gene.id(), gene);
             idx += gene_len;
@@ -549,7 +572,7 @@ impl Ontology {
     /// method assumes that the bytes encode all Disease-term connections.
     ///
     /// See [`OmimDisease::as_bytes`] for explanation of the binary layout
-    fn add_omim_disease_from_bytes(&mut self, bytes: &[u8]) -> OntologyResult<()> {
+    fn add_omim_disease_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
         let mut idx: usize = 0;
         loop {
             if idx >= bytes.len() {
@@ -558,7 +581,7 @@ impl Ontology {
             let disease_len = u32_from_bytes(&bytes[idx..]) as usize;
             let disease = OmimDisease::try_from(&bytes[idx..idx + disease_len])?;
             for term in disease.hpo_terms() {
-                self.link_omim_disease_term(term, *disease.id())?;
+                self.link_omim_disease_term(&term, *disease.id())?;
             }
             self.omim_diseases.insert(*disease.id(), disease);
             idx += disease_len;
@@ -599,9 +622,9 @@ impl Ontology {
         let mut res = HpoParents::default();
         let parents = self.get_unchecked(term_id).parents().clone();
         for parent in &parents {
-            let grandparents = self.all_grandparents(parent);
+            let grandparents = self.all_grandparents(&parent);
             for gp in grandparents {
-                res.insert(*gp);
+                res.insert(gp);
             }
         }
         let term = self.get_unchecked_mut(term_id);

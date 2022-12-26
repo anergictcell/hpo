@@ -218,7 +218,7 @@ impl TryFrom<&[u8]> for OmimDisease {
             return Err(HpoError::ParseBinaryError);
         }
 
-        let name = match String::from_utf8(bytes[12..12 + name_len as usize].to_vec()) {
+        let name = match String::from_utf8(bytes[12..12 + name_len].to_vec()) {
             Ok(s) => s,
             Err(_) => {
                 error!("Unable to parse the name of the OmimDisease");

@@ -1,6 +1,6 @@
 use log::{trace, warn};
 
-use crate::{parser::Path, HpoError, OntologyResult};
+use crate::{parser::Path, HpoError, HpoResult};
 use std::fs;
 
 use crate::{term::internal::HpoTermInternal, HpoTermId, Ontology};
@@ -21,10 +21,7 @@ type Connections = Vec<(HpoTermId, HpoTermId)>;
 ///
 /// If you use this function you cannot add additional terms or
 /// parents afterwards, since all dependency data will be already cached.
-pub(super) fn read_obo_file<P: AsRef<Path>>(
-    filename: P,
-    ontology: &mut Ontology,
-) -> OntologyResult<()> {
+pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology) -> HpoResult<()> {
     // stores tuples of Term - Parent
     let mut connections: Connections = Vec::new();
 

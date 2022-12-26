@@ -1,14 +1,16 @@
+//! Parsing the HPO master data provided by Jax
+
 use std::path::Path;
 
-use crate::{Ontology, OntologyResult};
+use crate::{HpoResult, Ontology};
 
 /// Module to parse `hp.obo` file
-pub mod hp_obo;
+pub(crate) mod hp_obo;
 
 /// Module to parse HPO - Gene associations from `phenotype_to_genes.txt` file
-pub mod phenotype_to_genes {
+pub(crate) mod phenotype_to_genes {
     use crate::parser::Path;
-    use crate::OntologyResult;
+    use crate::HpoResult;
     use std::fs::File;
     use std::io::BufRead;
     use std::io::BufReader;
@@ -17,7 +19,7 @@ pub mod phenotype_to_genes {
     use crate::Ontology;
 
     /// Quick and dirty parser for development and debugging
-    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> OntologyResult<()> {
+    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
         let file = File::open(file).unwrap();
         let reader = BufReader::new(file);
         for line in reader.lines() {
@@ -40,10 +42,10 @@ pub mod phenotype_to_genes {
 }
 
 /// Module to parse HPO - OmimDisease associations from `phenotype.hpoa` file
-pub mod phenotype_hpoa {
+pub(crate) mod phenotype_hpoa {
     use crate::HpoError;
+    use crate::HpoResult;
     use crate::HpoTermId;
-    use crate::OntologyResult;
     use std::fs::File;
     use std::io::BufRead;
     use std::io::BufReader;
@@ -80,7 +82,7 @@ pub mod phenotype_hpoa {
     }
 
     /// Quick and dirty parser for development and debugging
-    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> OntologyResult<()> {
+    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
         let file = File::open(file).unwrap();
         let reader = BufReader::new(file);
         for line in reader.lines() {
@@ -115,7 +117,7 @@ pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
     gene_file: P,
     disease_file: P,
     ontology: &mut Ontology,
-) -> OntologyResult<()> {
+) -> HpoResult<()> {
     hp_obo::read_obo_file(obo_file, ontology)?;
     phenotype_to_genes::parse(gene_file, ontology)?;
     phenotype_hpoa::parse(disease_file, ontology)?;

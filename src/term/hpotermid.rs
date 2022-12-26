@@ -1,8 +1,11 @@
 use core::fmt::Debug;
 use std::fmt::Display;
 
-use crate::{HpoError, OntologyResult};
+use crate::{HpoError, HpoResult};
 
+/// The ID of an HPO-Term (e.g. `HP:0000123`)
+///
+/// The ID must be convertible to an integer
 #[derive(Copy, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct HpoTermId {
     inner: u32,
@@ -15,14 +18,22 @@ impl HpoTermId {
         }
     }
 
+    /// Convert `self` to a `usize`
+    ///
+    /// # Panics
+    ///
+    /// This method can panic on systems where `usize::MAX`
+    /// is smaller than the HpoTermId
     pub fn to_usize(&self) -> usize {
         self.inner.try_into().unwrap()
     }
 
+    /// Convert `self` to `u32`
     pub fn as_u32(&self) -> u32 {
         self.inner
     }
 
+    /// Byte representation (big-endian) of self
     pub fn to_be_bytes(&self) -> [u8; 4] {
         self.inner.to_be_bytes()
     }
@@ -30,7 +41,7 @@ impl HpoTermId {
 
 impl TryFrom<&str> for HpoTermId {
     type Error = HpoError;
-    fn try_from(s: &str) -> OntologyResult<Self> {
+    fn try_from(s: &str) -> HpoResult<Self> {
         Ok(HpoTermId {
             inner: s[3..].parse::<u32>()?,
         })

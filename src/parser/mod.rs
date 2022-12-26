@@ -1,13 +1,16 @@
+//! Parsing the HPO master data provided by Jax
+
 use std::path::Path;
 
-use crate::Ontology;
+use crate::{HpoResult, Ontology};
 
 /// Module to parse `hp.obo` file
-pub mod hp_obo;
+pub(crate) mod hp_obo;
 
 /// Module to parse HPO - Gene associations from `phenotype_to_genes.txt` file
-pub mod phenotype_to_genes {
+pub(crate) mod phenotype_to_genes {
     use crate::parser::Path;
+    use crate::HpoResult;
     use std::fs::File;
     use std::io::BufRead;
     use std::io::BufReader;
@@ -16,7 +19,7 @@ pub mod phenotype_to_genes {
     use crate::Ontology;
 
     /// Quick and dirty parser for development and debugging
-    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) {
+    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
         let file = File::open(file).unwrap();
         let reader = BufReader::new(file);
         for line in reader.lines() {
@@ -25,20 +28,23 @@ pub mod phenotype_to_genes {
                 continue;
             }
             let cols: Vec<&str> = line.trim().split('\t').collect();
-            let gene_id = ontology.add_gene(cols[3], cols[2]).unwrap();
-            let term_id = HpoTermId::try_from(cols[0]).unwrap();
-            ontology.link_gene_term(&term_id, gene_id);
+            let gene_id = ontology.add_gene(cols[3], cols[2])?;
+            let term_id = HpoTermId::try_from(cols[0])?;
+            ontology.link_gene_term(&term_id, gene_id)?;
 
             ontology
                 .gene_mut(&gene_id)
                 .expect("Cannot find gene")
                 .add_term(term_id);
         }
+        Ok(())
     }
 }
 
 /// Module to parse HPO - OmimDisease associations from `phenotype.hpoa` file
-pub mod phenotype_hpoa {
+pub(crate) mod phenotype_hpoa {
+    use crate::HpoError;
+    use crate::HpoResult;
     use crate::HpoTermId;
     use std::fs::File;
     use std::io::BufRead;
@@ -76,21 +82,22 @@ pub mod phenotype_hpoa {
     }
 
     /// Quick and dirty parser for development and debugging
-    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) {
+    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
         let file = File::open(file).unwrap();
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();
             if let Some(omim) = parse_line(&line) {
-                let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id).unwrap();
-                ontology.link_omim_disease_term(&omim.hpo_id, omim_disease_id);
+                let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
+                ontology.link_omim_disease_term(&omim.hpo_id, omim_disease_id)?;
 
                 ontology
                     .omim_disease_mut(&omim_disease_id)
-                    .expect("Cannot find gene")
+                    .ok_or(HpoError::DoesNotExist)?
                     .add_term(omim.hpo_id);
             }
         }
+        Ok(())
     }
 
     #[cfg(test)]
@@ -110,8 +117,9 @@ pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
     gene_file: P,
     disease_file: P,
     ontology: &mut Ontology,
-) {
-    hp_obo::read_obo_file(obo_file, ontology);
-    phenotype_to_genes::parse(gene_file, ontology);
-    phenotype_hpoa::parse(disease_file, ontology);
+) -> HpoResult<()> {
+    hp_obo::read_obo_file(obo_file, ontology)?;
+    phenotype_to_genes::parse(gene_file, ontology)?;
+    phenotype_hpoa::parse(disease_file, ontology)?;
+    Ok(())
 }

@@ -2,7 +2,7 @@
 
 This crate is a draft for a Rust implementation of [PyHPO](https://pypi.org/project/pyhpo/).
 
-> :warning: **Warning:** The library is a work in progress and I don't recommend using it at this stage.
+> :warning: **Warning:** The library is a work in progress and many function signatures will change. Many functions can panic in one way or another and I used `unwrap` a lot. This made protyping easier, but I'm currently slowly refactoring out those panics.
 
 If you find this project interesting and want to contribute, please get in touch, I could definitely need some help. The code is not yet well documented and does not yet have many tests. At the moment, I'm primarily trying to get a working PoC. Once I'm there, I will adjust many method names and functionality and add more documentation and tests. The library does not contain any error handling and uses `unwrap` a lot - I plan to change this once I am ready to stabilize the overall API a bit more.
 
@@ -30,7 +30,7 @@ use hpo::Ontology;
 use hpo::annotations::{GeneId, OmimDiseaseId};
 
 # fn foobar() {
-let ontology = Ontology::from_standard("/path/to/master-data");
+let ontology = Ontology::from_standard("/path/to/master-data").unwrap();
 
 // iterate HPO terms
 for term in &ontology {

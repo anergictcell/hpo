@@ -1,37 +1,42 @@
 use std::env::args;
 use std::time::SystemTime;
 
+use hpo::term::InformationContentKind;
 use hpo::HpoTerm;
 use hpo::HpoTermId;
 use rayon::prelude::*;
 
-use hpo::GraphIc;
+use hpo::similarity::GraphIc;
 use hpo::Ontology;
 
 fn bench(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
-    let ic = GraphIc::new(hpo::InformationContentKind::Omim);
+    let ic = GraphIc::new(InformationContentKind::Omim);
+
+    let mut count = 0usize;
     for term1 in ontology.hpos() {
         for term2 in ontology.hpos().take(times) {
             let overlap = term1.similarity_score(&term2, &ic);
-            if overlap > 1.1 {
-                println!("This part is never reached but is left so that the compiler doesn't optimize the loop away :)")
+            if overlap > 0.7 {
+                // println!("This part is never reached but is left so that the compiler doesn't optimize the loop away :)")
+                count += 1;
             }
         }
     }
     let end = SystemTime::now();
     let duration = end.duration_since(start).unwrap();
     println!(
-        "It took {} seconds for {} x {} terms.",
+        "It took {} seconds for {} x {} terms. {} over .07",
         duration.as_secs(),
         ontology.len(),
         std::cmp::min(times, ontology.len()),
+        count
     );
 }
 
 fn parallel(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
-    let ic = GraphIc::new(hpo::InformationContentKind::Omim);
+    let ic = GraphIc::new(InformationContentKind::Omim);
 
     let terms: Vec<HpoTerm> = ontology.into_iter().collect();
     let scores: Vec<(HpoTermId, HpoTermId, f32)> = terms.par_iter()
@@ -59,8 +64,7 @@ fn parallel(ontology: &Ontology, times: usize) {
 }
 
 fn main() {
-    let mut ontology = Ontology::from_standard("./example_data/");
-    ontology.calculate_information_content();
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
 
     println!("finished creating Ontology");
 

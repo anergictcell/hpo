@@ -6,7 +6,7 @@ use crate::term::{HpoChildren, HpoParents, HpoTermId};
 use crate::DEFAULT_NUM_OMIM;
 use crate::DEFAULT_NUM_PARENTS;
 use crate::{HpoError, DEFAULT_NUM_GENES};
-use crate::{OntologyResult, DEFAULT_NUM_ALL_PARENTS};
+use crate::{HpoResult, DEFAULT_NUM_ALL_PARENTS};
 
 #[derive(Debug)]
 pub(crate) struct HpoTermInternal {
@@ -46,7 +46,7 @@ impl HpoTermInternal {
         }
     }
 
-    pub fn try_new(id: &str, name: &str) -> OntologyResult<HpoTermInternal> {
+    pub fn try_new(id: &str, name: &str) -> HpoResult<HpoTermInternal> {
         let id = HpoTermId::try_from(id)?;
         Ok(HpoTermInternal {
             id,
@@ -264,9 +264,10 @@ impl Iterator for BinaryTermBuilder<'_> {
 
         let term_len = u32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
 
-        if bytes.len() < term_len {
-            panic!("Invalid bytes left over in BinaryTermBuilder");
-        }
+        assert!(
+            (bytes.len() >= term_len),
+            "Invalid bytes left over in BinaryTermBuilder"
+        );
 
         self.idx += term_len;
         let term = &bytes[..term_len];

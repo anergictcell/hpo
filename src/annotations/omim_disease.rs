@@ -30,6 +30,7 @@ pub struct OmimDiseaseId {
 }
 
 impl OmimDiseaseId {
+    /// Returns the memory representation of the inner integer as a byte array in big-endian (network) byte order.
     pub fn to_be_bytes(&self) -> [u8; 4] {
         self.inner.to_be_bytes()
     }
@@ -217,7 +218,7 @@ impl TryFrom<&[u8]> for OmimDisease {
             return Err(HpoError::ParseBinaryError);
         }
 
-        let name = match String::from_utf8(bytes[12..12 + name_len as usize].to_vec()) {
+        let name = match String::from_utf8(bytes[12..12 + name_len].to_vec()) {
             Ok(s) => s,
             Err(_) => {
                 error!("Unable to parse the name of the OmimDisease");

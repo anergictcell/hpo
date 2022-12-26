@@ -9,9 +9,9 @@ use log::error;
 use crate::term::HpoGroup;
 use crate::u32_from_bytes;
 use crate::HpoError;
+use crate::HpoResult;
 use crate::HpoTermId;
 use crate::Ontology;
-use crate::OntologyResult;
 
 /// A set of genes
 ///
@@ -32,6 +32,7 @@ pub struct GeneId {
 }
 
 impl GeneId {
+    /// Returns the memory representation of the inner integer as a byte array in big-endian (network) byte order.
     pub fn to_be_bytes(&self) -> [u8; 4] {
         self.inner.to_be_bytes()
     }
@@ -88,7 +89,7 @@ impl Gene {
     /// This method should rarely, if ever, be used directly. The
     /// preferred way to create new genes is through [`Ontology::add_gene`]
     /// to ensure that each gene exists only once.
-    pub fn from_parts(id: &str, name: &str) -> OntologyResult<Gene> {
+    pub fn from_parts(id: &str, name: &str) -> HpoResult<Gene> {
         Ok(Gene {
             id: GeneId::try_from(id)?,
             name: name.to_string(),
@@ -236,7 +237,7 @@ impl TryFrom<&[u8]> for Gene {
             return Err(HpoError::ParseBinaryError);
         }
 
-        let name = match String::from_utf8(bytes[9..9 + name_len as usize].to_vec()) {
+        let name = match String::from_utf8(bytes[9..9 + name_len].to_vec()) {
             Ok(s) => s,
             Err(_) => {
                 error!("Unable to parse the name of the Gene");

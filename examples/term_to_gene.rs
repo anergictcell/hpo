@@ -1,7 +1,7 @@
 use hpo::Ontology;
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/");
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
 
     let mut genes: Vec<&str> = Vec::new();
     for term in ontology.hpos() {

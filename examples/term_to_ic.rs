@@ -1,8 +1,7 @@
 use hpo::Ontology;
 
 fn main() {
-    let mut ontology = Ontology::from_standard("./example_data/");
-    ontology.calculate_information_content();
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
 
     for term in ontology.hpos() {
         println!(

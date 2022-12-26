@@ -1,6 +1,5 @@
-// #![warn(missing_docs)]
+#![warn(missing_docs)]
 // #![warn(missing_doc_code_examples)]
-
 #![doc = include_str!("../README.md")]
 use core::fmt::Debug;
 use std::num::ParseIntError;
@@ -9,15 +8,13 @@ use thiserror::Error;
 pub mod annotations;
 mod matrix;
 mod ontology;
-pub mod parser;
+mod parser;
 mod set;
 pub mod similarity;
-mod term;
+pub mod term;
 
 pub use ontology::Ontology;
-pub use similarity::{GraphIc, Similarity};
-pub use term::{HpoParents, HpoTerm, HpoTermId, HpoTermIterator};
-pub use term::{InformationContent, InformationContentKind};
+pub use term::{HpoTerm, HpoTermId};
 
 const DEFAULT_NUM_PARENTS: usize = 10;
 const DEFAULT_NUM_ALL_PARENTS: usize = 50;
@@ -30,15 +27,23 @@ const GENE_FILENAME: &str = "phenotype_to_genes.txt";
 const DISEASE_FILENAME: &str = "phenotype.hpoa";
 
 #[derive(Error, Debug)]
+/// Main Error type for this crate
 pub enum HpoError {
+    /// Indicates that a method or feature is not yet implemented
     #[error("not implemented")]
     NotImplemented,
+    /// The term does not exist in the Ontology
     #[error("term does not exist")]
     DoesNotExist,
+    /// Parsing of an integer failed
     #[error("unable to parse Integer")]
     ParseIntError,
+    /// An error occured during parsing the binary HPO data
     #[error("unable to parse binary data")]
     ParseBinaryError,
+    /// Opening the file was not able - check if the file is present
+    #[error("cannot open file {0}")]
+    CannotOpenFile(String),
 }
 
 impl From<ParseIntError> for HpoError {
@@ -47,7 +52,8 @@ impl From<ParseIntError> for HpoError {
     }
 }
 
-type OntologyResult<T> = Result<T, HpoError>;
+/// Shortcut for `Result<T, HpoError>`
+pub type HpoResult<T> = Result<T, HpoError>;
 
 /// Returns a u32 from the 4 first 4 bytes
 ///

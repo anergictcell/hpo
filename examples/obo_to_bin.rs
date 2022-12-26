@@ -3,7 +3,7 @@ use std::{fs::File, io::Write};
 use hpo::Ontology;
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/");
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
     println!("Ontology with {} terms", ontology.len());
     let mut args = std::env::args();
     if args.len() == 2 {

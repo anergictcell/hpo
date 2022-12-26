@@ -1,15 +1,16 @@
 use hpo::annotations::OmimDiseaseId;
-use hpo::GraphIc;
+use hpo::similarity::GraphIc;
+use hpo::term::HpoTerms;
+use hpo::term::InformationContentKind;
 use hpo::HpoTerm;
-use hpo::HpoTermIterator;
 use hpo::Ontology;
 
 fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
-    let ic = GraphIc::new(hpo::InformationContentKind::Omim);
+    let ic = GraphIc::new(InformationContentKind::Omim);
 
     let disease = ontology.omim_disease(&omimid).unwrap();
     println!("Using Disease [{}] {}", disease.id(), disease.name());
-    let terms: Vec<HpoTerm> = HpoTermIterator::new(disease.hpo_terms(), ontology).collect();
+    let terms: Vec<HpoTerm> = HpoTerms::new(disease.hpo_terms(), ontology).collect();
     for term1 in &terms {
         for term2 in &terms {
             let overlap = term1.similarity_score(term2, &ic);
@@ -24,8 +25,7 @@ fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
 }
 
 fn main() {
-    let mut ontology = Ontology::from_standard("./example_data/");
-    ontology.calculate_information_content();
+    let ontology = Ontology::from_standard("./example_data/").unwrap();
 
     scores_for_disease("300486".try_into().unwrap(), &ontology);
 }

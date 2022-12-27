@@ -1,9 +1,9 @@
 [package]
 name = "hpo"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Jonas Marcello <jonas.marcello@esbme.com>"]
-description = "Human Phenotyoe Ontology Similarity"
+description = "Human Phenotype Ontology Similarity"
 readme = "README.md"
 homepage = "https://github.com/anergictcell/hpo"
 repository = "https://github.com/anergictcell/hpo"

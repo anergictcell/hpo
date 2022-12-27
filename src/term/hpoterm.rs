@@ -37,14 +37,16 @@ pub struct HpoTerm<'a> {
 impl<'a> HpoTerm<'a> {
     /// Constructs a new [`HpoTerm`]
     ///
+    /// # Errors
+    ///
     /// If the given [`HpoTermId`] does not match an existing term
     /// it returns an Error
-    pub fn try_new(ontology: &'a Ontology, term: &HpoTermId) -> HpoResult<HpoTerm<'a>> {
+    pub fn try_new(ontology: &'a Ontology, term: HpoTermId) -> HpoResult<HpoTerm<'a>> {
         let term = ontology.get(term).ok_or(HpoError::DoesNotExist)?;
         Ok(HpoTerm::new(ontology, term))
     }
 
-    /// Constructs a new [`HpoTerm`] from an HpoTermInternal
+    /// Constructs a new [`HpoTerm`] from an `HpoTermInternal`
     pub(crate) fn new(ontology: &'a Ontology, term: &'a HpoTermInternal) -> HpoTerm<'a> {
         HpoTerm {
             id: term.id(),
@@ -62,8 +64,8 @@ impl<'a> HpoTerm<'a> {
     /// Returns the [`HpoTermId`] of the term
     ///
     /// e.g.: `HP:0012345`
-    pub fn id(&self) -> &HpoTermId {
-        self.id
+    pub fn id(&self) -> HpoTermId {
+        *self.id
     }
 
     /// Returns the name of the term
@@ -107,12 +109,12 @@ impl<'a> HpoTerm<'a> {
     pub fn common_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
         let mut res = self.all_parent_ids() & other.all_parent_ids();
 
-        if other.all_parent_ids().contains(self.id()) {
-            res.insert(*self.id());
+        if other.all_parent_ids().contains(&self.id()) {
+            res.insert(self.id());
         }
 
-        if self.all_parent_ids().contains(other.id()) {
-            res.insert(*other.id());
+        if self.all_parent_ids().contains(&other.id()) {
+            res.insert(other.id());
         }
 
         res
@@ -163,10 +165,10 @@ impl<'a> HpoTerm<'a> {
         if self.id() == other.id() {
             return Some(0);
         }
-        if self.parent_ids().contains(other.id()) {
+        if self.parent_ids().contains(&other.id()) {
             return Some(1);
         }
-        if !self.all_parent_ids().contains(other.id()) {
+        if !self.all_parent_ids().contains(&other.id()) {
             return None;
         }
         self.parents()
@@ -177,7 +179,7 @@ impl<'a> HpoTerm<'a> {
 
     /// Returns `true` if `self` is a child (direct or indirect) of `other`
     pub fn child_of(&self, other: &HpoTerm) -> bool {
-        self.all_parent_ids().contains(other.id())
+        self.all_parent_ids().contains(&other.id())
     }
 
     /// Returns `true` if `self` is a parent (direct or indirect) of `other`
@@ -190,10 +192,10 @@ impl<'a> HpoTerm<'a> {
         if self.id() == other.id() {
             return Some(vec![]);
         }
-        if self.parent_ids().contains(other.id()) {
-            return Some(vec![*other.id()]);
+        if self.parent_ids().contains(&other.id()) {
+            return Some(vec![other.id()]);
         }
-        if !self.all_parent_ids().contains(other.id()) {
+        if !self.all_parent_ids().contains(&other.id()) {
             return None;
         }
         self.parents()
@@ -204,15 +206,14 @@ impl<'a> HpoTerm<'a> {
                 }
                 None => None,
             })
-            .min_by_key(|x| x.len())
+            .min_by_key(Vec::len)
     }
 
     /// Returns the distance (steps) from `self` to `other`
     pub fn distance_to_term(&self, other: &HpoTerm) -> Option<usize> {
         self.common_ancestors(other)
-            .map(|parent| {
-                self.distance_to_ancestor(&parent).unwrap()
-                    + other.distance_to_ancestor(&parent).unwrap()
+            .filter_map(|parent| {
+                Some(self.distance_to_ancestor(&parent)? + other.distance_to_ancestor(&parent)?)
             })
             .min()
     }

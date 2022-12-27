@@ -7,7 +7,7 @@ use crate::{HpoResult, Ontology};
 /// Module to parse `hp.obo` file
 pub(crate) mod hp_obo;
 
-/// Module to parse HPO - Gene associations from `phenotype_to_genes.txt` file
+/// Module to parse HPO - `Gene` associations from `phenotype_to_genes.txt` file
 pub(crate) mod phenotype_to_genes {
     use crate::parser::Path;
     use crate::HpoResult;
@@ -30,18 +30,18 @@ pub(crate) mod phenotype_to_genes {
             let cols: Vec<&str> = line.trim().split('\t').collect();
             let gene_id = ontology.add_gene(cols[3], cols[2])?;
             let term_id = HpoTermId::try_from(cols[0])?;
-            ontology.link_gene_term(&term_id, gene_id)?;
+            ontology.link_gene_term(term_id, gene_id)?;
 
             ontology
                 .gene_mut(&gene_id)
-                .expect("Cannot find gene")
+                .expect("Cannot find gene {gene_id}")
                 .add_term(term_id);
         }
         Ok(())
     }
 }
 
-/// Module to parse HPO - OmimDisease associations from `phenotype.hpoa` file
+/// Module to parse HPO - `OmimDisease` associations from `phenotype.hpoa` file
 pub(crate) mod phenotype_hpoa {
     use crate::HpoError;
     use crate::HpoResult;
@@ -50,6 +50,8 @@ pub(crate) mod phenotype_hpoa {
     use std::io::BufRead;
     use std::io::BufReader;
     use std::path::Path;
+
+    use log::error;
 
     use crate::Ontology;
 
@@ -72,12 +74,24 @@ pub(crate) mod phenotype_hpoa {
             return None;
         }
 
-        let (_, omim_id) = cols[0].split_once(':').unwrap();
+        let omim_id = if let Some((_, id)) = cols[0].split_once(':') {
+            id
+        } else {
+            error!("cannot parse OMIM ID from {}", cols[0]);
+            return None;
+        };
+
+        let hpo_id = if let Ok(id) = HpoTermId::try_from(cols[3]) {
+            id
+        } else {
+            error!("invalid HPO ID: {}", cols[3]);
+            return None;
+        };
 
         Some(Omim {
             id: omim_id,
             name: cols[1],
-            hpo_id: HpoTermId::try_from(cols[3]).unwrap(),
+            hpo_id,
         })
     }
 
@@ -89,7 +103,7 @@ pub(crate) mod phenotype_hpoa {
             let line = line.unwrap();
             if let Some(omim) = parse_line(&line) {
                 let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
-                ontology.link_omim_disease_term(&omim.hpo_id, omim_disease_id)?;
+                ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
 
                 ontology
                     .omim_disease_mut(&omim_disease_id)

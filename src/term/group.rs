@@ -3,7 +3,7 @@ use std::ops::{BitAnd, BitOr};
 
 use crate::{HpoTerm, HpoTermId, Ontology};
 
-/// HpoGroup is a set of [`HpoTermId`] representing a group of HPO terms
+/// A set of [`HpoTermId`] representing a group of HPO terms
 ///
 /// Each term can occur only once in the group.
 ///
@@ -38,10 +38,10 @@ impl HpoGroup {
 
     /// Adds a new [`HpoTermId`] to the group
     ///
-    /// Returns whether the HpoTermId was newly inserted. That is:
+    /// Returns whether the `HpoTermId` was newly inserted. That is:
     ///
-    /// - If the group did not previously contain this iHpoTermId, true is returned.
-    /// - If the group already contained this HpoTermId, false is returned.
+    /// - If the group did not previously contain this `HpoTermId`, true is returned.
+    /// - If the group already contained this `HpoTermId`, false is returned.
     ///
     pub fn insert(&mut self, id: HpoTermId) -> bool {
         match self.ids.binary_search(&id) {
@@ -57,14 +57,14 @@ impl HpoGroup {
     ///
     /// # Note
     ///
-    /// This method will not check if the HpoTermId already exists
+    /// This method will not check if the `HpoTermId` already exists
     /// and will add it to the end of the vector. That means the internal
     /// sort order and uniqueness is not guaranteed.
     ///
     /// Using this method wrongly can have fatal effects on the correctness
     /// of the Ontology's functionality
     fn insert_unchecked(&mut self, id: HpoTermId) {
-        self.ids.push(id)
+        self.ids.push(id);
     }
 
     /// Returns `true` if the group contains the [`HpoTermId`]
@@ -92,7 +92,7 @@ impl HpoGroup {
     pub fn as_bytes(&self) -> Vec<u8> {
         let mut res = Vec::with_capacity(self.len() * 4);
         for id in &self.ids {
-            res.append(&mut id.to_be_bytes().to_vec())
+            res.append(&mut id.to_be_bytes().to_vec());
         }
         res
     }
@@ -138,7 +138,7 @@ impl<'a> Iterator for GroupCombine<'a> {
         let index = self.idx;
         self.idx += 1;
         match self.inner.get(index) {
-            Some(term_id) => self.ontology.hpo(term_id),
+            Some(term_id) => self.ontology.hpo(*term_id),
             None => None,
         }
     }
@@ -176,7 +176,7 @@ impl BitOr for &HpoGroup {
     type Output = HpoGroup;
 
     fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut res = HpoGroup::with_capacity(self.len() + rhs.len());
+        let mut group = HpoGroup::with_capacity(self.len() + rhs.len());
         let (large, small) = if self.len() > rhs.len() {
             (self, rhs)
         } else {
@@ -184,12 +184,12 @@ impl BitOr for &HpoGroup {
         };
 
         for id in &large.ids {
-            res.insert_unchecked(*id);
+            group.insert_unchecked(*id);
         }
         for id in &small.ids {
-            res.insert(*id);
+            group.insert(*id);
         }
-        res
+        group
     }
 }
 
@@ -197,7 +197,7 @@ impl BitAnd for &HpoGroup {
     type Output = HpoGroup;
 
     fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut res = HpoGroup::with_capacity(self.len());
+        let mut group = HpoGroup::with_capacity(self.len());
         let (large, small) = if self.len() > rhs.len() {
             (self, rhs)
         } else {
@@ -206,10 +206,10 @@ impl BitAnd for &HpoGroup {
 
         for id in &small.ids {
             if large.ids.contains(id) {
-                res.insert_unchecked(*id);
+                group.insert_unchecked(*id);
             }
         }
-        res
+        group
     }
 }
 

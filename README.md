@@ -48,7 +48,7 @@ for disease in ontology.omim_diseases() {
 }
 
 // get a single HPO term
-let term = ontology.hpo(&"HP:0000123".try_into().unwrap());
+let term = ontology.hpo("HP:0000123".try_into().unwrap());
 
 // get a single Gene
 let hgnc_id = GeneId::try_from("12345").unwrap();

@@ -34,6 +34,7 @@ pub struct HpoTerms<'a> {
 
 impl<'a> HpoTerms<'a> {
     /// Returns a new [`HpoTerms`]
+    #[must_use]
     pub fn new(group: &'a HpoGroup, ontology: &'a Ontology) -> Self {
         HpoTerms {
             group: group.iter(),
@@ -49,8 +50,8 @@ impl<'a> Iterator for HpoTerms<'a> {
             Some(term) => {
                 let term = self
                     .ontology
-                    .get(&term)
-                    .unwrap_or_else(|| panic!("Invalid HPO-Term: {}", term));
+                    .get(term)
+                    .unwrap_or_else(|| panic!("Invalid HPO-Term: {term}"));
                 Some(HpoTerm::new(self.ontology, term))
             }
             None => None,

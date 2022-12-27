@@ -15,7 +15,7 @@ fn bench(ontology: &Ontology, times: usize) {
             let overlap = term1.common_ancestor_ids(&term2).len();
             if overlap > count {
                 count = overlap;
-                terms = (*term1.id(), *term2.id());
+                terms = (term1.id(), term2.id());
             }
         }
     });
@@ -32,8 +32,8 @@ fn bench(ontology: &Ontology, times: usize) {
 }
 
 fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology) {
-    let term1 = ontology.hpo(&termid1).unwrap();
-    let term2 = ontology.hpo(&termid2).unwrap();
+    let term1 = ontology.hpo(termid1).unwrap();
+    let term2 = ontology.hpo(termid2).unwrap();
     for term in term1.common_ancestors(&term2) {
         println!(
             "Term {} | IC {} | nOmim {} | nGene {}",

@@ -1,4 +1,4 @@
-use log::{trace, warn};
+use log::{error, trace, warn};
 
 use crate::{parser::Path, HpoError, HpoResult};
 use std::fs;
@@ -74,9 +74,9 @@ fn add_connections(connections: &mut Connections, term: &str, id: HpoTermId) {
     for line in term.lines() {
         if let Some(value) = line.strip_prefix("is_a: ") {
             if let Some((term_id, _)) = value.split_once(' ') {
-                connections.push((id, HpoTermId::try_from(term_id).unwrap()))
+                connections.push((id, HpoTermId::try_from(term_id).unwrap()));
             } else {
-                println!("Unable to parse HPO ID from {}", value)
+                error!("Unable to parse HPO ID from {}", value);
             }
         }
     }
@@ -100,14 +100,14 @@ mod test {
 
         assert_eq!(ont.len(), 4);
 
-        assert!(ont.hpo(&1u32.into()).is_none());
+        assert!(ont.hpo(1u32.into()).is_none());
 
-        assert_eq!(ont.hpo(&219u32.into()).unwrap().parents().count(), 2);
+        assert_eq!(ont.hpo(219u32.into()).unwrap().parents().count(), 2);
 
-        assert_eq!(ont.hpo(&218u32.into()).unwrap().parents().count(), 1);
+        assert_eq!(ont.hpo(218u32.into()).unwrap().parents().count(), 1);
 
-        assert_eq!(ont.hpo(&217u32.into()).unwrap().parents().count(), 0);
+        assert_eq!(ont.hpo(217u32.into()).unwrap().parents().count(), 0);
 
-        assert_eq!(ont.hpo(&217u32.into()).unwrap().children().count(), 2);
+        assert_eq!(ont.hpo(217u32.into()).unwrap().children().count(), 2);
     }
 }

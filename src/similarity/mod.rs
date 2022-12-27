@@ -5,7 +5,7 @@ use crate::set::HpoSet;
 use crate::term::InformationContentKind;
 use crate::HpoTerm;
 
-/// Trait for similarity score calculation between 2 HpoTerms
+/// Trait for similarity score calculation between 2 [`HpoTerm`]s
 ///
 /// `hpo` already comes pre-loaded with several common and well established
 /// similarity algorithms that implement the `Similarity` trait.
@@ -16,13 +16,13 @@ pub trait Similarity {
 
 /// Graph based Information coefficient similarity
 ///
-/// For implementation details see [Deng Y, et. al., PLoS One, (2015)](https://pubmed.ncbi.nlm.nih.gov/25664462/)
+/// For a detailed description see [Deng Y, et. al., PLoS One, (2015)](https://pubmed.ncbi.nlm.nih.gov/25664462/)
 pub struct GraphIc {
     method: InformationContentKind,
 }
 
 impl GraphIc {
-    /// instantiate a new struct to calculate GraphIC based similarity scores
+    /// Constructs a new struct to calculate GraphIC based similarity scores
     /// between two terms
     ///
     /// # Examples
@@ -66,7 +66,7 @@ impl Similarity for GraphIc {
 
 /// This trait is needed for custom implementations
 ///
-/// For similarity calculation between sets of HpoTerms
+/// For similarity calculation between sets of `HpoTerm`s
 /// the similarity scores must be combined
 pub trait SimilarityCombiner {
     /// This method implements the actual logic to calculate a single
@@ -90,7 +90,7 @@ pub trait SimilarityCombiner {
                 // with the borrow checker
                 row.reduce(|a, b| if a > b { a } else { b }).unwrap()
             })
-            .cloned()
+            .copied()
             .collect()
     }
 
@@ -102,11 +102,11 @@ pub trait SimilarityCombiner {
                 // with the borrow checker
                 col.reduce(|a, b| if a > b { a } else { b }).unwrap()
             })
-            .cloned()
+            .copied()
             .collect()
     }
 
-    /// Returns the dimenension of the Matrix, (rows, columns)
+    /// Returns the dimenension of the `Matrix`, (rows, columns)
     fn dim_f32(&self, m: &Matrix<f32>) -> (f32, f32) {
         let (rows, cols) = m.dim();
         (usize_to_f32(rows), usize_to_f32(cols))
@@ -202,9 +202,9 @@ impl<T: Similarity, C: SimilarityCombiner> GroupSimilarity<T, C> {
     /// calculates the similarity between two sets of terms
     pub fn calculate(&self, a: &HpoSet, b: &HpoSet) -> f32 {
         let mut v = Vec::with_capacity(a.len() * b.len());
-        for t1 in a.into_iter() {
-            for t2 in b.into_iter() {
-                v.push(self.similarity.calculate(t1, t2))
+        for t1 in a {
+            for t2 in b {
+                v.push(self.similarity.calculate(t1, t2));
             }
         }
         let m = Matrix::new(a.len(), b.len(), &v);

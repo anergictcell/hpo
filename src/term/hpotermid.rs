@@ -23,7 +23,7 @@ impl HpoTermId {
     /// # Panics
     ///
     /// This method can panic on systems where `usize::MAX`
-    /// is smaller than the HpoTermId
+    /// is smaller than the `HpoTermId`
     pub fn to_usize(&self) -> usize {
         self.inner.try_into().unwrap()
     }
@@ -92,7 +92,7 @@ impl From<[u8; 4]> for HpoTermId {
 
 impl Debug for HpoTermId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "HpoTermId({})", self)
+        write!(f, "HpoTermId({self})")
     }
 }
 

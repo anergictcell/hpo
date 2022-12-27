@@ -69,6 +69,7 @@
 
 #![allow(clippy::slow_vector_initialization)]
 use log::trace;
+use log::warn;
 
 use crate::term::internal::HpoTermInternal;
 use crate::HpoTermId;
@@ -107,20 +108,24 @@ impl Arena {
         if self.ids[id] == 0 {
             let idx = self.terms.len();
             self.terms.push(term);
-            self.ids[id] = idx
+            self.ids[id] = idx;
         }
     }
 
     /// Returns the [`HpoTermInternal`] with the given `HpoTermId`
     ///
     /// If no such term is present, returns `None`
-    pub fn get(&self, id: &HpoTermId) -> Option<&HpoTermInternal> {
-        match self.ids[id.to_usize()] {
-            0 => {
+    pub fn get(&self, id: HpoTermId) -> Option<&HpoTermInternal> {
+        match self.ids.get(id.to_usize()) {
+            Some(0) => {
                 trace!("Term does not exist in Arena: {}", id);
                 None
             }
-            n => Some(&self.terms[n]),
+            Some(n) => Some(&self.terms[*n]),
+            None => {
+                warn!("Index of Arena out of bounds for {id}");
+                None
+            }
         }
     }
 
@@ -132,7 +137,7 @@ impl Arena {
     /// # Panics
     ///
     /// If no HpoTerm with the given ID exists in the Arena
-    pub fn get_unchecked(&self, id: &HpoTermId) -> &HpoTermInternal {
+    pub fn get_unchecked(&self, id: HpoTermId) -> &HpoTermInternal {
         &self.terms[self.ids[id.to_usize()]]
     }
 
@@ -144,17 +149,21 @@ impl Arena {
     /// # Panics
     ///
     /// If no HpoTerm with the given ID exists in the Arena
-    pub fn get_unchecked_mut(&mut self, id: &HpoTermId) -> &mut HpoTermInternal {
+    pub fn get_unchecked_mut(&mut self, id: HpoTermId) -> &mut HpoTermInternal {
         &mut self.terms[self.ids[id.to_usize()]]
     }
 
     /// Returns a mutable reference to the [`HpoTermInternal`] with the given `HpoTermId`
     ///
     /// If no such term is present, returns `None`
-    pub fn get_mut(&mut self, id: &HpoTermId) -> Option<&mut HpoTermInternal> {
-        match self.ids[id.to_usize()] {
-            0 => None,
-            n => Some(&mut self.terms[n]),
+    pub fn get_mut(&mut self, id: HpoTermId) -> Option<&mut HpoTermInternal> {
+        match self.ids.get(id.to_usize()) {
+            Some(0) => None,
+            Some(n) => Some(&mut self.terms[*n]),
+            None => {
+                warn!("Index of Arena out of bounds for {id}");
+                None
+            }
         }
     }
 

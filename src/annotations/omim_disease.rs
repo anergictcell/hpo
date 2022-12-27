@@ -128,6 +128,9 @@ impl OmimDisease {
     /// assert_eq!(bytes[8..12], [0u8, 0u8, 0u8, 6u8]); // Length of Name => 6
     /// ```
     pub fn as_bytes(&self) -> Vec<u8> {
+        fn usize_to_u32(n: usize) -> u32 {
+            n.try_into().expect("unable to convert {n} to u32")
+        }
         let name = self.name().as_bytes();
         let name_length = name.len();
         let size = 4 + 4 + 4 + name_length + 4 + self.hpos.len() * 4;
@@ -135,13 +138,13 @@ impl OmimDisease {
         let mut res = Vec::new();
 
         // 4 bytes for total length
-        res.append(&mut (size as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(size).to_be_bytes().to_vec());
 
         // 4 bytes for OMIM Disease-ID
         res.append(&mut self.id.to_be_bytes().to_vec());
 
         // 4 bytes for Length of OMIM Disease Name
-        res.append(&mut (name_length as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(name_length).to_be_bytes().to_vec());
 
         // OMIM Disease name (n bytes)
         for c in name.iter() {
@@ -149,7 +152,7 @@ impl OmimDisease {
         }
 
         // 4 bytes for number of HPO terms
-        res.append(&mut (self.hpos.len() as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(self.hpos.len()).to_be_bytes().to_vec());
 
         // HPO terms
         res.append(&mut self.hpos.as_bytes());
@@ -218,12 +221,11 @@ impl TryFrom<&[u8]> for OmimDisease {
             return Err(HpoError::ParseBinaryError);
         }
 
-        let name = match String::from_utf8(bytes[12..12 + name_len].to_vec()) {
-            Ok(s) => s,
-            Err(_) => {
-                error!("Unable to parse the name of the OmimDisease");
-                return Err(HpoError::ParseBinaryError);
-            }
+        let name = if let Ok(s) = String::from_utf8(bytes[12..12 + name_len].to_vec()) {
+            s
+        } else {
+            error!("Unable to parse the name of the OmimDisease");
+            return Err(HpoError::ParseBinaryError);
         };
 
         let mut gene = OmimDisease::new(id.into(), &name);

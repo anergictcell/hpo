@@ -62,10 +62,10 @@ fn main() {
 
     /*
     Expected times:
-    It took 0 seconds for 500 terms. HP:0007768 and HP:0000631 have 24 overlaps
-    It took 1 seconds for 1000 terms. HP:0005617 and HP:0001215 have 35 overlaps
-    It took 13 seconds for 10000 terms. HP:0009640 and HP:0009640 have 42 overlaps
-    It took 22 seconds for 17059 terms. HP:0009640 and HP:0009640 have 42 overlaps
+    It took 0 seconds for 500 terms. HP:0007768 and HP:0000631 have 23 overlaps
+    It took 1 seconds for 1000 terms. HP:0030675 and HP:0001215 have 34 overlaps
+    It took 12 seconds for 10000 terms. HP:0009640 and HP:0009640 have 41 overlaps
+    It took 21 seconds for 17059 terms. HP:0009640 and HP:0009640 have 41 overlaps
     */
 }
 
@@ -80,8 +80,8 @@ time1 = time.time()
 common = 0
 terms = (None, None)
 for term1 in Ontology:
-    # for term2 in list(Ontology)[0:5000]:
-    for term2 in Ontology:
+    for term2 in list(Ontology)[0:1000]:
+    #for term2 in Ontology:
             overlap = term1.common_ancestors(term2)
             if len(overlap) > common:
                     common = len(overlap)

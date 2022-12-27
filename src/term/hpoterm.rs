@@ -99,6 +99,11 @@ impl<'a> HpoTerm<'a> {
     }
 
     /// Returns the [`HpoTermId`]s that are parents of both `self` **and** `other`
+    ///
+    /// # Note:
+    ///
+    /// If one term is a parent term of the other, this term is included
+    /// in the list of common ancestors
     pub fn common_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
         let mut res = self.all_parent_ids() & other.all_parent_ids();
 
@@ -119,6 +124,11 @@ impl<'a> HpoTerm<'a> {
     }
 
     /// Returns an iterator of [`HpoTerm`]s that are parents of both `self` **and** `other`
+    ///
+    /// # Note:
+    ///
+    /// If one term is a parent term of the other, this term is included
+    /// in the list of common ancestors
     pub fn common_ancestors(&self, other: &HpoTerm) -> GroupCombine {
         GroupCombine::new(self.common_ancestor_ids(other), self.ontology)
     }

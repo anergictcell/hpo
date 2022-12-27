@@ -6,11 +6,11 @@ use std::path::Path;
 
 use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
-use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
 use crate::term::{HpoParents, HpoTerm};
 use crate::u32_from_bytes;
 use crate::HpoResult;
+use crate::{f32_from_usize, parser};
 use crate::{HpoError, HpoTermId};
 
 use core::fmt::Debug;
@@ -85,6 +85,14 @@ impl Ontology {
     ///
     /// and then specify the folder where the data is stored.
     ///
+    /// # Errors
+    ///
+    /// This method can fail for various reasons:
+    ///
+    /// - obo file not present or available: [`HpoError::CannotOpenFile`]
+    /// - add_genes failed (TODO)
+    /// - add_omim_disease failed (TODO)
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -122,6 +130,17 @@ impl Ontology {
     /// and ensures proper inheritance of gene/disease annotations.
     /// It also calculates the InformationContent for every term.
     ///
+    /// # Errors
+    ///
+    /// This method can fail for various reasons:
+    ///
+    /// - Binary file not available: [`HpoError::CannotOpenFile`]
+    /// - add_genes_from_bytes failed (TODO)
+    /// - add_omim_disease_from_bytes failed (TODO)
+    /// - add_terms_from_bytes
+    /// - add_parent_from_bytes
+    /// - Size of binary data does not match the content: [`HpoError::ParseBinaryError`]
+    ///
     /// # Examples
     ///
     /// ```
@@ -142,13 +161,25 @@ impl Ontology {
         let mut ont = Ontology::default();
         let bytes = match File::open(filename) {
             Ok(mut file) => {
-                let len = file.metadata().map_err(|_| HpoError::DoesNotExist)?.len();
-                let mut bytes = Vec::with_capacity(len.try_into().unwrap());
-                file.read_to_end(&mut bytes)
-                    .map_err(|_| HpoError::DoesNotExist)?;
+                let len = file
+                    .metadata()
+                    .map_err(|_| {
+                        HpoError::CannotOpenFile(
+                            "unable to get filesize of binary file".to_string(),
+                        )
+                    })?
+                    .len();
+                let mut bytes = Vec::with_capacity(len.try_into()?);
+                file.read_to_end(&mut bytes).map_err(|_| {
+                    HpoError::CannotOpenFile("unable to read from binary file".to_string())
+                })?;
                 bytes
             }
-            Err(_) => return Err(crate::HpoError::DoesNotExist),
+            Err(_) => {
+                return Err(crate::HpoError::CannotOpenFile(
+                    "unable to open binary file".to_string(),
+                ))
+            }
         };
 
         let mut section_start = 0;
@@ -203,7 +234,14 @@ impl Ontology {
     ///
     /// This method is only useful if you use are modifying the ontology
     /// and want to save data for later re-use.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the buffer length of any subsegment larger than `u32::MAX`
     pub fn as_bytes(&self) -> Vec<u8> {
+        fn usize_to_u32(n: usize) -> u32 {
+            n.try_into().expect("unable to convert {n} to u32")
+        }
         let mut res = Vec::new();
 
         // All HPO Terms
@@ -211,7 +249,7 @@ impl Ontology {
         for term in self.hpo_terms.values() {
             buffer.append(&mut term.as_bytes());
         }
-        res.append(&mut (buffer.len() as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
         res.append(&mut buffer);
 
         // All Term - Parent connections
@@ -219,7 +257,7 @@ impl Ontology {
         for term in self.hpo_terms.values() {
             buffer.append(&mut term.parents_as_byte());
         }
-        res.append(&mut (buffer.len() as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
         res.append(&mut buffer);
 
         // Genes and Gene-Term connections
@@ -227,7 +265,7 @@ impl Ontology {
         for gene in self.genes.values() {
             buffer.append(&mut gene.as_bytes());
         }
-        res.append(&mut (buffer.len() as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
         res.append(&mut buffer);
 
         // OMIM Disease and Disease-Term connections
@@ -235,7 +273,7 @@ impl Ontology {
         for omim_disease in self.omim_diseases.values() {
             buffer.append(&mut omim_disease.as_bytes());
         }
-        res.append(&mut (buffer.len() as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
         res.append(&mut buffer);
 
         res
@@ -329,6 +367,10 @@ impl Ontology {
     ///
     /// Adding a gene does not connect it to any HPO terms.
     /// Use [`Ontology::link_gene_term`] for creating connections.
+    ///
+    /// # Errors
+    ///
+    /// If the `gene_id` is invalid, an [`HpoError::ParseIntError`] is returned
     pub fn add_gene(&mut self, gene_name: &str, gene_id: &str) -> HpoResult<GeneId> {
         let id = GeneId::try_from(gene_id)?;
         match self.genes.entry(id) {
@@ -350,6 +392,10 @@ impl Ontology {
     ///
     /// Adding a disease does not connect it to any HPO terms.
     /// Use [`Ontology::link_omim_disease_term`] for creating connections.
+    ///
+    /// # Errors
+    ///
+    /// If the `omim_disease_id` is invalid, an [`HpoError::ParseIntError`] is returned
     pub fn add_omim_disease(
         &mut self,
         omim_disease_name: &str,
@@ -372,9 +418,9 @@ impl Ontology {
     /// This method does not add the HPO-term to the [`Gene`], this must be handled
     /// by the client.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// If the HPO term is not present, the method will panic
+    /// If the HPO term is not present, an [`HpoError::DoesNotExist`] is returned
     pub fn link_gene_term(&mut self, term_id: HpoTermId, gene_id: GeneId) -> HpoResult<()> {
         let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
 
@@ -397,17 +443,15 @@ impl Ontology {
     /// This method does not add the HPO-term to the [`OmimDisease`], this
     /// must be handled by the client.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// If the HPO term is not present, the method will panic
+    /// If the HPO term is not present, an [`HpoError`] is returned
     pub fn link_omim_disease_term(
         &mut self,
         term_id: HpoTermId,
         omim_disease_id: OmimDiseaseId,
     ) -> HpoResult<()> {
-        let term = self
-            .get_mut(term_id)
-            .expect("Cannot add omim_disease to non-existing term");
+        let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
 
         if term.add_omim_disease(omim_disease_id) {
             // If the disease is already associated to the term, this branch will
@@ -438,7 +482,7 @@ impl Ontology {
     ///
     /// If no genes are present in the Ontology, no IC are calculated
     fn calculate_gene_ic(&mut self) {
-        let n_genes = self.genes.len() as f32;
+        let n_genes = f32_from_usize(self.genes.len()).expect("too many genes to convert to f32");
 
         if n_genes == 0.0 {
             // No genes present in the Ontology
@@ -450,7 +494,9 @@ impl Ontology {
         for term in self.hpo_terms.values_mut() {
             let ic_gene = match term.genes().len() {
                 0 => 0.0,
-                n => (n as f32 / n_genes).ln() * -1.0,
+                // The casting will work because we're ensuring above
+                // that the total number of genes can be converted to f32
+                n => (n as f32 / n_genes).ln() * -1.0, // casting is save
             };
             let ic = term.information_content_mut();
             *ic.gene_mut() = ic_gene;
@@ -461,7 +507,8 @@ impl Ontology {
     ///
     /// If no diseases are present in the Ontology, no IC are calculated
     fn calculate_omim_disease_ic(&mut self) {
-        let n_omim_diseases = self.omim_diseases.len() as f32;
+        let n_omim_diseases =
+            f32_from_usize(self.omim_diseases.len()).expect("too many diseases to convert to f32");
 
         if n_omim_diseases == 0.0 {
             // No omim_diseases present in the Ontology
@@ -473,7 +520,9 @@ impl Ontology {
         for term in self.hpo_terms.values_mut() {
             let ic_omim_disease = match term.omim_diseases().len() {
                 0 => 0.0,
-                n => (n as f32 / n_omim_diseases).ln() * -1.0,
+                // The casting will work because we're ensuring above
+                // that the total number of diseases can be converted to f32
+                n => (n as f32 / n_omim_diseases).ln() * -1.0, // casting is save
             };
             let ic = term.information_content_mut();
             *ic.omim_disease_mut() = ic_omim_disease;
@@ -650,7 +699,7 @@ impl Ontology {
     ///
     /// This method does not link the term to its parents or to any annotations
     pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
-        let id = term.id();
+        let id = *term.id();
         self.hpo_terms.insert(term);
         id
     }

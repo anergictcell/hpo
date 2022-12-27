@@ -82,7 +82,7 @@ impl<'a, T> Matrix<'a, T> {
 impl<T: std::fmt::Display> Debug for Matrix<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in self.rows() {
-            let v: Vec<String> = row.map(|v| format!("{}", v)).collect();
+            let v: Vec<String> = row.map(|v| format!("{v}")).collect();
             writeln!(f, "[{}]", v.join(", ")).unwrap();
         }
         Ok(())
@@ -114,7 +114,7 @@ pub struct RowIterator<'a, T> {
 
 impl<'a, T> RowIterator<'a, T> {
     fn new(data: &'a [T], iter: RowIndexIterator) -> Self {
-        Self { data, iter }
+        Self { iter, data }
     }
 }
 

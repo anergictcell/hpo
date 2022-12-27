@@ -44,6 +44,9 @@ pub enum HpoError {
     /// Opening the file was not able - check if the file is present
     #[error("cannot open file {0}")]
     CannotOpenFile(String),
+    /// Failed to convert an integer to a float
+    #[error("cannot convert int to float")]
+    TryFromIntError(#[from] std::num::TryFromIntError),
 }
 
 impl From<ParseIntError> for HpoError {
@@ -64,4 +67,9 @@ pub type HpoResult<T> = Result<T, HpoError>;
 /// The u32 sould be big-endian encoded
 fn u32_from_bytes(bytes: &[u8]) -> u32 {
     u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]])
+}
+
+fn f32_from_usize(n: usize) -> HpoResult<f32> {
+    let intermediate: u16 = n.try_into()?;
+    Ok(intermediate.into())
 }

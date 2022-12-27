@@ -23,7 +23,7 @@ use super::InformationContent;
 /// It provides functionality for path traversals and similarity calculations.
 #[derive(Debug, Clone, Copy)]
 pub struct HpoTerm<'a> {
-    id: HpoTermId,
+    id: &'a HpoTermId,
     name: &'a str,
     parents: &'a HpoParents,
     all_parents: &'a HpoParents,
@@ -65,7 +65,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// e.g.: `HP:0012345`
     pub fn id(&self) -> HpoTermId {
-        self.id
+        *self.id
     }
 
     /// Returns the name of the term
@@ -191,7 +191,7 @@ impl<'a> HpoTerm<'a> {
         self.parents()
             .filter_map(|p| match p.path_to_ancestor(other) {
                 Some(mut x) => {
-                    x.insert(0, p.id);
+                    x.insert(0, *p.id);
                     Some(x)
                 }
                 None => None,

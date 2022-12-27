@@ -89,6 +89,10 @@ impl Gene {
     /// This method should rarely, if ever, be used directly. The
     /// preferred way to create new genes is through [`Ontology::add_gene`]
     /// to ensure that each gene exists only once.
+    ///
+    /// # Errors
+    ///
+    /// If the id is not a correct `GeneId`, returns [`HpoError::ParseIntError`]
     pub fn from_parts(id: &str, name: &str) -> HpoResult<Gene> {
         Ok(Gene {
             id: GeneId::try_from(id)?,
@@ -148,6 +152,9 @@ impl Gene {
     /// assert_eq!(bytes[8], 6u8);
     /// ```
     pub fn as_bytes(&self) -> Vec<u8> {
+        fn usize_to_u32(n: usize) -> u32 {
+            n.try_into().expect("unable to convert {n} to u32")
+        }
         let name = self.name().as_bytes();
         let name_length = std::cmp::min(name.len(), 255);
         let size = 4 + 4 + 1 + name_length + 4 + self.hpos.len() * 4;
@@ -155,13 +162,13 @@ impl Gene {
         let mut res = Vec::new();
 
         // 4 bytes for total length
-        res.append(&mut (size as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(size).to_be_bytes().to_vec());
 
         // 4 bytes for Gene-ID
         res.append(&mut self.id.to_be_bytes().to_vec());
 
         // 1 byte for Length of Gene Name (can't be longer than 255 bytes)
-        res.push(name_length as u8);
+        res.push(name_length as u8); // casting is safe, since name_length is < 256
 
         // Gene name/symbol (up to 255 bytes)
         for c in name.iter().take(255) {
@@ -169,7 +176,7 @@ impl Gene {
         }
 
         // 4 bytes for number of HPO terms
-        res.append(&mut (self.hpos.len() as u32).to_be_bytes().to_vec());
+        res.append(&mut usize_to_u32(self.hpos.len()).to_be_bytes().to_vec());
 
         // HPO terms
         res.append(&mut self.hpos.as_bytes());
@@ -237,12 +244,11 @@ impl TryFrom<&[u8]> for Gene {
             return Err(HpoError::ParseBinaryError);
         }
 
-        let name = match String::from_utf8(bytes[9..9 + name_len].to_vec()) {
-            Ok(s) => s,
-            Err(_) => {
-                error!("Unable to parse the name of the Gene");
-                return Err(HpoError::ParseBinaryError);
-            }
+        let name = if let Ok(s) = String::from_utf8(bytes[9..9 + name_len].to_vec()) {
+            s
+        } else {
+            error!("Unable to parse the name of the Gene");
+            return Err(HpoError::ParseBinaryError);
         };
 
         let mut gene = Gene::new(id.into(), &name);

@@ -176,7 +176,7 @@ impl BitOr for &HpoGroup {
     type Output = HpoGroup;
 
     fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut res = HpoGroup::with_capacity(self.len() + rhs.len());
+        let mut group = HpoGroup::with_capacity(self.len() + rhs.len());
         let (large, small) = if self.len() > rhs.len() {
             (self, rhs)
         } else {
@@ -184,12 +184,12 @@ impl BitOr for &HpoGroup {
         };
 
         for id in &large.ids {
-            res.insert_unchecked(*id);
+            group.insert_unchecked(*id);
         }
         for id in &small.ids {
-            res.insert(*id);
+            group.insert(*id);
         }
-        res
+        group
     }
 }
 
@@ -197,7 +197,7 @@ impl BitAnd for &HpoGroup {
     type Output = HpoGroup;
 
     fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut res = HpoGroup::with_capacity(self.len());
+        let mut group = HpoGroup::with_capacity(self.len());
         let (large, small) = if self.len() > rhs.len() {
             (self, rhs)
         } else {
@@ -206,10 +206,10 @@ impl BitAnd for &HpoGroup {
 
         for id in &small.ids {
             if large.ids.contains(id) {
-                res.insert_unchecked(*id);
+                group.insert_unchecked(*id);
             }
         }
-        res
+        group
     }
 }
 

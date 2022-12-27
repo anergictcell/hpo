@@ -69,6 +69,7 @@
 
 #![allow(clippy::slow_vector_initialization)]
 use log::trace;
+use log::warn;
 
 use crate::term::internal::HpoTermInternal;
 use crate::HpoTermId;
@@ -107,7 +108,7 @@ impl Arena {
         if self.ids[id] == 0 {
             let idx = self.terms.len();
             self.terms.push(term);
-            self.ids[id] = idx
+            self.ids[id] = idx;
         }
     }
 
@@ -115,12 +116,16 @@ impl Arena {
     ///
     /// If no such term is present, returns `None`
     pub fn get(&self, id: HpoTermId) -> Option<&HpoTermInternal> {
-        match self.ids[id.to_usize()] {
-            0 => {
+        match self.ids.get(id.to_usize()) {
+            Some(0) => {
                 trace!("Term does not exist in Arena: {}", id);
                 None
             }
-            n => Some(&self.terms[n]),
+            Some(n) => Some(&self.terms[*n]),
+            None => {
+                warn!("Index of Arena out of bounds for {id}");
+                None
+            }
         }
     }
 
@@ -152,9 +157,13 @@ impl Arena {
     ///
     /// If no such term is present, returns `None`
     pub fn get_mut(&mut self, id: HpoTermId) -> Option<&mut HpoTermInternal> {
-        match self.ids[id.to_usize()] {
-            0 => None,
-            n => Some(&mut self.terms[n]),
+        match self.ids.get(id.to_usize()) {
+            Some(0) => None,
+            Some(n) => Some(&mut self.terms[*n]),
+            None => {
+                warn!("Index of Arena out of bounds for {id}");
+                None
+            }
         }
     }
 
@@ -174,6 +183,6 @@ impl Arena {
 
     /// Returns all [`HpoTermId`]s
     pub fn keys(&mut self) -> Vec<HpoTermId> {
-        self.terms[1..].iter().map(|term| term.id()).collect()
+        self.terms[1..].iter().map(|term| *term.id()).collect()
     }
 }

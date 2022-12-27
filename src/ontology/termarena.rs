@@ -114,7 +114,7 @@ impl Arena {
     /// Returns the [`HpoTermInternal`] with the given `HpoTermId`
     ///
     /// If no such term is present, returns `None`
-    pub fn get(&self, id: &HpoTermId) -> Option<&HpoTermInternal> {
+    pub fn get(&self, id: HpoTermId) -> Option<&HpoTermInternal> {
         match self.ids[id.to_usize()] {
             0 => {
                 trace!("Term does not exist in Arena: {}", id);
@@ -132,7 +132,7 @@ impl Arena {
     /// # Panics
     ///
     /// If no HpoTerm with the given ID exists in the Arena
-    pub fn get_unchecked(&self, id: &HpoTermId) -> &HpoTermInternal {
+    pub fn get_unchecked(&self, id: HpoTermId) -> &HpoTermInternal {
         &self.terms[self.ids[id.to_usize()]]
     }
 
@@ -144,14 +144,14 @@ impl Arena {
     /// # Panics
     ///
     /// If no HpoTerm with the given ID exists in the Arena
-    pub fn get_unchecked_mut(&mut self, id: &HpoTermId) -> &mut HpoTermInternal {
+    pub fn get_unchecked_mut(&mut self, id: HpoTermId) -> &mut HpoTermInternal {
         &mut self.terms[self.ids[id.to_usize()]]
     }
 
     /// Returns a mutable reference to the [`HpoTermInternal`] with the given `HpoTermId`
     ///
     /// If no such term is present, returns `None`
-    pub fn get_mut(&mut self, id: &HpoTermId) -> Option<&mut HpoTermInternal> {
+    pub fn get_mut(&mut self, id: HpoTermId) -> Option<&mut HpoTermInternal> {
         match self.ids[id.to_usize()] {
             0 => None,
             n => Some(&mut self.terms[n]),
@@ -174,6 +174,6 @@ impl Arena {
 
     /// Returns all [`HpoTermId`]s
     pub fn keys(&mut self) -> Vec<HpoTermId> {
-        self.terms[1..].iter().map(|term| *term.id()).collect()
+        self.terms[1..].iter().map(|term| term.id()).collect()
     }
 }

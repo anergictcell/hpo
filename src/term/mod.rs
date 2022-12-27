@@ -50,7 +50,7 @@ impl<'a> Iterator for HpoTerms<'a> {
             Some(term) => {
                 let term = self
                     .ontology
-                    .get(&term)
+                    .get(term)
                     .unwrap_or_else(|| panic!("Invalid HPO-Term: {term}"));
                 Some(HpoTerm::new(self.ontology, term))
             }

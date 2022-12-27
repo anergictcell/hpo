@@ -25,8 +25,8 @@ fn main() {
     if args.len() == 3 {
         let termid1 = HpoTermId::from(args.nth(1).unwrap());
         let termid2 = HpoTermId::from(args.next().unwrap());
-        let term1 = ontology.hpo(&termid1).unwrap();
-        let term2 = ontology.hpo(&termid2).unwrap();
+        let term1 = ontology.hpo(termid1).unwrap();
+        let term2 = ontology.hpo(termid2).unwrap();
         print_distance(&term1, &term2);
         for t in term1.common_ancestors(&term2) {
             println!("{}", t.id());

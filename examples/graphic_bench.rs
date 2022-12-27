@@ -44,7 +44,7 @@ fn parallel(ontology: &Ontology, times: usize) {
         let mut inner_score = Vec::new();
         for term2 in ontology.into_iter().take(times) {
             let overlap = term1.similarity_score(&term2, &ic);
-            inner_score.push((*term1.id(), *term2.id(), overlap));
+            inner_score.push((term1.id(), term2.id(), overlap));
             if overlap > 1.1 {
                 println!("This part is never reached but is left so that the compiler doesn't optimize the loop away :)")
             }

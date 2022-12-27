@@ -23,7 +23,7 @@ use super::InformationContent;
 /// It provides functionality for path traversals and similarity calculations.
 #[derive(Debug, Clone, Copy)]
 pub struct HpoTerm<'a> {
-    id: &'a HpoTermId,
+    id: HpoTermId,
     name: &'a str,
     parents: &'a HpoParents,
     all_parents: &'a HpoParents,
@@ -41,7 +41,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// If the given [`HpoTermId`] does not match an existing term
     /// it returns an Error
-    pub fn try_new(ontology: &'a Ontology, term: &HpoTermId) -> HpoResult<HpoTerm<'a>> {
+    pub fn try_new(ontology: &'a Ontology, term: HpoTermId) -> HpoResult<HpoTerm<'a>> {
         let term = ontology.get(term).ok_or(HpoError::DoesNotExist)?;
         Ok(HpoTerm::new(ontology, term))
     }
@@ -64,7 +64,7 @@ impl<'a> HpoTerm<'a> {
     /// Returns the [`HpoTermId`] of the term
     ///
     /// e.g.: `HP:0012345`
-    pub fn id(&self) -> &HpoTermId {
+    pub fn id(&self) -> HpoTermId {
         self.id
     }
 
@@ -104,12 +104,12 @@ impl<'a> HpoTerm<'a> {
     pub fn common_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
         let mut res = self.all_parent_ids() & other.all_parent_ids();
 
-        if other.all_parent_ids().contains(self.id()) {
-            res.insert(*self.id());
+        if other.all_parent_ids().contains(&self.id()) {
+            res.insert(self.id());
         }
 
-        if self.all_parent_ids().contains(other.id()) {
-            res.insert(*other.id());
+        if self.all_parent_ids().contains(&other.id()) {
+            res.insert(other.id());
         }
 
         res
@@ -155,10 +155,10 @@ impl<'a> HpoTerm<'a> {
         if self.id() == other.id() {
             return Some(0);
         }
-        if self.parent_ids().contains(other.id()) {
+        if self.parent_ids().contains(&other.id()) {
             return Some(1);
         }
-        if !self.all_parent_ids().contains(other.id()) {
+        if !self.all_parent_ids().contains(&other.id()) {
             return None;
         }
         self.parents()
@@ -169,7 +169,7 @@ impl<'a> HpoTerm<'a> {
 
     /// Returns `true` if `self` is a child (direct or indirect) of `other`
     pub fn child_of(&self, other: &HpoTerm) -> bool {
-        self.all_parent_ids().contains(other.id())
+        self.all_parent_ids().contains(&other.id())
     }
 
     /// Returns `true` if `self` is a parent (direct or indirect) of `other`
@@ -182,16 +182,16 @@ impl<'a> HpoTerm<'a> {
         if self.id() == other.id() {
             return Some(vec![]);
         }
-        if self.parent_ids().contains(other.id()) {
-            return Some(vec![*other.id()]);
+        if self.parent_ids().contains(&other.id()) {
+            return Some(vec![other.id()]);
         }
-        if !self.all_parent_ids().contains(other.id()) {
+        if !self.all_parent_ids().contains(&other.id()) {
             return None;
         }
         self.parents()
             .filter_map(|p| match p.path_to_ancestor(other) {
                 Some(mut x) => {
-                    x.insert(0, *p.id);
+                    x.insert(0, p.id);
                     Some(x)
                 }
                 None => None,

@@ -100,14 +100,14 @@ mod test {
 
         assert_eq!(ont.len(), 4);
 
-        assert!(ont.hpo(&1u32.into()).is_none());
+        assert!(ont.hpo(1u32.into()).is_none());
 
-        assert_eq!(ont.hpo(&219u32.into()).unwrap().parents().count(), 2);
+        assert_eq!(ont.hpo(219u32.into()).unwrap().parents().count(), 2);
 
-        assert_eq!(ont.hpo(&218u32.into()).unwrap().parents().count(), 1);
+        assert_eq!(ont.hpo(218u32.into()).unwrap().parents().count(), 1);
 
-        assert_eq!(ont.hpo(&217u32.into()).unwrap().parents().count(), 0);
+        assert_eq!(ont.hpo(217u32.into()).unwrap().parents().count(), 0);
 
-        assert_eq!(ont.hpo(&217u32.into()).unwrap().children().count(), 2);
+        assert_eq!(ont.hpo(217u32.into()).unwrap().children().count(), 2);
     }
 }

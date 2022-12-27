@@ -96,10 +96,10 @@ impl Ontology {
     /// assert!(ontology.len() > 15_000);
     ///
     /// let absent_term = HpoTermId::try_from("HP:9999999").unwrap();
-    /// assert!(ontology.hpo(&absent_term).is_none());
+    /// assert!(ontology.hpo(absent_term).is_none());
     ///
     /// let present_term = HpoTermId::try_from("HP:0000001").unwrap();
-    /// let root_term = ontology.hpo(&present_term).unwrap();
+    /// let root_term = ontology.hpo(present_term).unwrap();
     /// assert_eq!(root_term.name(), "Phenotypical abnormality");
     /// ```
     ///
@@ -132,10 +132,10 @@ impl Ontology {
     /// assert!(ontology.len() > 15_000);
     ///
     /// let absent_term = HpoTermId::try_from("HP:9999999").unwrap();
-    /// assert!(ontology.hpo(&absent_term).is_none());
+    /// assert!(ontology.hpo(absent_term).is_none());
     ///
     /// let present_term = HpoTermId::try_from("HP:0000001").unwrap();
-    /// let root_term = ontology.hpo(&present_term).unwrap();
+    /// let root_term = ontology.hpo(present_term).unwrap();
     /// assert_eq!(root_term.name(), "All");
     /// ```
     pub fn from_binary<P: AsRef<Path>>(filename: P) -> HpoResult<Self> {
@@ -254,7 +254,7 @@ impl Ontology {
     /// Returns the [`HpoTerm`] of the provided [`HpoTermId`]
     ///
     /// If no such term is present in the Ontolgy, `None` is returned
-    pub fn hpo(&self, term_id: &HpoTermId) -> Option<HpoTerm> {
+    pub fn hpo(&self, term_id: HpoTermId) -> Option<HpoTerm> {
         HpoTerm::try_new(self, term_id).ok()
     }
 
@@ -375,7 +375,7 @@ impl Ontology {
     /// # Panics
     ///
     /// If the HPO term is not present, the method will panic
-    pub fn link_gene_term(&mut self, term_id: &HpoTermId, gene_id: GeneId) -> HpoResult<()> {
+    pub fn link_gene_term(&mut self, term_id: HpoTermId, gene_id: GeneId) -> HpoResult<()> {
         let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
 
         if term.add_gene(gene_id) {
@@ -384,7 +384,7 @@ impl Ontology {
             // all parent terms are already linked as well
             let parents = term.all_parents().clone();
             for parent in &parents {
-                self.link_gene_term(&parent, gene_id)?;
+                self.link_gene_term(parent, gene_id)?;
             }
         }
         Ok(())
@@ -402,7 +402,7 @@ impl Ontology {
     /// If the HPO term is not present, the method will panic
     pub fn link_omim_disease_term(
         &mut self,
-        term_id: &HpoTermId,
+        term_id: HpoTermId,
         omim_disease_id: OmimDiseaseId,
     ) -> HpoResult<()> {
         let term = self
@@ -415,7 +415,7 @@ impl Ontology {
             // all parent terms are already linked as well
             let parents = term.all_parents().clone();
             for parent in &parents {
-                self.link_omim_disease_term(&parent, omim_disease_id)?;
+                self.link_omim_disease_term(parent, omim_disease_id)?;
             }
         }
         Ok(())
@@ -555,7 +555,7 @@ impl Ontology {
             let gene_len = u32_from_bytes(&bytes[idx..]) as usize;
             let gene = Gene::try_from(&bytes[idx..idx + gene_len])?;
             for term in gene.hpo_terms() {
-                self.link_gene_term(&term, *gene.id())?;
+                self.link_gene_term(term, *gene.id())?;
             }
             self.genes.insert(*gene.id(), gene);
             idx += gene_len;
@@ -581,7 +581,7 @@ impl Ontology {
             let disease_len = u32_from_bytes(&bytes[idx..]) as usize;
             let disease = OmimDisease::try_from(&bytes[idx..idx + disease_len])?;
             for term in disease.hpo_terms() {
-                self.link_omim_disease_term(&term, *disease.id())?;
+                self.link_omim_disease_term(term, *disease.id())?;
             }
             self.omim_diseases.insert(*disease.id(), disease);
             idx += disease_len;
@@ -595,7 +595,7 @@ impl Ontology {
     /// # Panics
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
-    fn all_grandparents(&mut self, term_id: &HpoTermId) -> &HpoParents {
+    fn all_grandparents(&mut self, term_id: HpoTermId) -> &HpoParents {
         if !self.get_unchecked(term_id).parents_cached() {
             self.create_cache_of_grandparents(term_id);
         }
@@ -618,11 +618,11 @@ impl Ontology {
     /// # Panics
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
-    fn create_cache_of_grandparents(&mut self, term_id: &HpoTermId) {
+    fn create_cache_of_grandparents(&mut self, term_id: HpoTermId) {
         let mut res = HpoParents::default();
         let parents = self.get_unchecked(term_id).parents().clone();
         for parent in &parents {
-            let grandparents = self.all_grandparents(&parent);
+            let grandparents = self.all_grandparents(parent);
             for gp in grandparents {
                 res.insert(gp);
             }
@@ -642,7 +642,7 @@ impl Ontology {
         let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
 
         for id in term_ids {
-            self.create_cache_of_grandparents(&id);
+            self.create_cache_of_grandparents(id);
         }
     }
 
@@ -650,7 +650,7 @@ impl Ontology {
     ///
     /// This method does not link the term to its parents or to any annotations
     pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
-        let id = *term.id();
+        let id = term.id();
         self.hpo_terms.insert(term);
         id
     }
@@ -665,17 +665,17 @@ impl Ontology {
     ///
     /// This method will panic if the `parent_id` or `child_id` is not present in the Ontology
     pub(crate) fn add_parent(&mut self, parent_id: HpoTermId, child_id: HpoTermId) {
-        let parent = self.get_unchecked_mut(&parent_id);
+        let parent = self.get_unchecked_mut(parent_id);
         parent.add_child(child_id);
 
-        let child = self.get_unchecked_mut(&child_id);
+        let child = self.get_unchecked_mut(child_id);
         child.add_parent(parent_id);
     }
 
     /// Returns the `HpoTermInternal` with the given `HpoTermId`
     ///
     /// Returns `None` if no such term is present
-    pub(crate) fn get(&self, term_id: &HpoTermId) -> Option<&HpoTermInternal> {
+    pub(crate) fn get(&self, term_id: HpoTermId) -> Option<&HpoTermInternal> {
         self.hpo_terms.get(term_id)
     }
 
@@ -687,14 +687,14 @@ impl Ontology {
     /// # Panics
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
-    pub(crate) fn get_unchecked(&self, term_id: &HpoTermId) -> &HpoTermInternal {
+    pub(crate) fn get_unchecked(&self, term_id: HpoTermId) -> &HpoTermInternal {
         self.hpo_terms.get_unchecked(term_id)
     }
 
     /// Returns a mutable reference to the `HpoTermInternal` with the given `HpoTermId`
     ///
     /// Returns `None` if no such term is present
-    fn get_mut(&mut self, term_id: &HpoTermId) -> Option<&mut HpoTermInternal> {
+    fn get_mut(&mut self, term_id: HpoTermId) -> Option<&mut HpoTermInternal> {
         self.hpo_terms.get_mut(term_id)
     }
 
@@ -706,7 +706,7 @@ impl Ontology {
     /// # Panics
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
-    fn get_unchecked_mut(&mut self, term_id: &HpoTermId) -> &mut HpoTermInternal {
+    fn get_unchecked_mut(&mut self, term_id: HpoTermId) -> &mut HpoTermInternal {
         self.hpo_terms.get_unchecked_mut(term_id)
     }
 }
@@ -788,8 +788,8 @@ mod test {
 
         ont.add_parent_from_bytes(&bytes[..]);
 
-        assert_eq!(ont.get_unchecked(&3u32.into()).parents().len(), 2);
-        assert_eq!(ont.get_unchecked(&1u32.into()).children().len(), 1);
-        assert_eq!(ont.get_unchecked(&2u32.into()).children().len(), 1);
+        assert_eq!(ont.get_unchecked(3u32.into()).parents().len(), 2);
+        assert_eq!(ont.get_unchecked(1u32.into()).children().len(), 1);
+        assert_eq!(ont.get_unchecked(2u32.into()).children().len(), 1);
     }
 }

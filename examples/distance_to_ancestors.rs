@@ -23,8 +23,8 @@ fn main() {
     if args.len() == 3 {
         let termid1 = HpoTermId::from(args.nth(1).unwrap());
         let termid2 = HpoTermId::from(args.next().unwrap());
-        let term1 = ontology.hpo(&termid1).unwrap();
-        let term2 = ontology.hpo(&termid2).unwrap();
+        let term1 = ontology.hpo(termid1).unwrap();
+        let term2 = ontology.hpo(termid2).unwrap();
         print_distance(&term1, &term2);
         if let Some(path) = term1.path_to_ancestor(&term2) {
             for term in path {

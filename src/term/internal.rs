@@ -62,8 +62,8 @@ impl HpoTermInternal {
         })
     }
 
-    pub fn id(&self) -> &HpoTermId {
-        &self.id
+    pub fn id(&self) -> HpoTermId {
+        self.id
     }
 
     pub fn name(&self) -> &str {

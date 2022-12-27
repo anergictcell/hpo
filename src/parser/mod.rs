@@ -30,7 +30,7 @@ pub(crate) mod phenotype_to_genes {
             let cols: Vec<&str> = line.trim().split('\t').collect();
             let gene_id = ontology.add_gene(cols[3], cols[2])?;
             let term_id = HpoTermId::try_from(cols[0])?;
-            ontology.link_gene_term(&term_id, gene_id)?;
+            ontology.link_gene_term(term_id, gene_id)?;
 
             ontology
                 .gene_mut(&gene_id)
@@ -103,7 +103,7 @@ pub(crate) mod phenotype_hpoa {
             let line = line.unwrap();
             if let Some(omim) = parse_line(&line) {
                 let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
-                ontology.link_omim_disease_term(&omim.hpo_id, omim_disease_id)?;
+                ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
 
                 ontology
                     .omim_disease_mut(&omim_disease_id)

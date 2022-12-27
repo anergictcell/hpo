@@ -138,7 +138,7 @@ impl<'a> Iterator for GroupCombine<'a> {
         let index = self.idx;
         self.idx += 1;
         match self.inner.get(index) {
-            Some(term_id) => self.ontology.hpo(term_id),
+            Some(term_id) => self.ontology.hpo(*term_id),
             None => None,
         }
     }

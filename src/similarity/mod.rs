@@ -66,7 +66,7 @@ impl Similarity for GraphIc {
 
 /// This trait is needed for custom implementations
 ///
-/// For similarity calculation between sets of HpoTerms
+/// For similarity calculation between sets of `HpoTerm`s
 /// the similarity scores must be combined
 pub trait SimilarityCombiner {
     /// This method implements the actual logic to calculate a single

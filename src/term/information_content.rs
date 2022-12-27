@@ -2,6 +2,11 @@
 ///
 /// Information content describes how specific an HPO term is
 /// in relation to its associated genes or diseases
+///
+/// For more information, see
+/// Resnik P: Using information content to evaluate semantic similarity in a taxonomy.
+/// Proceedings of the 14th International Joint Conference on Artificial Intelligence:
+/// August 20-25. 1995, Morgan Kaufmann, San Francisco CA: Montreal, Canada
 #[derive(Default, Debug)]
 pub struct InformationContent {
     gene: f32,

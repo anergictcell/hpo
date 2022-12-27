@@ -157,6 +157,9 @@ impl HpoTermInternal {
     /// | 8 | 1 | The length of the Term Name (converted to a u8 vector) as a `u8` |
     /// | 9 | n | The Term name as u8 vector. If the name has more than 255 bytes, it is trimmed to 255 |
     ///
+    /// # Panics
+    ///
+    /// This method will panic if the total byte length is longer than `u32::MAX`
     pub fn as_bytes(&self) -> Vec<u8> {
         // 4 bytes for total length
         // 4 bytes for TermID (big-endian)
@@ -169,16 +172,16 @@ impl HpoTermInternal {
         let mut res = Vec::with_capacity(size);
 
         // 4 bytes for total length
-        res.append(&mut (size as u32).to_be_bytes().to_vec());
+        res.append(&mut u32::try_from(size).unwrap().to_be_bytes().to_vec());
 
         // 4 bytes to Term-ID
         res.append(&mut self.id.to_be_bytes().to_vec());
 
         // 1 byte for Length of Term Name (can't be longer than 255 bytes)
-        res.push(name_length as u8);
+        res.push(name_length as u8); // casting is safe, since name_length is < 256
 
         // Term name (up to 255 bytes)
-        for c in name.iter().take(255) {
+        for c in name.iter().take(name_length) {
             res.push(*c);
         }
         res
@@ -194,9 +197,12 @@ impl HpoTermInternal {
     /// | 4 | 4 | The Term ID of the term as big-endian `u32` |
     /// | 8 | 4 * n | The Term ID of all parents as big-endian `u32` |
     ///
+    /// # Panics
+    ///
+    /// This method will panic if there are more than `u32::MAX` parents
     pub fn parents_as_byte(&self) -> Vec<u8> {
         let mut term_parents: Vec<u8> = Vec::new();
-        let n_parents = self.parents().len() as u32;
+        let n_parents: u32 = self.parents().len().try_into().unwrap();
         term_parents.append(&mut n_parents.to_be_bytes().to_vec());
         term_parents.append(&mut self.id().to_be_bytes().to_vec());
         for parent in self.parents() {

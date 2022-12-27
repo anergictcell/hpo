@@ -37,6 +37,8 @@ pub struct HpoTerm<'a> {
 impl<'a> HpoTerm<'a> {
     /// Constructs a new [`HpoTerm`]
     ///
+    /// # Errors
+    ///
     /// If the given [`HpoTermId`] does not match an existing term
     /// it returns an Error
     pub fn try_new(ontology: &'a Ontology, term: &HpoTermId) -> HpoResult<HpoTerm<'a>> {
@@ -44,7 +46,7 @@ impl<'a> HpoTerm<'a> {
         Ok(HpoTerm::new(ontology, term))
     }
 
-    /// Constructs a new [`HpoTerm`] from an HpoTermInternal
+    /// Constructs a new [`HpoTerm`] from an `HpoTermInternal`
     pub(crate) fn new(ontology: &'a Ontology, term: &'a HpoTermInternal) -> HpoTerm<'a> {
         HpoTerm {
             id: term.id(),
@@ -194,15 +196,14 @@ impl<'a> HpoTerm<'a> {
                 }
                 None => None,
             })
-            .min_by_key(|x| x.len())
+            .min_by_key(Vec::len)
     }
 
     /// Returns the distance (steps) from `self` to `other`
     pub fn distance_to_term(&self, other: &HpoTerm) -> Option<usize> {
         self.common_ancestors(other)
-            .map(|parent| {
-                self.distance_to_ancestor(&parent).unwrap()
-                    + other.distance_to_ancestor(&parent).unwrap()
+            .filter_map(|parent| {
+                Some(self.distance_to_ancestor(&parent)? + other.distance_to_ancestor(&parent)?)
             })
             .min()
     }

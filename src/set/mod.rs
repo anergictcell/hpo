@@ -1,9 +1,9 @@
-//! An HpoSet can represent e.g. the clinical information of a patient or the symptoms of a disease
+//! An `HpoSet` can represent e.g. the clinical information of a patient or the symptoms of a disease
 use crate::term::HpoTerms;
 use crate::HpoTerm;
 use crate::Ontology;
 
-/// The HpoSet contains a set of unique HPO terms
+/// A set of unique HPO terms
 ///
 /// As in a set, each term can only appear once
 /// though that is not yet guaranteed in the implementation (TODO)
@@ -12,7 +12,7 @@ pub struct HpoSet<'a> {
 }
 
 impl<'a> HpoSet<'a> {
-    /// Returns a new HpoSet that contains only the child-most terms
+    /// Returns a new `HpoSet` that contains only the child-most terms
     ///
     /// This means that it only contains terms that don't have a child
     /// term present in the set.
@@ -23,7 +23,7 @@ impl<'a> HpoSet<'a> {
                 let mut has_children = false;
                 for term2 in &self.inner {
                     if term1.parent_of(term2) {
-                        has_children = true
+                        has_children = true;
                     }
                 }
                 !has_children

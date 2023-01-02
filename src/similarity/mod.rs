@@ -204,7 +204,7 @@ impl<T: Similarity, C: SimilarityCombiner> GroupSimilarity<T, C> {
         let mut v = Vec::with_capacity(a.len() * b.len());
         for t1 in a {
             for t2 in b {
-                v.push(self.similarity.calculate(t1, t2));
+                v.push(self.similarity.calculate(&t1, &t2));
             }
         }
         let m = Matrix::new(a.len(), b.len(), &v);

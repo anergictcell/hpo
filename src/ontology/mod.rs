@@ -318,6 +318,18 @@ impl Ontology {
         self.genes.get_mut(gene_id)
     }
 
+    /// Returns a reference to the [`Gene`] with the provided symbol / name
+    ///
+    /// If no such gene is present, `None` is returned
+    ///
+    /// # Note
+    ///
+    /// `Gene`s are not index by name, so this method searches through all
+    /// genes. If you can, prefer using the [`GeneId`] and [`Ontology.gene`].
+    pub fn gene_by_name(&self, symbol: &str) -> Option<&Gene> {
+        self.genes.values().find(|&gene| gene.name() == symbol)
+    }
+
     /// Returns an Iterator of all [`Gene`]s from the Ontology
     ///
     /// It is likely that the return type will change to a dedicated Iterator

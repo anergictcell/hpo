@@ -2,7 +2,6 @@ use std::env::args;
 use std::time::SystemTime;
 
 use hpo::term::InformationContentKind;
-use hpo::HpoTerm;
 use hpo::HpoTermId;
 use rayon::prelude::*;
 
@@ -38,8 +37,8 @@ fn parallel(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
     let ic = GraphIc::new(InformationContentKind::Omim);
 
-    let terms: Vec<HpoTerm> = ontology.into_iter().collect();
-    let scores: Vec<(HpoTermId, HpoTermId, f32)> = terms.par_iter()
+    let scores: Vec<(HpoTermId, HpoTermId, f32)> = ontology.into_iter()
+    .par_bridge()
     .map(|term1| {
         let mut inner_score = Vec::new();
         for term2 in ontology.into_iter().take(times) {

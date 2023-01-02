@@ -3,6 +3,7 @@ use std::ops::{BitAnd, BitOr};
 
 use crate::{HpoTerm, HpoTermId, Ontology};
 
+
 /// A set of [`HpoTermId`] representing a group of HPO terms
 ///
 /// Each term can occur only once in the group.
@@ -72,6 +73,11 @@ impl HpoGroup {
         self.ids.binary_search(id).is_ok()
     }
 
+    /// Removes all [`HpoTermId`] from the group and empties it
+    pub fn clear(&mut self) {
+        self.ids.clear()
+    }
+
     /// Returns an Iterator of the [`HpoTermId`]s inside the group
     pub fn iter(&self) -> HpoTermIds {
         HpoTermIds::new(self.ids.iter())
@@ -80,7 +86,7 @@ impl HpoGroup {
     /// Returns the [`HpoTermId`] at the given index
     ///
     /// If the index is out of bounds, `None` is returned.
-    fn get(&self, index: usize) -> Option<&HpoTermId> {
+    pub fn get(&self, index: usize) -> Option<&HpoTermId> {
         self.ids.get(index)
     }
 
@@ -107,6 +113,50 @@ impl From<HashSet<HpoTermId>> for HpoGroup {
         group
     }
 }
+
+impl From<Vec<HpoTermId>> for HpoGroup {
+    fn from(s: Vec<HpoTermId>) -> Self {
+        let mut group = HpoGroup::with_capacity(s.len());
+        for id in s {
+            group.insert(id);
+        }
+        group
+    }
+}
+
+impl From<Vec<u32>> for HpoGroup {
+    fn from(s: Vec<u32>) -> Self {
+        let mut group = HpoGroup::with_capacity(s.len());
+        for id in s {
+            group.insert(id.into());
+        }
+        group
+    }
+}
+
+impl<'a> IntoIterator for &'a HpoGroup {
+    type Item = HpoTermId;
+
+    type IntoIter = HpoTermIds<'a>;
+
+    fn into_iter(self) -> HpoTermIds<'a> {
+        HpoTermIds::new(self.ids.iter())
+    }
+}
+
+
+impl FromIterator<HpoTermId> for HpoGroup {
+    fn from_iter<T: IntoIterator<Item = HpoTermId>>(iter: T) -> Self {
+        Self {ids: iter.into_iter().collect()}
+    }
+}
+
+impl<'a> FromIterator<HpoTerm<'a>> for HpoGroup {
+    fn from_iter<T: IntoIterator<Item = HpoTerm<'a>>>(iter: T) -> Self {
+        Self {ids: iter.into_iter().map(|t| t.id()).collect()}
+    }
+}
+
 
 /// Iterate [`HpoTerm`]s
 ///
@@ -141,16 +191,6 @@ impl<'a> Iterator for GroupCombine<'a> {
             Some(term_id) => self.ontology.hpo(*term_id),
             None => None,
         }
-    }
-}
-
-impl<'a> IntoIterator for &'a HpoGroup {
-    type Item = HpoTermId;
-
-    type IntoIter = HpoTermIds<'a>;
-
-    fn into_iter(self) -> HpoTermIds<'a> {
-        HpoTermIds::new(self.ids.iter())
     }
 }
 

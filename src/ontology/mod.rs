@@ -10,7 +10,7 @@ use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
 use crate::term::{HpoParents, HpoTerm};
 use crate::u32_from_bytes;
 use crate::HpoResult;
-use crate::{f32_from_usize, parser};
+use crate::parser;
 use crate::{HpoError, HpoTermId};
 
 use core::fmt::Debug;
@@ -118,7 +118,7 @@ impl Ontology {
         let gene = path.join(crate::GENE_FILENAME);
         let disease = path.join(crate::DISEASE_FILENAME);
         parser::load_from_standard_files(&obo, &gene, &disease, &mut ont)?;
-        ont.calculate_information_content();
+        ont.calculate_information_content()?;
         Ok(ont)
     }
 
@@ -211,7 +211,7 @@ impl Ontology {
         section_start += section_len + 4;
 
         if section_start == bytes.len() {
-            ont.calculate_information_content();
+            ont.calculate_information_content()?;
             Ok(ont)
         } else {
             Err(HpoError::ParseBinaryError)
@@ -473,60 +473,35 @@ impl Ontology {
     /// It can be called repeatedly, all values are recalculated each time,
     /// as long as the Ontology contains at least 1 gene/disease.
     /// When no genes/diseases are present, the IC is not calculated nor updated.
-    pub fn calculate_information_content(&mut self) {
-        self.calculate_gene_ic();
-        self.calculate_omim_disease_ic();
+    pub fn calculate_information_content(&mut self) -> HpoResult<()> {
+        self.calculate_gene_ic()?;
+        self.calculate_omim_disease_ic()?;
+        Ok(())
     }
 
     /// Calculates the gene-specific Information Content for every term
     ///
     /// If no genes are present in the Ontology, no IC are calculated
-    fn calculate_gene_ic(&mut self) {
-        let n_genes = f32_from_usize(self.genes.len()).expect("too many genes to convert to f32");
-
-        if n_genes == 0.0 {
-            // No genes present in the Ontology
-            // so we keep the `Default` value for
-            // the Information content
-            return;
-        }
-
+    fn calculate_gene_ic(&mut self) -> HpoResult<()> {
+        let n_genes = self.genes.len();
         for term in self.hpo_terms.values_mut() {
-            let ic_gene = match term.genes().len() {
-                0 => 0.0,
-                // The casting will work because we're ensuring above
-                // that the total number of genes can be converted to f32
-                n => (n as f32 / n_genes).ln() * -1.0, // casting is save
-            };
-            let ic = term.information_content_mut();
-            *ic.gene_mut() = ic_gene;
+            let current_genes = term.genes().len();
+            term.information_content_mut().set_gene(n_genes, current_genes)?
         }
+        Ok(())
     }
 
     /// Calculates the Omim-Disease-specific Information Content for every term
     ///
     /// If no diseases are present in the Ontology, no IC are calculated
-    fn calculate_omim_disease_ic(&mut self) {
-        let n_omim_diseases =
-            f32_from_usize(self.omim_diseases.len()).expect("too many diseases to convert to f32");
-
-        if n_omim_diseases == 0.0 {
-            // No omim_diseases present in the Ontology
-            // so we keep the `Default` value for
-            // the Information content
-            return;
-        }
+    fn calculate_omim_disease_ic(&mut self) -> HpoResult<()> {
+        let n_omim_diseases = self.omim_diseases.len();
 
         for term in self.hpo_terms.values_mut() {
-            let ic_omim_disease = match term.omim_diseases().len() {
-                0 => 0.0,
-                // The casting will work because we're ensuring above
-                // that the total number of diseases can be converted to f32
-                n => (n as f32 / n_omim_diseases).ln() * -1.0, // casting is save
-            };
-            let ic = term.information_content_mut();
-            *ic.omim_disease_mut() = ic_omim_disease;
+            let current_diseases = term.omim_diseases().len();
+            term.information_content_mut().set_omim_disease(n_omim_diseases, current_diseases)?
         }
+        Ok(())
     }
 }
 

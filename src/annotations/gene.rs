@@ -6,6 +6,7 @@ use std::fmt::Display;
 
 use log::error;
 
+use crate::set::HpoSet;
 use crate::term::HpoGroup;
 use crate::u32_from_bytes;
 use crate::HpoError;
@@ -32,6 +33,11 @@ pub struct GeneId {
 }
 
 impl GeneId {
+    /// Convert `self` to `u32`
+    pub fn as_u32(&self) -> u32 {
+        self.inner
+    }
+
     /// Returns the memory representation of the inner integer as a byte array in big-endian (network) byte order.
     pub fn to_be_bytes(&self) -> [u8; 4] {
         self.inner.to_be_bytes()
@@ -182,6 +188,11 @@ impl Gene {
         res.append(&mut self.hpos.as_bytes());
 
         res
+    }
+
+    /// Returns an [`HpoSet`] from the `Gene`
+    pub fn to_hpo_set<'a>(&self, ontology: &'a Ontology) -> HpoSet<'a> {
+        HpoSet::new(ontology, self.hpos.clone())
     }
 }
 

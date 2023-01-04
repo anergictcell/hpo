@@ -261,7 +261,7 @@ impl Distance {
     /// use hpo::term::InformationContentKind;
     ///
     /// // use Omim-based InformationContent for similarity calculation
-    /// let dist = Distance::new(InformationContentKind::Omim);
+    /// let dist = Distance::new();
     /// ```
     ///
     pub fn new() -> Self {

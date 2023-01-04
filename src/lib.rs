@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 // #![warn(missing_doc_code_examples)]
 #![doc = include_str!("../README.md")]
 use core::fmt::Debug;
@@ -14,6 +14,7 @@ pub mod similarity;
 pub mod term;
 
 pub use ontology::Ontology;
+pub use set::HpoSet;
 pub use term::{HpoTerm, HpoTermId};
 
 const DEFAULT_NUM_PARENTS: usize = 10;

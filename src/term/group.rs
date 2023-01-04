@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::ops::{BitAnd, BitOr};
+use std::ops::{Add, BitAnd, BitOr};
 
 use crate::{HpoTerm, HpoTermId, Ontology};
 
@@ -72,6 +72,11 @@ impl HpoGroup {
         self.ids.binary_search(id).is_ok()
     }
 
+    /// Removes all [`HpoTermId`] from the group and empties it
+    pub fn clear(&mut self) {
+        self.ids.clear();
+    }
+
     /// Returns an Iterator of the [`HpoTermId`]s inside the group
     pub fn iter(&self) -> HpoTermIds {
         HpoTermIds::new(self.ids.iter())
@@ -80,7 +85,7 @@ impl HpoGroup {
     /// Returns the [`HpoTermId`] at the given index
     ///
     /// If the index is out of bounds, `None` is returned.
-    fn get(&self, index: usize) -> Option<&HpoTermId> {
+    pub fn get(&self, index: usize) -> Option<&HpoTermId> {
         self.ids.get(index)
     }
 
@@ -105,6 +110,151 @@ impl From<HashSet<HpoTermId>> for HpoGroup {
             group.insert(id);
         }
         group
+    }
+}
+
+impl From<Vec<HpoTermId>> for HpoGroup {
+    fn from(s: Vec<HpoTermId>) -> Self {
+        let mut group = HpoGroup::with_capacity(s.len());
+        for id in s {
+            group.insert(id);
+        }
+        group
+    }
+}
+
+impl From<Vec<u32>> for HpoGroup {
+    fn from(s: Vec<u32>) -> Self {
+        let mut group = HpoGroup::with_capacity(s.len());
+        for id in s {
+            group.insert(id.into());
+        }
+        group
+    }
+}
+
+impl<'a> IntoIterator for &'a HpoGroup {
+    type Item = HpoTermId;
+
+    type IntoIter = HpoTermIds<'a>;
+
+    fn into_iter(self) -> HpoTermIds<'a> {
+        HpoTermIds::new(self.ids.iter())
+    }
+}
+
+impl FromIterator<HpoTermId> for HpoGroup {
+    fn from_iter<T: IntoIterator<Item = HpoTermId>>(iter: T) -> Self {
+        Self {
+            ids: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl<'a> FromIterator<HpoTerm<'a>> for HpoGroup {
+    fn from_iter<T: IntoIterator<Item = HpoTerm<'a>>>(iter: T) -> Self {
+        Self {
+            ids: iter.into_iter().map(|t| t.id()).collect(),
+        }
+    }
+}
+
+impl BitOr for &HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
+        let mut group = HpoGroup::with_capacity(self.len() + rhs.len());
+        let (large, small) = if self.len() > rhs.len() {
+            (self, rhs)
+        } else {
+            (rhs, self)
+        };
+
+        for id in &large.ids {
+            group.insert_unchecked(*id);
+        }
+        for id in &small.ids {
+            group.insert(*id);
+        }
+        group
+    }
+}
+
+impl BitOr for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: HpoGroup) -> HpoGroup {
+        (&self).bitor(&rhs)
+    }
+}
+
+impl BitOr<&HpoGroup> for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
+        (&self).bitor(rhs)
+    }
+}
+
+impl BitOr<HpoTermId> for &HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: HpoTermId) -> HpoGroup {
+        let mut group = self.clone();
+        group.insert(rhs);
+        group
+    }
+}
+
+impl Add<HpoTermId> for &HpoGroup {
+    type Output = HpoGroup;
+    fn add(self, rhs: HpoTermId) -> Self::Output {
+        let mut group = self.clone();
+        group.insert(rhs);
+        group
+    }
+}
+
+impl Add<HpoTermId> for HpoGroup {
+    type Output = HpoGroup;
+    fn add(self, rhs: HpoTermId) -> Self::Output {
+        (&self) + rhs
+    }
+}
+
+impl BitAnd for &HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
+        let mut group = HpoGroup::with_capacity(self.len());
+        let (large, small) = if self.len() > rhs.len() {
+            (self, rhs)
+        } else {
+            (rhs, self)
+        };
+
+        for id in &small.ids {
+            if large.ids.contains(id) {
+                group.insert_unchecked(*id);
+            }
+        }
+        group
+    }
+}
+
+impl BitAnd for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitand(self, rhs: HpoGroup) -> HpoGroup {
+        (&self).bitand(&rhs)
+    }
+}
+
+impl BitAnd<&HpoGroup> for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
+        (&self).bitand(rhs)
     }
 }
 
@@ -144,16 +294,6 @@ impl<'a> Iterator for GroupCombine<'a> {
     }
 }
 
-impl<'a> IntoIterator for &'a HpoGroup {
-    type Item = HpoTermId;
-
-    type IntoIter = HpoTermIds<'a>;
-
-    fn into_iter(self) -> HpoTermIds<'a> {
-        HpoTermIds::new(self.ids.iter())
-    }
-}
-
 /// An iterator over [`HpoTermId`]s
 pub struct HpoTermIds<'a> {
     inner: std::slice::Iter<'a, HpoTermId>,
@@ -169,47 +309,6 @@ impl<'a> Iterator for HpoTermIds<'a> {
     type Item = HpoTermId;
     fn next(&mut self) -> Option<HpoTermId> {
         self.inner.next().copied()
-    }
-}
-
-impl BitOr for &HpoGroup {
-    type Output = HpoGroup;
-
-    fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut group = HpoGroup::with_capacity(self.len() + rhs.len());
-        let (large, small) = if self.len() > rhs.len() {
-            (self, rhs)
-        } else {
-            (rhs, self)
-        };
-
-        for id in &large.ids {
-            group.insert_unchecked(*id);
-        }
-        for id in &small.ids {
-            group.insert(*id);
-        }
-        group
-    }
-}
-
-impl BitAnd for &HpoGroup {
-    type Output = HpoGroup;
-
-    fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut group = HpoGroup::with_capacity(self.len());
-        let (large, small) = if self.len() > rhs.len() {
-            (self, rhs)
-        } else {
-            (rhs, self)
-        };
-
-        for id in &small.ids {
-            if large.ids.contains(id) {
-                group.insert_unchecked(*id);
-            }
-        }
-        group
     }
 }
 
@@ -289,7 +388,7 @@ mod tests {
         group2.insert(5u32.into());
         group2.insert(1u32.into());
 
-        let result = group1.bitand(&group2);
+        let result = &group1 & &group2;
         let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into()];
         assert_eq!(result.ids, expected);
     }

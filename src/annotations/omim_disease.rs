@@ -4,6 +4,7 @@ use std::fmt::Display;
 
 use log::error;
 
+use crate::set::HpoSet;
 use crate::term::HpoGroup;
 use crate::u32_from_bytes;
 use crate::HpoError;
@@ -158,6 +159,11 @@ impl OmimDisease {
         res.append(&mut self.hpos.as_bytes());
 
         res
+    }
+
+    /// Returns an [`HpoSet`] from the `OmimDisease`
+    pub fn to_hpo_set<'a>(&self, ontology: &'a Ontology) -> HpoSet<'a> {
+        HpoSet::new(ontology, self.hpos.clone())
     }
 }
 

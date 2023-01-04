@@ -41,6 +41,10 @@ impl<'a> HpoTerms<'a> {
             ontology,
         }
     }
+
+    pub fn ontology(&self) -> &Ontology {
+        self.ontology
+    }
 }
 
 impl<'a> Iterator for HpoTerms<'a> {

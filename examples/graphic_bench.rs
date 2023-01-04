@@ -2,7 +2,6 @@ use std::env::args;
 use std::time::SystemTime;
 
 use hpo::term::InformationContentKind;
-use hpo::HpoTerm;
 use hpo::HpoTermId;
 use rayon::prelude::*;
 
@@ -38,8 +37,8 @@ fn parallel(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
     let ic = GraphIc::new(InformationContentKind::Omim);
 
-    let terms: Vec<HpoTerm> = ontology.into_iter().collect();
-    let scores: Vec<(HpoTermId, HpoTermId, f32)> = terms.par_iter()
+    let scores: Vec<(HpoTermId, HpoTermId, f32)> = ontology.into_iter()
+    .par_bridge()
     .map(|term1| {
         let mut inner_score = Vec::new();
         for term2 in ontology.into_iter().take(times) {
@@ -86,6 +85,15 @@ fn main() {
 
     /*
     Expected times (single threaded):
+    finished creating Ontology
+    It took 0 seconds for 17059 x 5 terms. 67 over .07
+    It took 0 seconds for 17059 x 50 terms. 935 over .07
+    It took 2 seconds for 17059 x 500 terms. 8059 over .07
+    It took 5 seconds for 17059 x 1000 terms. 15327 over .07
+    It took 58 seconds for 17059 x 10000 terms. 129571 over .07
+    It took 97 seconds for 17059 x 17059 terms. 304321 over .07
+
+    before including self and other in all_ancestors
     It took 0 seconds for 17059 x 5 terms.
     It took 0 seconds for 17059 x 50 terms.
     It took 1 seconds for 17059 x 500 terms.
@@ -95,6 +103,15 @@ fn main() {
 
 
     Expected times (using rayon):
+    finished creating Ontology
+    It took 0 seconds for 17059 x 5 terms: 85295.
+    It took 0 seconds for 17059 x 50 terms: 852950.
+    It took 0 seconds for 17059 x 500 terms: 8529500.
+    It took 1 seconds for 17059 x 1000 terms: 17059000.
+    It took 14 seconds for 17059 x 10000 terms: 170590000.
+    It took 23 seconds for 17059 x 17059 terms: 291009481.
+
+    # before including self and other in all_ancestors
     It took 0 seconds for 17059 x 5 terms: 85295.
     It took 0 seconds for 17059 x 50 terms: 852950.
     It took 0 seconds for 17059 x 500 terms: 8529500.

@@ -104,20 +104,37 @@ impl<'a> HpoTerm<'a> {
     ///
     /// # Note:
     ///
-    /// If one term is a parent term of the other, this term is included
-    /// in the list of common ancestors
+    /// This method includes `self` and `other` into their corresponding
+    /// parent_id list so that if one term is a parent term of the other,
+    /// it is included. It also means that `self` is included if `self == other`.
+    ///
+    /// This might seem counter-intuitive at first, but in most cases this
+    /// is what is actually needed
+    pub fn all_common_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
+        (self.all_parent_ids() + self.id()) & (other.all_parent_ids() + other.id())
+    }
+
+    /// Returns the [`HpoTermId`]s that are parents of both `self` **and** `other`
+    ///
+    /// # Note:
+    ///
+    /// This method does not include `self` and `other`. Depending on your
+    /// use case, you might prefer [`HpoTerm.all_common_ancestor_ids`].
     pub fn common_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
-        let mut res = self.all_parent_ids() & other.all_parent_ids();
+        self.all_parent_ids() & other.all_parent_ids()
+    }
 
-        if other.all_parent_ids().contains(&self.id()) {
-            res.insert(self.id());
-        }
-
-        if self.all_parent_ids().contains(&other.id()) {
-            res.insert(other.id());
-        }
-
-        res
+    /// Returns the [`HpoTermId`]s that are parents of either `self` **or** `other`
+    ///
+    /// # Note:
+    ///
+    /// This method includes `self` and `other` into their corresponding
+    /// parent_id list so that both are included themselves as well.
+    ///
+    /// This might seem counter-intuitive at first, but in many cases this
+    /// is what is actually needed
+    pub fn all_union_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
+        self.all_parent_ids() | other.all_parent_ids()
     }
 
     /// Returns the [`HpoTermId`]s that are parents of either `self` **or** `other`
@@ -129,10 +146,37 @@ impl<'a> HpoTerm<'a> {
     ///
     /// # Note:
     ///
-    /// If one term is a parent term of the other, this term is included
-    /// in the list of common ancestors
+    /// This method includes `self` and `other` into their corresponding
+    /// parent_id list so that if one term is a parent term of the other,
+    /// it is included. It also means that `self` is included if `self == other`.
+    ///
+    /// This might seem counter-intuitive at first, but in most cases this
+    /// is what is actually needed
+    pub fn all_common_ancestors(&self, other: &HpoTerm) -> GroupCombine {
+        GroupCombine::new(self.all_common_ancestor_ids(other), self.ontology)
+    }
+
+    /// Returns an iterator of [`HpoTerm`]s that are parents of both `self` **and** `other`
+    ///
+    /// # Note:
+    ///
+    /// This method does not include `self` and `other`. Depending on your
+    /// use case, you might prefer [`HpoTerm.all_common_ancestor_ids`].
     pub fn common_ancestors(&self, other: &HpoTerm) -> GroupCombine {
         GroupCombine::new(self.common_ancestor_ids(other), self.ontology)
+    }
+
+    /// Returns an iterator of [`HpoTerm`]s that are parents of either `self` **or** `other`
+    ///
+    /// # Note:
+    ///
+    /// This method includes `self` and `other` into their corresponding
+    /// parent_id list so that both are included themselves as well.
+    ///
+    /// This might seem counter-intuitive at first, but in many cases this
+    /// is what is actually needed
+    pub fn all_union_ancestors(&self, other: &HpoTerm) -> GroupCombine {
+        GroupCombine::new(self.union_ancestor_ids(other), self.ontology)
     }
 
     /// Returns an iterator of [`HpoTerm`]s that are parents of either `self` **or** `other`
@@ -162,7 +206,7 @@ impl<'a> HpoTerm<'a> {
 
     /// Returns the distance (steps) from `self` to `other`, if `other` is a parent of `self`
     pub fn distance_to_ancestor(&self, other: &HpoTerm) -> Option<usize> {
-        if self.id() == other.id() {
+        if self == other {
             return Some(0);
         }
         if self.parent_ids().contains(&other.id()) {
@@ -211,10 +255,18 @@ impl<'a> HpoTerm<'a> {
 
     /// Returns the distance (steps) from `self` to `other`
     pub fn distance_to_term(&self, other: &HpoTerm) -> Option<usize> {
-        self.common_ancestors(other)
+        self.all_common_ancestors(other)
             .filter_map(|parent| {
                 Some(self.distance_to_ancestor(&parent)? + other.distance_to_ancestor(&parent)?)
             })
             .min()
     }
 }
+
+impl PartialEq for HpoTerm<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id() == other.id()
+    }
+}
+
+impl Eq for HpoTerm<'_> {}

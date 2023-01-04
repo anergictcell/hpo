@@ -1,8 +1,7 @@
 use std::collections::HashSet;
-use std::ops::{BitAnd, BitOr};
+use std::ops::{Add, BitAnd, BitOr};
 
 use crate::{HpoTerm, HpoTermId, Ontology};
-
 
 /// A set of [`HpoTermId`] representing a group of HPO terms
 ///
@@ -75,7 +74,7 @@ impl HpoGroup {
 
     /// Removes all [`HpoTermId`] from the group and empties it
     pub fn clear(&mut self) {
-        self.ids.clear()
+        self.ids.clear();
     }
 
     /// Returns an Iterator of the [`HpoTermId`]s inside the group
@@ -144,19 +143,120 @@ impl<'a> IntoIterator for &'a HpoGroup {
     }
 }
 
-
 impl FromIterator<HpoTermId> for HpoGroup {
     fn from_iter<T: IntoIterator<Item = HpoTermId>>(iter: T) -> Self {
-        Self {ids: iter.into_iter().collect()}
+        Self {
+            ids: iter.into_iter().collect(),
+        }
     }
 }
 
 impl<'a> FromIterator<HpoTerm<'a>> for HpoGroup {
     fn from_iter<T: IntoIterator<Item = HpoTerm<'a>>>(iter: T) -> Self {
-        Self {ids: iter.into_iter().map(|t| t.id()).collect()}
+        Self {
+            ids: iter.into_iter().map(|t| t.id()).collect(),
+        }
     }
 }
 
+impl BitOr for &HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
+        let mut group = HpoGroup::with_capacity(self.len() + rhs.len());
+        let (large, small) = if self.len() > rhs.len() {
+            (self, rhs)
+        } else {
+            (rhs, self)
+        };
+
+        for id in &large.ids {
+            group.insert_unchecked(*id);
+        }
+        for id in &small.ids {
+            group.insert(*id);
+        }
+        group
+    }
+}
+
+impl BitOr for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: HpoGroup) -> HpoGroup {
+        (&self).bitor(&rhs)
+    }
+}
+
+impl BitOr<&HpoGroup> for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
+        (&self).bitor(rhs)
+    }
+}
+
+impl BitOr<HpoTermId> for &HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitor(self, rhs: HpoTermId) -> HpoGroup {
+        let mut group = self.clone();
+        group.insert(rhs);
+        group
+    }
+}
+
+impl Add<HpoTermId> for &HpoGroup {
+    type Output = HpoGroup;
+    fn add(self, rhs: HpoTermId) -> Self::Output {
+        let mut group = self.clone();
+        group.insert(rhs);
+        group
+    }
+}
+
+impl Add<HpoTermId> for HpoGroup {
+    type Output = HpoGroup;
+    fn add(self, rhs: HpoTermId) -> Self::Output {
+        (&self) + rhs
+    }
+}
+
+impl BitAnd for &HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
+        let mut group = HpoGroup::with_capacity(self.len());
+        let (large, small) = if self.len() > rhs.len() {
+            (self, rhs)
+        } else {
+            (rhs, self)
+        };
+
+        for id in &small.ids {
+            if large.ids.contains(id) {
+                group.insert_unchecked(*id);
+            }
+        }
+        group
+    }
+}
+
+impl BitAnd for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitand(self, rhs: HpoGroup) -> HpoGroup {
+        (&self).bitand(&rhs)
+    }
+}
+
+impl BitAnd<&HpoGroup> for HpoGroup {
+    type Output = HpoGroup;
+
+    fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
+        (&self).bitand(rhs)
+    }
+}
 
 /// Iterate [`HpoTerm`]s
 ///
@@ -209,47 +309,6 @@ impl<'a> Iterator for HpoTermIds<'a> {
     type Item = HpoTermId;
     fn next(&mut self) -> Option<HpoTermId> {
         self.inner.next().copied()
-    }
-}
-
-impl BitOr for &HpoGroup {
-    type Output = HpoGroup;
-
-    fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut group = HpoGroup::with_capacity(self.len() + rhs.len());
-        let (large, small) = if self.len() > rhs.len() {
-            (self, rhs)
-        } else {
-            (rhs, self)
-        };
-
-        for id in &large.ids {
-            group.insert_unchecked(*id);
-        }
-        for id in &small.ids {
-            group.insert(*id);
-        }
-        group
-    }
-}
-
-impl BitAnd for &HpoGroup {
-    type Output = HpoGroup;
-
-    fn bitand(self, rhs: &HpoGroup) -> HpoGroup {
-        let mut group = HpoGroup::with_capacity(self.len());
-        let (large, small) = if self.len() > rhs.len() {
-            (self, rhs)
-        } else {
-            (rhs, self)
-        };
-
-        for id in &small.ids {
-            if large.ids.contains(id) {
-                group.insert_unchecked(*id);
-            }
-        }
-        group
     }
 }
 
@@ -329,7 +388,7 @@ mod tests {
         group2.insert(5u32.into());
         group2.insert(1u32.into());
 
-        let result = group1.bitand(&group2);
+        let result = &group1 & &group2;
         let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into()];
         assert_eq!(result.ids, expected);
     }

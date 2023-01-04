@@ -14,8 +14,8 @@ pub mod similarity;
 pub mod term;
 
 pub use ontology::Ontology;
-pub use term::{HpoTerm, HpoTermId};
 pub use set::HpoSet;
+pub use term::{HpoTerm, HpoTermId};
 
 const DEFAULT_NUM_PARENTS: usize = 10;
 const DEFAULT_NUM_ALL_PARENTS: usize = 50;
@@ -26,7 +26,6 @@ const MAX_HPO_ID_INTEGER: usize = 10_000_000;
 const OBO_FILENAME: &str = "hp.obo";
 const GENE_FILENAME: &str = "phenotype_to_genes.txt";
 const DISEASE_FILENAME: &str = "phenotype.hpoa";
-
 
 #[derive(Error, Debug)]
 /// Main Error type for this crate

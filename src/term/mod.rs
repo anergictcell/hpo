@@ -63,7 +63,6 @@ impl<'a> Iterator for HpoTerms<'a> {
     }
 }
 
-
 impl Debug for HpoTerms<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "HpoTermIterator")

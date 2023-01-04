@@ -6,11 +6,11 @@ use std::path::Path;
 
 use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
+use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
 use crate::term::{HpoParents, HpoTerm};
 use crate::u32_from_bytes;
 use crate::HpoResult;
-use crate::parser;
 use crate::{HpoError, HpoTermId};
 
 use core::fmt::Debug;
@@ -485,6 +485,11 @@ impl Ontology {
     /// It can be called repeatedly, all values are recalculated each time,
     /// as long as the Ontology contains at least 1 gene/disease.
     /// When no genes/diseases are present, the IC is not calculated nor updated.
+    ///
+    /// # Errors
+    ///
+    /// This method returns an error if there are more Genes or Terms than `u16::MAX`
+    /// because larger numbers can't be safely converted to `f32`
     pub fn calculate_information_content(&mut self) -> HpoResult<()> {
         self.calculate_gene_ic()?;
         self.calculate_omim_disease_ic()?;
@@ -498,7 +503,8 @@ impl Ontology {
         let n_genes = self.genes.len();
         for term in self.hpo_terms.values_mut() {
             let current_genes = term.genes().len();
-            term.information_content_mut().set_gene(n_genes, current_genes)?
+            term.information_content_mut()
+                .set_gene(n_genes, current_genes)?;
         }
         Ok(())
     }
@@ -511,7 +517,8 @@ impl Ontology {
 
         for term in self.hpo_terms.values_mut() {
             let current_diseases = term.omim_diseases().len();
-            term.information_content_mut().set_omim_disease(n_omim_diseases, current_diseases)?
+            term.information_content_mut()
+                .set_omim_disease(n_omim_diseases, current_diseases)?;
         }
         Ok(())
     }

@@ -36,9 +36,10 @@ fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology)
     let term2 = ontology.hpo(termid2).unwrap();
     for term in term1.common_ancestors(&term2) {
         println!(
-            "Term {} | IC {} | nOmim {} | nGene {}",
+            "Term {} | IC (Omim) {} | IC (Gene) {} | nOmim {} | nGene {}",
             term.id(),
             term.information_content().omim_disease(),
+            term.information_content().gene(),
             term.omim_diseases().count(),
             term.genes().count()
         );

@@ -1,4 +1,4 @@
-use crate::{HpoResult, f32_from_usize};
+use crate::{f32_from_usize, HpoResult};
 
 /// The quality (in terms of specificity) of an HPO term
 ///
@@ -54,19 +54,31 @@ impl InformationContent {
         Ok((current / total).ln() * -1.0)
     }
 
+    /// Calculates and caches the gene `InformationContent`
+    ///
+    /// # Errors
+    ///
+    /// This method returns an error if there are more genes than `u16::MAX`
+    /// because larger numbers can't be safely converted to `f32`
     pub fn set_gene(&mut self, total: usize, current: usize) -> HpoResult<()> {
         self.gene = Self::calculate(total, current)?;
         Ok(())
     }
 
+    /// Calculates and caches the gene `InformationContent`
+    ///
+    /// # Errors
+    ///
+    /// This method returns an error if there are more genes than `u16::MAX`
+    /// because larger numbers can't be safely converted to `f32`
     pub fn set_omim_disease(&mut self, total: usize, current: usize) -> HpoResult<()> {
         self.omim = Self::calculate(total, current)?;
         Ok(())
     }
-
 }
 
 /// Different types of information contents
+#[derive(Debug, Copy, Clone)]
 pub enum InformationContentKind {
     /// Information content related to the associated genes
     Gene,

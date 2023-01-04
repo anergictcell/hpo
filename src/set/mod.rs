@@ -1,11 +1,11 @@
 //! An `HpoSet` can represent e.g. the clinical information of a patient or the symptoms of a disease
-use crate::HpoTerm;
 use crate::annotations::Genes;
 use crate::annotations::OmimDiseases;
 use crate::term::HpoGroup;
 use crate::term::HpoTerms;
-use crate::Ontology;
 use crate::term::InformationContent;
+use crate::HpoTerm;
+use crate::Ontology;
 
 /// A set of unique HPO terms
 ///
@@ -13,7 +13,7 @@ use crate::term::InformationContent;
 /// though that is not yet guaranteed in the implementation (TODO)
 pub struct HpoSet<'a> {
     ontology: &'a Ontology,
-    group: HpoGroup
+    group: HpoGroup,
 }
 
 impl<'a> HpoSet<'a> {
@@ -27,15 +27,22 @@ impl<'a> HpoSet<'a> {
     /// This means that it only contains terms that don't have a child
     /// term present in the set.
     pub fn child_nodes(&mut self) -> HpoSet {
-        let group = self.group
+        let group = self
+            .group
             .iter()
             .filter(|term1_id| {
                 self.group.iter().all(|term2_id| {
-                    self.ontology.get_unchecked(term2_id).all_parents().contains(term1_id)
+                    self.ontology
+                        .get_unchecked(term2_id)
+                        .all_parents()
+                        .contains(term1_id)
                 })
             })
             .collect();
-            HpoSet { ontology: self.ontology, group }
+        HpoSet {
+            ontology: self.ontology,
+            group,
+        }
     }
 
     /// Returns the number of terms in the set
@@ -68,9 +75,10 @@ impl<'a> HpoSet<'a> {
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
     fn gene_ids(&self) -> Genes {
-        self.group.into_iter()
-        .map(|term_id| self.ontology.get_unchecked(term_id).genes())
-        .fold(Genes::default(), |acc, element| {&acc | element})
+        self.group
+            .into_iter()
+            .map(|term_id| self.ontology.get_unchecked(term_id).genes())
+            .fold(Genes::default(), |acc, element| &acc | element)
     }
 
     /// Returns all [`OmimDiseases`] that are associated to the set
@@ -79,9 +87,10 @@ impl<'a> HpoSet<'a> {
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
     fn omim_disease_ids(&self) -> OmimDiseases {
-        self.group.into_iter()
-        .map(|term_id| self.ontology.get_unchecked(term_id).omim_diseases())
-        .fold(OmimDiseases::default(), |acc, element| {&acc | element})
+        self.group
+            .into_iter()
+            .map(|term_id| self.ontology.get_unchecked(term_id).omim_diseases())
+            .fold(OmimDiseases::default(), |acc, element| &acc | element)
     }
 
     /// Calculates and returns the aggregated [`InformationContent`] of the set
@@ -98,8 +107,10 @@ impl<'a> HpoSet<'a> {
         let n_genes = self.ontology.genes().len();
 
         let mut ic = InformationContent::default();
-        ic.set_gene(n_genes, self.gene_ids().len()).expect("Too many genes caused overflow");
-        ic.set_omim_disease(n_diseases, self.omim_disease_ids().len()).expect("Too many genes caused overflow");
+        ic.set_gene(n_genes, self.gene_ids().len())
+            .expect("Too many genes caused overflow");
+        ic.set_omim_disease(n_diseases, self.omim_disease_ids().len())
+            .expect("Too many genes caused overflow");
         ic
     }
 
@@ -148,14 +159,14 @@ impl<'a> IntoIterator for &'a HpoSet<'a> {
 pub struct BothWayCombinations<'a> {
     group: HpoSet<'a>,
     index_a: usize,
-    index_b: usize
+    index_b: usize,
 }
 
 impl<'a> Iterator for BothWayCombinations<'a> {
     type Item = (HpoTerm<'a>, HpoTerm<'a>);
     fn next(&mut self) -> Option<Self::Item> {
         if self.index_a > self.group.len() {
-            return None
+            return None;
         }
 
         let b = if let Some(b) = self.group.get(self.index_b) {
@@ -163,7 +174,7 @@ impl<'a> Iterator for BothWayCombinations<'a> {
         } else {
             self.index_a += 1;
             self.index_b = 0;
-            return self.next()
+            return self.next();
         };
 
         let a = self.group.get(self.index_a)?;
@@ -177,14 +188,14 @@ impl<'a> Iterator for BothWayCombinations<'a> {
 pub struct OneWayCombinations<'a> {
     group: HpoSet<'a>,
     index_a: usize,
-    index_b: usize
+    index_b: usize,
 }
 
 impl<'a> Iterator for OneWayCombinations<'a> {
     type Item = (HpoTerm<'a>, HpoTerm<'a>);
     fn next(&mut self) -> Option<Self::Item> {
         if self.index_a > self.group.len() {
-            return None
+            return None;
         }
 
         let b = if let Some(b) = self.group.get(self.index_b) {
@@ -192,7 +203,7 @@ impl<'a> Iterator for OneWayCombinations<'a> {
         } else {
             self.index_a += 1;
             self.index_b = self.index_a + 1;
-            return self.next()
+            return self.next();
         };
 
         let a = self.group.get(self.index_a)?;

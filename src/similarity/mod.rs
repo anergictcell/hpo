@@ -1,9 +1,15 @@
 //! Methods to calculate the Similarity between two terms or sets of terms
 
+use std::cell::RefCell;
+use std::collections::HashMap;
+
 use crate::matrix::Matrix;
 use crate::set::HpoSet;
 use crate::term::InformationContentKind;
-use crate::HpoTerm;
+use crate::{HpoTerm, HpoTermId};
+
+mod defaults;
+pub use defaults::{Distance, GraphIc, InformationCoefficient, Jc, Lin, Relevance, Resnik};
 
 /// Trait for similarity score calculation between 2 [`HpoTerm`]s
 ///
@@ -12,56 +18,6 @@ use crate::HpoTerm;
 pub trait Similarity {
     /// calculates the actual similarity between term a and term b
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32;
-}
-
-/// Graph based Information coefficient similarity
-///
-/// For a detailed description see [Deng Y, et. al., PLoS One, (2015)](https://pubmed.ncbi.nlm.nih.gov/25664462/)
-pub struct GraphIc {
-    method: InformationContentKind,
-}
-
-impl GraphIc {
-    /// Constructs a new struct to calculate GraphIC based similarity scores
-    /// between two terms
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::similarity::GraphIc;
-    /// use hpo::term::InformationContentKind;
-    ///
-    /// // use Omim-based InformationContent for similarity calculation
-    /// let graphic = GraphIc::new(InformationContentKind::Omim);
-    /// ```
-    ///
-    pub fn new(method: InformationContentKind) -> Self {
-        Self { method }
-    }
-}
-
-impl Similarity for GraphIc {
-    fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
-        if a.id() == b.id() {
-            return 1.0;
-        }
-
-        let ic_union: f32 = a
-            .union_ancestors(b)
-            .map(|p| p.information_content().get_kind(&self.method))
-            .sum();
-
-        if ic_union == 0.0 {
-            return 0.0;
-        }
-
-        let ic_common: f32 = a
-            .common_ancestors(b)
-            .map(|p| p.information_content().get_kind(&self.method))
-            .sum();
-
-        ic_common / ic_union
-    }
 }
 
 /// This trait is needed for custom implementations
@@ -110,6 +66,42 @@ pub trait SimilarityCombiner {
     fn dim_f32(&self, m: &Matrix<f32>) -> (f32, f32) {
         let (rows, cols) = m.dim();
         (usize_to_f32(rows), usize_to_f32(cols))
+    }
+}
+
+/// Caches the Similarity score for each [`HpoTerm`] pair
+///
+/// Use this struct to wrap your Similarity method if you are
+/// running many batch comparisons where it's highly likely that
+/// several comparisons will be repeatedly run.
+/// This is very useful when you're e.g. comparing the set of a patient
+/// with every disease or gene.
+///
+/// # Note
+///
+/// This struct cannot be used in multithreaded processing
+pub struct CachedSimilarity<T> {
+    similarity: T,
+    cache: RefCell<HashMap<(HpoTermId, HpoTermId), f32>>,
+}
+
+impl<T: Similarity> CachedSimilarity<T> {
+    /// Constructs a new [`CachedSimilarity`] struct
+    pub fn new(similarity: T) -> Self {
+        Self {
+            similarity,
+            cache: RefCell::new(HashMap::default()),
+        }
+    }
+}
+
+impl<T: Similarity> Similarity for CachedSimilarity<T> {
+    fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+        *self
+            .cache
+            .borrow_mut()
+            .entry((a.id(), b.id()))
+            .or_insert_with(|| self.similarity.calculate(a, b))
     }
 }
 

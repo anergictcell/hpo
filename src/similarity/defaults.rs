@@ -35,7 +35,7 @@ impl Similarity for GraphIc {
         }
 
         let ic_union: f32 = a
-            .union_ancestors(b)
+            .all_union_ancestors(b)
             .map(|p| p.information_content().get_kind(&self.method))
             .sum();
 

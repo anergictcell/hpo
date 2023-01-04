@@ -125,6 +125,19 @@ impl<'a> HpoTerm<'a> {
     }
 
     /// Returns the [`HpoTermId`]s that are parents of either `self` **or** `other`
+    ///
+    /// # Note:
+    ///
+    /// This method includes `self` and `other` into their corresponding
+    /// parent_id list so that both are included themselves as well.
+    ///
+    /// This might seem counter-intuitive at first, but in many cases this
+    /// is what is actually needed
+    pub fn all_union_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
+        self.all_parent_ids() | other.all_parent_ids()
+    }
+
+    /// Returns the [`HpoTermId`]s that are parents of either `self` **or** `other`
     pub fn union_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
         self.all_parent_ids() | other.all_parent_ids()
     }
@@ -151,6 +164,19 @@ impl<'a> HpoTerm<'a> {
     /// use case, you might prefer [`HpoTerm.all_common_ancestor_ids`].
     pub fn common_ancestors(&self, other: &HpoTerm) -> GroupCombine {
         GroupCombine::new(self.common_ancestor_ids(other), self.ontology)
+    }
+
+    /// Returns an iterator of [`HpoTerm`]s that are parents of either `self` **or** `other`
+    ///
+    /// # Note:
+    ///
+    /// This method includes `self` and `other` into their corresponding
+    /// parent_id list so that both are included themselves as well.
+    ///
+    /// This might seem counter-intuitive at first, but in many cases this
+    /// is what is actually needed
+    pub fn all_union_ancestors(&self, other: &HpoTerm) -> GroupCombine {
+        GroupCombine::new(self.union_ancestor_ids(other), self.ontology)
     }
 
     /// Returns an iterator of [`HpoTerm`]s that are parents of either `self` **or** `other`

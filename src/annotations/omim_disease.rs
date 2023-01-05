@@ -31,6 +31,11 @@ pub struct OmimDiseaseId {
 }
 
 impl OmimDiseaseId {
+    /// Convert `self` to `u32`
+    pub fn as_u32(&self) -> u32 {
+        self.inner
+    }
+
     /// Returns the memory representation of the inner integer as a byte array in big-endian (network) byte order.
     pub fn to_be_bytes(&self) -> [u8; 4] {
         self.inner.to_be_bytes()

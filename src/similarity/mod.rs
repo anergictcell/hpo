@@ -1,4 +1,49 @@
 //! Methods to calculate the Similarity between two terms or sets of terms
+//!
+//! Several methods and algorithms to calculate the similarity are already
+//! provided in the library, but you can easily add your own one as well.
+//! The easiest way to use the built-in methods is to use the [`Builtins`] enum.
+//!
+//! # Examples
+//!
+//! ## Using built-in methods
+//!
+//! ```no_run
+//! use hpo::Ontology;
+//! use hpo::similarity::{Builtins, Similarity};
+//! use hpo::term::InformationContentKind;
+//!
+//! let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+//! let term1 = ontology.hpo(123u32.into()).unwrap();
+//! let term2 = ontology.hpo(1u32.into()).unwrap();
+//!
+//! let ic = Builtins::new("graphic", InformationContentKind::Omim).unwrap();
+//!
+//! let similarity = ic.calculate(&term1, &term2);
+//! ```
+//!
+//! ## Create a custom method
+//!
+//! ```no_run
+//! use hpo::{Ontology, HpoTerm};
+//! use hpo::similarity::Similarity;
+//!
+//! struct Foo {}
+//! impl Similarity for Foo {
+//!     /// Calculate similarity based on length of the term names
+//!     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+//!         return (a.name().len() - b.name().len()) as f32
+//!     }
+//! }
+//!
+//! let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+//! let term1 = ontology.hpo(123u32.into()).unwrap();
+//! let term2 = ontology.hpo(1u32.into()).unwrap();
+//!
+//! let ic = Foo{};
+//!
+//! let similarity = ic.calculate(&term1, &term2);
+//! ```
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -8,7 +53,7 @@ use crate::set::HpoSet;
 use crate::term::InformationContentKind;
 use crate::{HpoError, HpoResult, HpoTerm, HpoTermId};
 
-mod defaults;
+pub mod defaults;
 pub use defaults::{Distance, GraphIc, InformationCoefficient, Jc, Lin, Relevance, Resnik};
 
 /// Trait for similarity score calculation between 2 [`HpoTerm`]s
@@ -20,10 +65,11 @@ pub trait Similarity {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32;
 }
 
-/// This trait is needed for custom implementations
+/// This trait is needed to calculate the similarity between [`HpoSet`]s.
 ///
-/// For similarity calculation between sets of `HpoTerm`s
-/// the similarity scores must be combined
+/// For similarity calculation between [`HpoSet`]s
+/// the similarity scores must be combined to derive a single `f32` value
+/// from a matrix of term - term similarities
 pub trait SimilarityCombiner {
     /// This method implements the actual logic to calculate a single
     /// similarity score from a Matrix of term - term similarity scores.
@@ -105,25 +151,8 @@ impl<T: Similarity> Similarity for CachedSimilarity<T> {
     }
 }
 
-pub struct UnCachedSimilarity<T> {
-    similarity: T,
-}
-
-impl<T: Similarity> UnCachedSimilarity<T> {
-    /// Constructs a new [`UnCachedSimilarity`] struct
-    pub fn new(similarity: T) -> Self {
-        Self { similarity }
-    }
-}
-
-impl<T: Similarity> Similarity for UnCachedSimilarity<T> {
-    fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
-        self.similarity.calculate(a, b)
-    }
-}
-
 /// Default implementations for combining similarity scores
-/// for comparison of 2 sets of terms
+/// of 2 [`HpoSet`]s
 pub enum StandardCombiner {
     /// funSimAvg algorithm from [Schlicker A, et. al., BMC Bioinf (2006)](https://pubmed.ncbi.nlm.nih.gov/16776819/)
     FunSimAvg,
@@ -189,7 +218,7 @@ impl SimilarityCombiner for StandardCombiner {
     }
 }
 
-/// calculate the Similarity score between two sets of HPO terms
+/// calculate the Similarity score between two [`HpoSet`](`crate::HpoSet`)s
 pub struct GroupSimilarity<T, C> {
     combiner: C,
     similarity: T,
@@ -244,7 +273,7 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
 
 /// Contains similarity methods for the standard built-in algorithms
 ///
-/// For more details about each algorith, check the [`hpo::similarity::defaults`]
+/// For more details about each algorith, check the [`defaults`] description.
 pub enum Builtins {
     Distance(Distance),
     GraphIc(GraphIc),

@@ -1,3 +1,8 @@
+//! Contains implementation for some Similarity algorithms that are
+//! considered to be default implementations.
+//!
+//! All of the algorithms can also be accessed via [`crate::similarity::Builtins`]
+
 use crate::similarity::{usize_to_f32, Similarity};
 use crate::term::InformationContentKind;
 use crate::HpoTerm;
@@ -260,7 +265,6 @@ impl Distance {
     /// use hpo::similarity::Distance;
     /// use hpo::term::InformationContentKind;
     ///
-    /// // use Omim-based InformationContent for similarity calculation
     /// let dist = Distance::new();
     /// ```
     ///

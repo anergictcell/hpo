@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::matrix::Matrix;
 use crate::set::HpoSet;
 use crate::term::InformationContentKind;
-use crate::{HpoTerm, HpoTermId};
+use crate::{HpoError, HpoResult, HpoTerm, HpoTermId};
 
 mod defaults;
 pub use defaults::{Distance, GraphIc, InformationCoefficient, Jc, Lin, Relevance, Resnik};
@@ -105,6 +105,23 @@ impl<T: Similarity> Similarity for CachedSimilarity<T> {
     }
 }
 
+pub struct UnCachedSimilarity<T> {
+    similarity: T,
+}
+
+impl<T: Similarity> UnCachedSimilarity<T> {
+    /// Constructs a new [`UnCachedSimilarity`] struct
+    pub fn new(similarity: T) -> Self {
+        Self { similarity }
+    }
+}
+
+impl<T: Similarity> Similarity for UnCachedSimilarity<T> {
+    fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+        self.similarity.calculate(a, b)
+    }
+}
+
 /// Default implementations for combining similarity scores
 /// for comparison of 2 sets of terms
 pub enum StandardCombiner {
@@ -119,6 +136,18 @@ pub enum StandardCombiner {
 impl Default for StandardCombiner {
     fn default() -> Self {
         Self::FunSimAvg
+    }
+}
+
+impl TryFrom<&str> for StandardCombiner {
+    type Error = HpoError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "funsimavg" => Ok(StandardCombiner::FunSimAvg),
+            "funsimmax" => Ok(StandardCombiner::FunSimMax),
+            "bwa" => Ok(StandardCombiner::Bwa),
+            _ => Err(HpoError::NotImplemented),
+        }
     }
 }
 
@@ -209,6 +238,56 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
         Self {
             combiner: StandardCombiner::default(),
             similarity: GraphIc::new(InformationContentKind::Omim),
+        }
+    }
+}
+
+/// Contains similarity methods for the standard built-in algorithms
+///
+/// For more details about each algorith, check the [`hpo::similarity::defaults`]
+pub enum Builtins {
+    Distance(Distance),
+    GraphIc(GraphIc),
+    InformationCoefficient(InformationCoefficient),
+    Jc(Jc),
+    Lin(Lin),
+    Relevance(Relevance),
+    Resnik(Resnik),
+}
+
+impl Builtins {
+    /// Constructs a new `Builtins` struct
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no similary method with the given name
+    /// is known.
+    pub fn new(method: &str, kind: InformationContentKind) -> HpoResult<Self> {
+        match method.to_lowercase().as_str() {
+            "graphic" => Ok(Self::GraphIc(GraphIc::new(kind))),
+            "resnik" => Ok(Self::Resnik(Resnik::new(kind))),
+            "distance" | "dist" => Ok(Self::Distance(Distance::new())),
+            "informationcoefficient" | "ic" => Ok(Self::InformationCoefficient(
+                InformationCoefficient::new(kind),
+            )),
+            "jc" | "jc2" => Ok(Self::Jc(Jc::new(kind))),
+            "lin" => Ok(Self::Lin(Lin::new(kind))),
+            "relevance" | "rel" => Ok(Self::Relevance(Relevance::new(kind))),
+            _ => Err(HpoError::NotImplemented),
+        }
+    }
+}
+
+impl Similarity for Builtins {
+    fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+        match self {
+            Self::GraphIc(sim) => sim.calculate(a, b),
+            Self::Resnik(sim) => sim.calculate(a, b),
+            Self::Distance(sim) => sim.calculate(a, b),
+            Self::InformationCoefficient(sim) => sim.calculate(a, b),
+            Self::Jc(sim) => sim.calculate(a, b),
+            Self::Lin(sim) => sim.calculate(a, b),
+            Self::Relevance(sim) => sim.calculate(a, b),
         }
     }
 }

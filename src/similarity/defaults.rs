@@ -6,7 +6,7 @@ use crate::HpoTerm;
 ///
 /// For a detailed description see [Deng Y, et. al., PLoS One, (2015)](https://pubmed.ncbi.nlm.nih.gov/25664462/)
 pub struct GraphIc {
-    method: InformationContentKind,
+    kind: InformationContentKind,
 }
 
 impl GraphIc {
@@ -23,8 +23,8 @@ impl GraphIc {
     /// let graphic = GraphIc::new(InformationContentKind::Omim);
     /// ```
     ///
-    pub fn new(method: InformationContentKind) -> Self {
-        Self { method }
+    pub fn new(kind: InformationContentKind) -> Self {
+        Self { kind }
     }
 }
 
@@ -36,7 +36,7 @@ impl Similarity for GraphIc {
 
         let ic_union: f32 = a
             .all_union_ancestors(b)
-            .map(|p| p.information_content().get_kind(&self.method))
+            .map(|p| p.information_content().get_kind(&self.kind))
             .sum();
 
         if ic_union == 0.0 {
@@ -45,7 +45,7 @@ impl Similarity for GraphIc {
 
         let ic_common: f32 = a
             .all_common_ancestors(b)
-            .map(|p| p.information_content().get_kind(&self.method))
+            .map(|p| p.information_content().get_kind(&self.kind))
             .sum();
 
         ic_common / ic_union
@@ -56,7 +56,7 @@ impl Similarity for GraphIc {
 ///
 /// For a detailed description see [Resnik P, Proceedings of the 14th IJCAI, (1995)](https://www.ijcai.org/Proceedings/95-1/Papers/059.pdf)
 pub struct Resnik {
-    method: InformationContentKind,
+    kind: InformationContentKind,
 }
 
 impl Resnik {
@@ -73,15 +73,15 @@ impl Resnik {
     /// let resnik = Resnik::new(InformationContentKind::Omim);
     /// ```
     ///
-    pub fn new(method: InformationContentKind) -> Self {
-        Self { method }
+    pub fn new(kind: InformationContentKind) -> Self {
+        Self { kind }
     }
 }
 
 impl Similarity for Resnik {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
         a.all_common_ancestors(b)
-            .map(|term| term.information_content().get_kind(&self.method))
+            .map(|term| term.information_content().get_kind(&self.kind))
             .fold(0.0, |max, term| if term > max { term } else { max })
     }
 }
@@ -90,7 +90,7 @@ impl Similarity for Resnik {
 ///
 /// For a detailed description see [Lin D, Proceedings of the 15th ICML, (1998)](https://dl.acm.org/doi/10.5555/645527.657297)
 pub struct Lin {
-    method: InformationContentKind,
+    kind: InformationContentKind,
 }
 
 impl Lin {
@@ -107,21 +107,21 @@ impl Lin {
     /// let lin = Lin::new(InformationContentKind::Omim);
     /// ```
     ///
-    pub fn new(method: InformationContentKind) -> Self {
-        Self { method }
+    pub fn new(kind: InformationContentKind) -> Self {
+        Self { kind }
     }
 }
 
 impl Similarity for Lin {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
-        let ic_combined = a.information_content().get_kind(&self.method)
-            + b.information_content().get_kind(&self.method);
+        let ic_combined = a.information_content().get_kind(&self.kind)
+            + b.information_content().get_kind(&self.kind);
 
         if ic_combined == 0.0 {
             return 0.0;
         }
 
-        let resnik = Resnik::new(self.method).calculate(a, b);
+        let resnik = Resnik::new(self.kind).calculate(a, b);
 
         2.0 * resnik / ic_combined
     }
@@ -137,7 +137,7 @@ impl Similarity for Lin {
 /// from the `JC` implementation in the `HPOSim` R library. It is identical to the `JC2`
 /// implementation in [`PyHPO`](https://pypi.org/project/pyhpo/)
 pub struct Jc {
-    method: InformationContentKind,
+    kind: InformationContentKind,
 }
 
 impl Jc {
@@ -154,8 +154,8 @@ impl Jc {
     /// let jc = Jc::new(InformationContentKind::Omim);
     /// ```
     ///
-    pub fn new(method: InformationContentKind) -> Self {
-        Self { method }
+    pub fn new(kind: InformationContentKind) -> Self {
+        Self { kind }
     }
 }
 
@@ -165,10 +165,10 @@ impl Similarity for Jc {
             return 1.0;
         }
 
-        let ic_combined = a.information_content().get_kind(&self.method)
-            + b.information_content().get_kind(&self.method);
+        let ic_combined = a.information_content().get_kind(&self.kind)
+            + b.information_content().get_kind(&self.kind);
 
-        let resnik = Resnik::new(self.method).calculate(a, b);
+        let resnik = Resnik::new(self.kind).calculate(a, b);
 
         1.0 - (ic_combined - 2.0 * resnik)
     }
@@ -179,7 +179,7 @@ impl Similarity for Jc {
 /// For a detailed description see [Schlicker A, et.al., BMC Bioinformatics, (2006)](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-7-302)
 ///
 pub struct Relevance {
-    method: InformationContentKind,
+    kind: InformationContentKind,
 }
 
 impl Relevance {
@@ -196,15 +196,15 @@ impl Relevance {
     /// let rel = Relevance::new(InformationContentKind::Omim);
     /// ```
     ///
-    pub fn new(method: InformationContentKind) -> Self {
-        Self { method }
+    pub fn new(kind: InformationContentKind) -> Self {
+        Self { kind }
     }
 }
 
 impl Similarity for Relevance {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
-        let resnik = Resnik::new(self.method).calculate(a, b);
-        let lin = Lin::new(self.method).calculate(a, b);
+        let resnik = Resnik::new(self.kind).calculate(a, b);
+        let lin = Lin::new(self.kind).calculate(a, b);
 
         lin * (1.0 - (resnik * -1.0).exp())
     }
@@ -215,7 +215,7 @@ impl Similarity for Relevance {
 /// For a detailed description see [Li B, et. al., arXiv, (2010)](https://arxiv.org/abs/1001.0958)
 ///
 pub struct InformationCoefficient {
-    method: InformationContentKind,
+    kind: InformationContentKind,
 }
 
 impl InformationCoefficient {
@@ -232,15 +232,15 @@ impl InformationCoefficient {
     /// let ic = InformationCoefficient::new(InformationContentKind::Omim);
     /// ```
     ///
-    pub fn new(method: InformationContentKind) -> Self {
-        Self { method }
+    pub fn new(kind: InformationContentKind) -> Self {
+        Self { kind }
     }
 }
 
 impl Similarity for InformationCoefficient {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
-        let resnik = Resnik::new(self.method).calculate(a, b);
-        let lin = Lin::new(self.method).calculate(a, b);
+        let resnik = Resnik::new(self.kind).calculate(a, b);
+        let lin = Lin::new(self.kind).calculate(a, b);
 
         lin * (1.0 - (1.0 / (1.0 + resnik)))
     }

@@ -1,6 +1,9 @@
 //! An `HpoSet` can represent e.g. the clinical information of a patient or the symptoms of a disease
 use crate::annotations::Genes;
 use crate::annotations::OmimDiseases;
+use crate::similarity::GroupSimilarity;
+use crate::similarity::Similarity;
+use crate::similarity::SimilarityCombiner;
 use crate::term::HpoGroup;
 use crate::term::HpoTerms;
 use crate::term::InformationContent;
@@ -32,17 +35,15 @@ impl<'a> HpoSet<'a> {
             .iter()
             .filter(|term1_id| {
                 self.group.iter().all(|term2_id| {
-                    self.ontology
+                    !self
+                        .ontology
                         .get_unchecked(term2_id)
                         .all_parents()
                         .contains(term1_id)
                 })
             })
             .collect();
-        HpoSet {
-            ontology: self.ontology,
-            group,
-        }
+        HpoSet::new(self.ontology, group)
     }
 
     /// Returns the number of terms in the set
@@ -74,7 +75,7 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
-    fn gene_ids(&self) -> Genes {
+    pub fn gene_ids(&self) -> Genes {
         self.group
             .into_iter()
             .map(|term_id| self.ontology.get_unchecked(term_id).genes())
@@ -86,7 +87,7 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
-    fn omim_disease_ids(&self) -> OmimDiseases {
+    pub fn omim_disease_ids(&self) -> OmimDiseases {
         self.group
             .into_iter()
             .map(|term_id| self.ontology.get_unchecked(term_id).omim_diseases())
@@ -101,7 +102,7 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// - When an `HpoTermId` of the set is not part of the Ontology
-    /// - When the ontology or set have more than u16::MAX genes or diseases
+    /// - When the ontology or set have more than `u16::MAX` genes or diseases
     pub fn information_content(&self) -> InformationContent {
         let n_diseases = self.ontology.omim_diseases().len();
         let n_genes = self.ontology.genes().len();
@@ -130,6 +131,16 @@ impl<'a> HpoSet<'a> {
     pub fn get(&self, index: usize) -> Option<HpoTerm<'a>> {
         let term = self.group.get(index)?;
         Some(HpoTerm::try_new(self.ontology, *term).unwrap())
+    }
+
+    pub fn similarity<S: Similarity, C: SimilarityCombiner>(
+        &self,
+        other: &HpoSet,
+        similarity: S,
+        combiner: C,
+    ) -> f32 {
+        let group_sim = GroupSimilarity::new(combiner, similarity);
+        group_sim.calculate(self, other)
     }
 }
 

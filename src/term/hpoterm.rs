@@ -105,7 +105,7 @@ impl<'a> HpoTerm<'a> {
     /// # Note:
     ///
     /// This method includes `self` and `other` into their corresponding
-    /// parent_id list so that if one term is a parent term of the other,
+    /// parent-id list so that if one term is a parent term of the other,
     /// it is included. It also means that `self` is included if `self == other`.
     ///
     /// This might seem counter-intuitive at first, but in most cases this
@@ -129,7 +129,7 @@ impl<'a> HpoTerm<'a> {
     /// # Note:
     ///
     /// This method includes `self` and `other` into their corresponding
-    /// parent_id list so that both are included themselves as well.
+    /// parent-id list so that both are included themselves as well.
     ///
     /// This might seem counter-intuitive at first, but in many cases this
     /// is what is actually needed
@@ -147,7 +147,7 @@ impl<'a> HpoTerm<'a> {
     /// # Note:
     ///
     /// This method includes `self` and `other` into their corresponding
-    /// parent_id list so that if one term is a parent term of the other,
+    /// parent-id list so that if one term is a parent term of the other,
     /// it is included. It also means that `self` is included if `self == other`.
     ///
     /// This might seem counter-intuitive at first, but in most cases this
@@ -171,7 +171,7 @@ impl<'a> HpoTerm<'a> {
     /// # Note:
     ///
     /// This method includes `self` and `other` into their corresponding
-    /// parent_id list so that both are included themselves as well.
+    /// parent-id list so that both are included themselves as well.
     ///
     /// This might seem counter-intuitive at first, but in many cases this
     /// is what is actually needed

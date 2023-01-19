@@ -1,4 +1,4 @@
-//! Add gene and disease annotations to the Ontology and each HPO term
+//! Genes and Diseases are linked to HPO terms and make up secondary annotations
 //!
 //! This module contains structs to represent [`Gene`]s and [`OmimDisease`]s
 //! and iterators.

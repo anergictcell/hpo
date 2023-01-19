@@ -1,4 +1,49 @@
 //! Methods to calculate the Similarity between two terms or sets of terms
+//!
+//! Several methods and algorithms to calculate the similarity are already
+//! provided in the library, but you can easily add your own one as well.
+//! The easiest way to use the built-in methods is to use the [`Builtins`] enum.
+//!
+//! # Examples
+//!
+//! ## Using built-in methods
+//!
+//! ```no_run
+//! use hpo::Ontology;
+//! use hpo::similarity::{Builtins, Similarity};
+//! use hpo::term::InformationContentKind;
+//!
+//! let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+//! let term1 = ontology.hpo(123u32.into()).unwrap();
+//! let term2 = ontology.hpo(1u32.into()).unwrap();
+//!
+//! let ic = Builtins::new("graphic", InformationContentKind::Omim).unwrap();
+//!
+//! let similarity = ic.calculate(&term1, &term2);
+//! ```
+//!
+//! ## Create a custom method
+//!
+//! ```no_run
+//! use hpo::{Ontology, HpoTerm};
+//! use hpo::similarity::Similarity;
+//!
+//! struct Foo {}
+//! impl Similarity for Foo {
+//!     /// Calculate similarity based on length of the term names
+//!     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+//!         return (a.name().len() - b.name().len()) as f32
+//!     }
+//! }
+//!
+//! let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+//! let term1 = ontology.hpo(123u32.into()).unwrap();
+//! let term2 = ontology.hpo(1u32.into()).unwrap();
+//!
+//! let ic = Foo{};
+//!
+//! let similarity = ic.calculate(&term1, &term2);
+//! ```
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -6,9 +51,9 @@ use std::collections::HashMap;
 use crate::matrix::Matrix;
 use crate::set::HpoSet;
 use crate::term::InformationContentKind;
-use crate::{HpoTerm, HpoTermId};
+use crate::{HpoError, HpoResult, HpoTerm, HpoTermId};
 
-mod defaults;
+pub mod defaults;
 pub use defaults::{Distance, GraphIc, InformationCoefficient, Jc, Lin, Relevance, Resnik};
 
 /// Trait for similarity score calculation between 2 [`HpoTerm`]s
@@ -20,10 +65,11 @@ pub trait Similarity {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32;
 }
 
-/// This trait is needed for custom implementations
+/// This trait is needed to calculate the similarity between [`HpoSet`]s.
 ///
-/// For similarity calculation between sets of `HpoTerm`s
-/// the similarity scores must be combined
+/// For similarity calculation between [`HpoSet`]s
+/// the similarity scores must be combined to derive a single `f32` value
+/// from a matrix of term - term similarities
 pub trait SimilarityCombiner {
     /// This method implements the actual logic to calculate a single
     /// similarity score from a Matrix of term - term similarity scores.
@@ -106,7 +152,7 @@ impl<T: Similarity> Similarity for CachedSimilarity<T> {
 }
 
 /// Default implementations for combining similarity scores
-/// for comparison of 2 sets of terms
+/// of 2 [`HpoSet`]s
 pub enum StandardCombiner {
     /// funSimAvg algorithm from [Schlicker A, et. al., BMC Bioinf (2006)](https://pubmed.ncbi.nlm.nih.gov/16776819/)
     FunSimAvg,
@@ -119,6 +165,18 @@ pub enum StandardCombiner {
 impl Default for StandardCombiner {
     fn default() -> Self {
         Self::FunSimAvg
+    }
+}
+
+impl TryFrom<&str> for StandardCombiner {
+    type Error = HpoError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value.to_lowercase().as_str() {
+            "funsimavg" => Ok(StandardCombiner::FunSimAvg),
+            "funsimmax" => Ok(StandardCombiner::FunSimMax),
+            "bwa" => Ok(StandardCombiner::Bwa),
+            _ => Err(HpoError::NotImplemented),
+        }
     }
 }
 
@@ -160,7 +218,7 @@ impl SimilarityCombiner for StandardCombiner {
     }
 }
 
-/// calculate the Similarity score between two sets of HPO terms
+/// calculate the Similarity score between two [`HpoSet`](`crate::HpoSet`)s
 pub struct GroupSimilarity<T, C> {
     combiner: C,
     similarity: T,
@@ -209,6 +267,56 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
         Self {
             combiner: StandardCombiner::default(),
             similarity: GraphIc::new(InformationContentKind::Omim),
+        }
+    }
+}
+
+/// Contains similarity methods for the standard built-in algorithms
+///
+/// For more details about each algorith, check the [`defaults`] description.
+pub enum Builtins {
+    Distance(Distance),
+    GraphIc(GraphIc),
+    InformationCoefficient(InformationCoefficient),
+    Jc(Jc),
+    Lin(Lin),
+    Relevance(Relevance),
+    Resnik(Resnik),
+}
+
+impl Builtins {
+    /// Constructs a new `Builtins` struct
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no similary method with the given name
+    /// is known.
+    pub fn new(method: &str, kind: InformationContentKind) -> HpoResult<Self> {
+        match method.to_lowercase().as_str() {
+            "graphic" => Ok(Self::GraphIc(GraphIc::new(kind))),
+            "resnik" => Ok(Self::Resnik(Resnik::new(kind))),
+            "distance" | "dist" => Ok(Self::Distance(Distance::new())),
+            "informationcoefficient" | "ic" => Ok(Self::InformationCoefficient(
+                InformationCoefficient::new(kind),
+            )),
+            "jc" | "jc2" => Ok(Self::Jc(Jc::new(kind))),
+            "lin" => Ok(Self::Lin(Lin::new(kind))),
+            "relevance" | "rel" => Ok(Self::Relevance(Relevance::new(kind))),
+            _ => Err(HpoError::NotImplemented),
+        }
+    }
+}
+
+impl Similarity for Builtins {
+    fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+        match self {
+            Self::GraphIc(sim) => sim.calculate(a, b),
+            Self::Resnik(sim) => sim.calculate(a, b),
+            Self::Distance(sim) => sim.calculate(a, b),
+            Self::InformationCoefficient(sim) => sim.calculate(a, b),
+            Self::Jc(sim) => sim.calculate(a, b),
+            Self::Lin(sim) => sim.calculate(a, b),
+            Self::Relevance(sim) => sim.calculate(a, b),
         }
     }
 }

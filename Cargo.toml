@@ -1,6 +1,6 @@
 [package]
 name = "hpo"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Jonas Marcello <jonas.marcello@esbme.com>"]
 description = "Human Phenotype Ontology Similarity"
@@ -19,4 +19,3 @@ aquamarine = "0.1" # used in Docs
 
 [dev-dependencies]
 rayon = "1.6.0"
-simple_logger = "4.0.0"

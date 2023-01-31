@@ -1,3 +1,4 @@
+use crate::annotations::AnnotationId;
 use crate::annotations::{GeneId, Genes};
 use crate::annotations::{OmimDiseaseId, OmimDiseases};
 use crate::term::HpoGroup;

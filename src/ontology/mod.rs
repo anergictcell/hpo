@@ -299,7 +299,7 @@ impl Ontology {
     /// Returns an Iterator of all [`HpoTerm`]s from the Ontology
     pub fn hpos(&self) -> OntologyIterator {
         OntologyIterator {
-            inner: self.hpo_terms.values().iter(),
+            inner: self.hpo_terms.values(),
             ontology: self,
         }
     }
@@ -756,7 +756,7 @@ impl Ontology {
 
 /// An iterator of [`HpoTerm`]s
 pub struct OntologyIterator<'a> {
-    inner: std::slice::Iter<'a, HpoTermInternal>,
+    inner: std::collections::hash_map::Values<'a, HpoTermId, HpoTermInternal>,
     ontology: &'a Ontology,
 }
 

@@ -1,3 +1,9 @@
+# WARNING
+This branch is used to check some performance tricks when using a HashMap, as compared to the custom designed TermArena.
+
+At the moment, HashMap causes 2x performance reduction, so this is not recommended. Use the `main` branch!
+
+
 # HPO
 
 This library is a Rust implementation of [PyHPO](https://pypi.org/project/pyhpo/).

@@ -1,49 +1,10 @@
 use crate::term::internal::HpoTermInternal;
 use crate::HpoTermId;
-use std::{collections::{HashMap, hash_map::{Values, ValuesMut}}, hash::{BuildHasher, Hasher}};
+use std::{collections::{HashMap, hash_map::{Values, ValuesMut}}};
 
-
-struct HpoTermIdHasher {
-    inner: u32
-}
-
-impl HpoTermIdHasher {
-    fn new() -> Self {
-        Self {inner: 0}
-    }
-}
-
-impl Hasher for HpoTermIdHasher {
-    fn finish(&self) -> u64 {
-        self.inner.into()
-    }
-
-    fn write(&mut self, _bytes: &[u8]) {
-        panic!("HpoTermIdHasher only supports u32");
-    }
-
-    fn write_u32(&mut self, inner: u32) {
-        self.inner = inner
-    }
-}
-
-struct HpoBuildHasher{}
-
-impl HpoBuildHasher {
-    fn new() -> Self {
-        Self {}
-    }
-}
-
-impl BuildHasher for HpoBuildHasher {
-    type Hasher = HpoTermIdHasher;
-    fn build_hasher(&self) -> Self::Hasher {
-        HpoTermIdHasher::new()
-    }
-}
 
 pub(crate) struct Arena {
-    terms: HashMap<HpoTermId, HpoTermInternal, HpoBuildHasher>,
+    terms: HashMap<HpoTermId, HpoTermInternal>,
 }
 
 impl Arena {
@@ -87,9 +48,6 @@ impl Arena {
 
 impl Default for Arena {
     fn default() -> Self {
-        Self {terms: HashMap::with_capacity_and_hasher(
-            20_000,
-            HpoBuildHasher::new()
-        )}
+        Self {terms: HashMap::with_capacity(20_000)}
     }
 }

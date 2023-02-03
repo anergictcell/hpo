@@ -15,8 +15,11 @@ use crate::{HpoError, HpoTermId};
 
 use core::fmt::Debug;
 
+mod comparison;
 mod termarena;
 use termarena::Arena;
+use comparison::OntologyComparison;
+
 
 #[cfg_attr(doc, aquamarine::aquamarine)]
 /// `Ontology` is the main interface of the `hpo` crate and contains all data
@@ -361,6 +364,11 @@ impl Ontology {
         &self,
     ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
         self.omim_diseases.values()
+    }
+
+    /// Compares `self` to another `Ontology` to identify added/removed terms, genes and diseases
+    pub fn compare<'a>(&'a self, other: &'a Ontology) -> OntologyComparison {
+        OntologyComparison::new(self, other)
     }
 }
 

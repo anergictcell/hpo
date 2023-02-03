@@ -61,7 +61,7 @@ impl From<u32> for GeneId {
 
 impl Display for GeneId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Gene NCBI:{}", self.inner)
+        write!(f, "NCBI-GeneID:{}", self.inner)
     }
 }
 

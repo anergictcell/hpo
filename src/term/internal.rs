@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use crate::annotations::{GeneId, Genes};
 use crate::annotations::{OmimDiseaseId, OmimDiseases};
 use crate::term::HpoGroup;
@@ -22,6 +24,12 @@ pub(crate) struct HpoTermInternal {
     obsolete: bool,
     #[allow(dead_code)]
     replacement: Option<HpoTermId>,
+}
+
+impl Hash for HpoTermInternal {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state)
+    }
 }
 
 impl Default for HpoTermInternal {

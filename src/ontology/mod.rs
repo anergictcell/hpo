@@ -4,6 +4,7 @@ use std::io::Read;
 use std::ops::BitOr;
 use std::path::Path;
 
+use crate::annotations::AnnotationId;
 use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::parser;

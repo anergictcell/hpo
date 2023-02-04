@@ -3,9 +3,11 @@ use std::cmp::PartialEq;
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::fmt::Display;
+use std::hash::Hash;
 
 use log::error;
 
+use crate::annotations::AnnotationId;
 use crate::set::HpoSet;
 use crate::term::HpoGroup;
 use crate::u32_from_bytes;
@@ -18,7 +20,7 @@ use crate::Ontology;
 ///
 /// The set does not contain [`Gene`]s itself, but only their [`GeneId`]s.
 /// Currently implemented using [`HashSet`] but any other implementation
-/// should work as well given that each GeneId must appear only once
+/// should work as well given that each [`GeneId`] must appear only once
 /// and it provides an iterator of [`GeneId`]
 pub type Genes = HashSet<GeneId>;
 
@@ -32,15 +34,10 @@ pub struct GeneId {
     inner: u32,
 }
 
-impl GeneId {
+impl AnnotationId for GeneId {
     /// Convert `self` to `u32`
-    pub fn as_u32(&self) -> u32 {
+    fn as_u32(&self) -> u32 {
         self.inner
-    }
-
-    /// Returns the memory representation of the inner integer as a byte array in big-endian (network) byte order.
-    pub fn to_be_bytes(&self) -> [u8; 4] {
-        self.inner.to_be_bytes()
     }
 }
 
@@ -61,7 +58,7 @@ impl From<u32> for GeneId {
 
 impl Display for GeneId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Gene NCBI:{}", self.inner)
+        write!(f, "NCBI-GeneID:{}", self.inner)
     }
 }
 
@@ -299,6 +296,12 @@ impl TryFrom<&[u8]> for Gene {
             );
             Err(HpoError::ParseBinaryError)
         }
+    }
+}
+
+impl Hash for Gene {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 

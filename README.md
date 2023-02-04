@@ -123,3 +123,36 @@ fn example() {
     let similarity = term1.similarity_score(&term2, &ic);
 }
 ```
+
+### Enrichment
+Identify which genes (or diseases) are enriched in a set of HpoTerms, e.g. in
+the clinical information of a patient or patient cohort
+
+```rust
+use hpo::Ontology;
+use hpo::{HpoSet, term::HpoGroup};
+use hpo::stats::hypergeom::gene_enrichment;
+
+fn example() {
+    let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+
+    let mut hpos = HpoGroup::new();
+    hpos.insert(2943u32.into());
+    hpos.insert(8458u32.into());
+    hpos.insert(100884u32.into());
+    hpos.insert(2944u32.into());
+    hpos.insert(2751u32.into());
+    let patient_ci = HpoSet::new(&ontology, hpos);
+
+    let mut enrichments = gene_enrichment(&ontology, &patient_ci);
+
+    // the results are not sorted by default
+    enrichments.sort_by(|a, b| {
+        a.pvalue().partial_cmp(&b.pvalue()).unwrap()
+    });
+
+    for gene in enrichments {
+        println!("{}\t{}\t({})", gene.id(), gene.pvalue(), gene.enrichment());
+    }
+}
+```

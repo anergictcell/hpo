@@ -11,6 +11,7 @@ mod ontology;
 mod parser;
 mod set;
 pub mod similarity;
+pub mod stats;
 pub mod term;
 
 pub use ontology::Ontology;

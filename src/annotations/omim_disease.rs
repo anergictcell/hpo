@@ -1,9 +1,11 @@
 use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
+use std::hash::Hash;
 
 use log::error;
 
+use crate::annotations::AnnotationId;
 use crate::set::HpoSet;
 use crate::term::HpoGroup;
 use crate::u32_from_bytes;
@@ -16,7 +18,7 @@ use crate::Ontology;
 /// The set does not contain [`OmimDisease`]s itself, but only
 /// their [`OmimDiseaseId`]s.
 /// Currently implemented using [`HashSet`] but any other implementation
-/// should work as well given that each OmimDiseaseId must appear only once
+/// should work as well given that each [`OmimDiseaseId`] must appear only once
 /// and it provides an iterator of [`OmimDiseaseId`]
 pub type OmimDiseases = HashSet<OmimDiseaseId>;
 
@@ -30,15 +32,10 @@ pub struct OmimDiseaseId {
     inner: u32,
 }
 
-impl OmimDiseaseId {
+impl AnnotationId for OmimDiseaseId {
     /// Convert `self` to `u32`
-    pub fn as_u32(&self) -> u32 {
+    fn as_u32(&self) -> u32 {
         self.inner
-    }
-
-    /// Returns the memory representation of the inner integer as a byte array in big-endian (network) byte order.
-    pub fn to_be_bytes(&self) -> [u8; 4] {
-        self.inner.to_be_bytes()
     }
 }
 
@@ -115,11 +112,11 @@ impl OmimDisease {
     /// | Byte offset | Number of bytes | Description |
     /// | --- | --- | --- |
     /// | 0 | 4 | The total length of the binary data blob as big-endian `u32` |
-    /// | 4 | 4 | The OmimDisease ID as big-endian `u32` |
-    /// | 8 | 4 | The length of the OmimDisease Name as big-endian `u32` |
-    /// | 12 | n | The OmimDisease name as u8 vector |
+    /// | 4 | 4 | The `OmimDiseaseId` as big-endian `u32` |
+    /// | 8 | 4 | The length of the `OmimDisease` Name as big-endian `u32` |
+    /// | 12 | n | The `OmimDisease` name as u8 vector |
     /// | 12 + n | 4 | The number of associated HPO terms as big-endian `u32` |
-    /// | 16 + n | x * 4 | The HPO Term IDs of the associated terms, each encoded as big-endian `u32` |
+    /// | 16 + n | x * 4 | The [`HpoTermId`]s of the associated terms, each encoded as big-endian `u32` |
     ///
     /// # Examples
     ///
@@ -277,6 +274,12 @@ impl TryFrom<&[u8]> for OmimDisease {
             );
             Err(HpoError::ParseBinaryError)
         }
+    }
+}
+
+impl Hash for OmimDisease {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 

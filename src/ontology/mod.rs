@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
 use std::ops::BitOr;
@@ -361,6 +361,80 @@ impl Ontology {
         &self,
     ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
         self.omim_diseases.values()
+    }
+
+    /// Constructs a smaller ontology that contains only the `leaves` terms and
+    /// all terms needed to connect to each leaf to `root`
+    ///
+    /// # Errors
+    ///
+    /// Fails if `root` is not an ancestor of all leaves
+    pub fn sub_ontology<'a, T:IntoIterator<Item=HpoTerm<'a>>>(&self, root: HpoTerm, leaves: T) -> Result<Self, HpoError> {
+        let mut terms = HashSet::new();
+        for term in leaves {
+            terms.insert(self.get_unchecked(term.id()));
+            for parent in term.path_to_ancestor(&root).ok_or(HpoError::NotImplemented)? {
+                terms.insert(self.get_unchecked(parent));
+            }
+        }
+        let ids: HashSet<HpoTermId> = terms.iter().map(|term| *term.id()).collect();
+
+        let mut ont = Self::default();
+        for term in &terms {
+            let internal = HpoTermInternal::new(term.name().to_string(), *term.id());
+            ont.add_term(internal);
+        };
+        for term in &terms {
+            for parent in term.parents() {
+                if ids.contains(&parent) {
+                    ont.add_parent(parent, *term.id());
+                }
+            }
+        };
+
+        ont.create_cache();
+
+        for term in &terms {
+            for gene in term.genes() {
+                let gene_id = ont.add_gene(
+                    self.gene(gene).ok_or(HpoError::DoesNotExist)?.name(),
+                    &gene.as_u32().to_string()
+                )?;
+                ont.link_gene_term(*term.id(), gene_id)?;
+                ont
+                    .gene_mut(&gene_id).ok_or(HpoError::DoesNotExist)?
+                    .add_term(*term.id());
+            }
+
+            for omim_disease in term.omim_diseases() {
+                let omim_disease_id = ont.add_omim_disease(
+                    self.omim_disease(omim_disease).ok_or(HpoError::DoesNotExist)?.name(),
+                    &omim_disease.as_u32().to_string()
+                )?;
+                ont.link_omim_disease_term(*term.id(), omim_disease_id)?;
+                ont
+                    .omim_disease_mut(&omim_disease_id).ok_or(HpoError::DoesNotExist)?
+                    .add_term(*term.id());
+            }
+        }
+        ont.calculate_information_content()?;
+
+        Ok(ont)
+    }
+
+    /// Returns the code to crate a `Mermaid` flow diagram
+    ///
+    /// This is meant to be used with smaller ontologies, e.g. from [`Ontology::sub_ontology`]
+    pub fn as_mermaid(&self) -> String {
+        let mut code = String::new();
+        code.push_str("graph TD\n");
+        for term in self {
+            code.push_str(&format!("{}[\"{}\n{}\"]\n", term.id(), term.id(), term.name()));
+            for child in term.children(){
+                code.push_str(&format!("{} --> {}\n", term.id(), child.id()));
+            }
+        }
+        code
     }
 }
 

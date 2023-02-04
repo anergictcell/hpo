@@ -79,9 +79,9 @@ impl Ontology {
     ///
     /// You must download:
     ///
-    /// - Actual OBO data: [hp.obo](https://hpo.jax.org/app/data/ontology)
-    /// - Links between HPO and OMIM diseases: [phenotype.hpoa](https://hpo.jax.org/app/data/annotations)
-    /// - Links between HPO and Genes: [phenotype_to_genes.txt](http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt)
+    /// - Actual OBO data: [`hp.obo`](https://hpo.jax.org/app/data/ontology)
+    /// - Links between HPO and OMIM diseases: [`phenotype.hpoa`](https://hpo.jax.org/app/data/annotations)
+    /// - Links between HPO and Genes: [`phenotype_to_genes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt)
     ///
     /// and then specify the folder where the data is stored.
     ///
@@ -90,8 +90,8 @@ impl Ontology {
     /// This method can fail for various reasons:
     ///
     /// - obo file not present or available: [`HpoError::CannotOpenFile`]
-    /// - add_genes failed (TODO)
-    /// - add_omim_disease failed (TODO)
+    /// - [`Ontology::add_gene`] failed (TODO)
+    /// - [`Ontology::add_omim_disease`] failed (TODO)
     ///
     /// # Examples
     ///
@@ -128,17 +128,17 @@ impl Ontology {
     /// [`Ontology::as_bytes`]. This method adds all terms, creates the
     /// parent-child structure of the ontology, adds genes and Omim diseases
     /// and ensures proper inheritance of gene/disease annotations.
-    /// It also calculates the InformationContent for every term.
+    /// It also calculates the `InformationContent` for every term.
     ///
     /// # Errors
     ///
     /// This method can fail for various reasons:
     ///
     /// - Binary file not available: [`HpoError::CannotOpenFile`]
-    /// - add_genes_from_bytes failed (TODO)
-    /// - add_omim_disease_from_bytes failed (TODO)
-    /// - add_terms_from_bytes
-    /// - add_parent_from_bytes
+    /// - `Ontology::add_genes_from_bytes` failed (TODO)
+    /// - `Ontology::add_omim_disease_from_bytes` failed (TODO)
+    /// - `add_terms_from_bytes` failed (TODO)
+    /// - `add_parent_from_bytes` failed (TODO)
     /// - Size of binary data does not match the content: [`HpoError::ParseBinaryError`]
     ///
     /// # Examples
@@ -602,7 +602,7 @@ impl Ontology {
 ///
 /// Those methods should not be exposed publicly
 impl Ontology {
-    /// Adds an HpoTerm to the ontology
+    /// Adds an [`HpoTerm`] to the ontology
     ///
     /// This method is part of the Ontology-building, based on the binary
     /// data format and requires a specified data layout.
@@ -618,13 +618,13 @@ impl Ontology {
         }
     }
 
-    /// Connects an HpoTerm to its parent term
+    /// Connects an [`HpoTerm`] to its parent term
     ///
     /// This method is part of the Ontology-building, based on the binary
     /// data format and requires a specified data layout.
     ///
     /// The method assumes that the data is in the right format and also
-    /// assumes that the caller will populate the all_parents caches for
+    /// assumes that the caller will populate the `all_parents` caches for
     /// each term.
     ///
     /// See [`HpoTermInternal::parents_as_byte`] for explanation of the binary layout.
@@ -680,7 +680,7 @@ impl Ontology {
         Ok(())
     }
 
-    /// Adds OmimDiseases to the ontoloigy and connects them to connected terms
+    /// Adds [`OmimDisease`]s to the ontoloigy and connects them to connected terms
     ///
     /// This method is part of the Ontology-building, based on the binary
     /// data format and requires a specified data layout.
@@ -724,7 +724,7 @@ impl Ontology {
     /// direct and indirect parents (grandparents)
     ///
     /// It will (somewhat) recursively iterate all parents and copy all their parents.
-    /// During this recursion, the list of all_parents is cached in each term that was
+    /// During this recursion, the list of `all_parents` is cached in each term that was
     /// iterated.
     ///
     /// The logic is that the recursion bubbles up all the way to the top of the ontolgy
@@ -763,7 +763,7 @@ impl Ontology {
         }
     }
 
-    /// Insert an HpoTerm (`HpoTermInternal`) to the ontology
+    /// Insert an `HpoTermInternal` to the ontology
     ///
     /// This method does not link the term to its parents or to any annotations
     pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
@@ -772,7 +772,7 @@ impl Ontology {
         id
     }
 
-    /// Add a connection from an HpoTerm to its parent
+    /// Add a connection from an [`HpoTerm`] to its parent
     ///
     /// This method is called once for every dependency in the Ontology during the initialization.
     ///

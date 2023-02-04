@@ -3,16 +3,16 @@
 //!
 //! The data layout can be described as having two `Vec`:
 //!
-//! - `terms` holds all HpoTerms (`HpoTermInternal`) with one element for every term
+//! - `terms` holds all `HpoTerm`s (`HpoTermInternal`) with one element for every term
 //!   in the ontology. The terms are not sorted and are added in the same order they
 //!   are defined in the source data. The order has no impact.
-//! - `ids` is a lookup table that contains one element for every possible HpoTermId.
+//! - `ids` is a lookup table that contains one element for every possible [`HpoTermId`].
 //!   HPO-Term-IDs can be any integer between 1 and 10 Million, so it has 10,000,000 elements.
 //!   Each element contains either `0` (no such term present) or the index of the
 //!   corresponding term in `terms`.
 //!
 //! To account for the fact that a `0` value in `ids` signals that no term is present, the
-//! first entry in `terms` is a fake HpoTerm.
+//! first entry in `terms` is a fake `HpoTerm`.
 //!
 //! # Data layout example
 //!
@@ -59,7 +59,7 @@
 //! - I'm sure better Hashmap implementations exist that would solve this problem in a more performant way
 //!
 //! I initially used the default `Hashmap` instead, but the performance with the custom lookup is significantly better.
-//! Since the retrieval of HpoTerms from the ontology is the most frequent operation, I wanted to optimize
+//! Since the retrieval of `HpoTerm`s from the ontology is the most frequent operation, I wanted to optimize
 //! this lookup as much as possible.
 //!
 //! If you're looking at this and are shaking your head, please let me know how to improve this. I'd love to hear feedback,
@@ -95,12 +95,12 @@ impl Default for Arena {
 }
 
 impl Arena {
-    /// Returns how many HpoTerms are present in the Arena
+    /// Returns how many `HpoTerm`s are present in the Arena
     pub fn len(&self) -> usize {
         self.terms.len() - 1
     }
 
-    /// Inserts a new HpoTerm into the arena
+    /// Inserts a new [`HpoTerm`](crate::term::HpoTerm) into the arena
     ///
     /// If a term with the same ID exists already, it does nothing
     pub fn insert(&mut self, term: HpoTermInternal) {
@@ -136,7 +136,7 @@ impl Arena {
     ///
     /// # Panics
     ///
-    /// If no HpoTerm with the given ID exists in the Arena
+    /// If no `HpoTerm` with the given ID exists in the Arena
     pub fn get_unchecked(&self, id: HpoTermId) -> &HpoTermInternal {
         &self.terms[self.ids[id.to_usize()]]
     }
@@ -148,7 +148,7 @@ impl Arena {
     ///
     /// # Panics
     ///
-    /// If no HpoTerm with the given ID exists in the Arena
+    /// If no `HpoTerm` with the given ID exists in the Arena
     pub fn get_unchecked_mut(&mut self, id: HpoTermId) -> &mut HpoTermInternal {
         &mut self.terms[self.ids[id.to_usize()]]
     }

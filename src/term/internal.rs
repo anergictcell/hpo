@@ -1,3 +1,4 @@
+use crate::annotations::AnnotationId;
 use std::hash::Hash;
 
 use crate::annotations::{GeneId, Genes};

@@ -1,3 +1,4 @@
+use crate::annotations::AnnotationId;
 use std::collections::HashSet;
 use std::ops::{Add, BitAnd, BitOr};
 

@@ -15,7 +15,7 @@ pub struct GraphIc {
 }
 
 impl GraphIc {
-    /// Constructs a new struct to calculate GraphIC based similarity scores
+    /// Constructs a new struct to calculate `GraphIC` based similarity scores
     /// between two terms
     ///
     /// # Examples

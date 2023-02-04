@@ -70,7 +70,7 @@ impl<'a> HpoSet<'a> {
         unimplemented!()
     }
 
-    /// Returns all [`Genes`] that are associated to the set
+    /// Returns all [`crate::annotations::GeneId`]s that are associated to the set
     ///
     /// # Panics
     ///
@@ -82,7 +82,7 @@ impl<'a> HpoSet<'a> {
             .fold(Genes::default(), |acc, element| &acc | element)
     }
 
-    /// Returns all [`OmimDiseases`] that are associated to the set
+    /// Returns all [`crate::annotations::OmimDiseaseId`]s that are associated to the set
     ///
     /// # Panics
     ///

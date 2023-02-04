@@ -1,6 +1,6 @@
 [package]
 name = "hpo"
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 authors = ["Jonas Marcello <jonas.marcello@esbme.com>"]
 description = "Human Phenotype Ontology Similarity"
@@ -16,6 +16,8 @@ categories = ["science", "data-structures", "parser-implementations"]
 thiserror = "1.0.37"
 log = "0.4"
 aquamarine = "0.1" # used in Docs
+statrs = "0.16.0"
 
 [dev-dependencies]
 rayon = "1.6.0"
+simple_logger = "4.0.0"

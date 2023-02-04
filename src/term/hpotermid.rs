@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 use std::fmt::Display;
 
-use crate::{HpoError, HpoResult};
+use crate::{annotations::AnnotationId, HpoError, HpoResult};
 
 /// The ID of an HPO-Term (e.g. `HP:0000123`)
 ///
@@ -25,17 +25,16 @@ impl HpoTermId {
     /// This method can panic on systems where `usize::MAX`
     /// is smaller than the `HpoTermId`
     pub fn to_usize(&self) -> usize {
-        self.inner.try_into().unwrap()
-    }
-
-    /// Convert `self` to `u32`
-    pub fn as_u32(&self) -> u32 {
         self.inner
+            .try_into()
+            .expect("hpo can only run on systems with at least 32 bit architecture")
     }
+}
 
-    /// Byte representation (big-endian) of self
-    pub fn to_be_bytes(&self) -> [u8; 4] {
-        self.inner.to_be_bytes()
+impl AnnotationId for HpoTermId {
+    /// Convert `self` to `u32`
+    fn as_u32(&self) -> u32 {
+        self.inner
     }
 }
 

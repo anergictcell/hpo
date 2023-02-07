@@ -146,17 +146,21 @@ impl<'a> IntoIterator for &'a HpoGroup {
 
 impl FromIterator<HpoTermId> for HpoGroup {
     fn from_iter<T: IntoIterator<Item = HpoTermId>>(iter: T) -> Self {
-        Self {
-            ids: iter.into_iter().collect(),
+        let mut group = HpoGroup::new();
+        for id in iter {
+            group.insert(id);
         }
+        group
     }
 }
 
 impl<'a> FromIterator<HpoTerm<'a>> for HpoGroup {
     fn from_iter<T: IntoIterator<Item = HpoTerm<'a>>>(iter: T) -> Self {
-        Self {
-            ids: iter.into_iter().map(|t| t.id()).collect(),
+        let mut group = HpoGroup::new();
+        for term in iter {
+            group.insert(term.id());
         }
+        group
     }
 }
 

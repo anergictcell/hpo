@@ -9,7 +9,7 @@ use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
-use crate::term::{HpoParents, HpoTerm};
+use crate::term::{HpoParents, HpoTerm, HpoGroup};
 use crate::u32_from_bytes;
 use crate::HpoResult;
 use crate::{HpoError, HpoTermId};
@@ -386,7 +386,7 @@ impl Ontology {
                 terms.insert(self.get_unchecked(parent));
             }
         }
-        let ids: HashSet<HpoTermId> = terms.iter().map(|term| *term.id()).collect();
+        let ids: HpoGroup = terms.iter().map(|term| *term.id()).collect();
 
         let mut ont = Self::default();
         for term in &terms {
@@ -403,27 +403,41 @@ impl Ontology {
 
         ont.create_cache();
 
-        for term in &terms {
-            for gene in term.genes() {
-                let gene_id = ont.add_gene(
-                    self.gene(gene).ok_or(HpoError::DoesNotExist)?.name(),
-                    &gene.as_u32().to_string()
-                )?;
-                ont.link_gene_term(*term.id(), gene_id)?;
+        // Iterate all genes, check the associated terms and see if one
+        // is part of the `ids` set
+        for gene in self.genes() {
+            let matched_terms = gene.hpo_terms() & &ids;
+            if matched_terms.is_empty() {
+                continue;
+            }
+            let gene_id = ont.add_gene(
+                self.gene(gene.id()).ok_or(HpoError::DoesNotExist)?.name(),
+                &gene.id().as_u32().to_string()
+            )?;
+            for term in &matched_terms {
+                ont.link_gene_term(term, gene_id)?;
                 ont
                     .gene_mut(&gene_id).ok_or(HpoError::DoesNotExist)?
-                    .add_term(*term.id());
+                    .add_term(term);
             }
+        }
 
-            for omim_disease in term.omim_diseases() {
-                let omim_disease_id = ont.add_omim_disease(
-                    self.omim_disease(omim_disease).ok_or(HpoError::DoesNotExist)?.name(),
-                    &omim_disease.as_u32().to_string()
-                )?;
-                ont.link_omim_disease_term(*term.id(), omim_disease_id)?;
+        // Iterate all genes, check the associated terms and see if one
+        // is part of the `ids` set
+        for omim_disease in self.omim_diseases() {
+            let matched_terms = omim_disease.hpo_terms() & &ids;
+            if matched_terms.is_empty() {
+                continue;
+            }
+            let omim_disease_id = ont.add_omim_disease(
+                self.omim_disease(omim_disease.id()).ok_or(HpoError::DoesNotExist)?.name(),
+                &omim_disease.id().as_u32().to_string()
+            )?;
+            for term in &matched_terms {
+                ont.link_omim_disease_term(term, omim_disease_id)?;
                 ont
                     .omim_disease_mut(&omim_disease_id).ok_or(HpoError::DoesNotExist)?
-                    .add_term(*term.id());
+                    .add_term(term);
             }
         }
         ont.calculate_information_content()?;

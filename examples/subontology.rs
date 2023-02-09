@@ -1,6 +1,6 @@
 
 
-use hpo::{Ontology};
+use hpo::Ontology;
 
 
 
@@ -15,7 +15,9 @@ fn main() {
             ontology.hpo(864u32.into()).expect("864"),
             ontology.hpo(10662u32.into()).expect("10662"),
             ontology.hpo(12638u32.into()).expect("12638"),
-            
+            ontology.hpo(3581u32.into()).expect("3581"),
+            ontology.hpo(7u32.into()).expect("7"),
+            ontology.hpo(12648u32.into()).expect("12648"),
         ]
     ).unwrap();
 

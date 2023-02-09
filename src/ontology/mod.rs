@@ -162,7 +162,6 @@ impl Ontology {
     /// assert_eq!(root_term.name(), "All");
     /// ```
     pub fn from_binary<P: AsRef<Path>>(filename: P) -> HpoResult<Self> {
-        let mut ont = Ontology::default();
         let bytes = match File::open(filename) {
             Ok(mut file) => {
                 let len = file
@@ -185,6 +184,30 @@ impl Ontology {
                 ))
             }
         };
+        Self::from_bytes(&bytes)
+    }
+
+
+    /// Build an Ontology from bytes
+    ///
+    /// The data must be in the proper format, as defined in
+    /// [`Ontology::as_bytes`]. This method adds all terms, creates the
+    /// parent-child structure of the ontology, adds genes and Omim diseases
+    /// and ensures proper inheritance of gene/disease annotations.
+    /// It also calculates the `InformationContent` for every term.
+    ///
+    /// # Errors
+    ///
+    /// This method can fail for various reasons:
+    ///
+    /// - `Ontology::add_genes_from_bytes` failed (TODO)
+    /// - `Ontology::add_omim_disease_from_bytes` failed (TODO)
+    /// - `add_terms_from_bytes` failed (TODO)
+    /// - `add_parent_from_bytes` failed (TODO)
+    /// - Size of binary data does not match the content: [`HpoError::ParseBinaryError`]
+    ///
+    pub fn from_bytes(bytes: &[u8]) -> HpoResult<Self> {
+        let mut ont = Ontology::default();
 
         let mut section_start = 0;
         let mut section_end: usize;

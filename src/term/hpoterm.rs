@@ -189,9 +189,17 @@ impl<'a> HpoTerm<'a> {
         GeneIterator::new(self.genes, self.ontology)
     }
 
+    pub fn gene_ids(&self) -> &Genes {
+        self.genes
+    }
+
     /// Returns an iterator of all associated [`crate::annotations::OmimDisease`]s
     pub fn omim_diseases(&self) -> OmimDiseaseIterator<'a> {
         OmimDiseaseIterator::new(self.omim_diseases, self.ontology)
+    }
+
+    pub fn omim_disease_ids(&self) -> &OmimDiseases {
+        self.omim_diseases
     }
 
     /// Returns the [`InformationContent`] of the term

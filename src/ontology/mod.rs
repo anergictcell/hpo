@@ -9,7 +9,7 @@ use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
-use crate::term::{HpoParents, HpoTerm, HpoGroup};
+use crate::term::{HpoGroup, HpoParents, HpoTerm};
 use crate::u32_from_bytes;
 use crate::HpoResult;
 use crate::{HpoError, HpoTermId};
@@ -18,9 +18,8 @@ use core::fmt::Debug;
 
 mod comparison;
 mod termarena;
-use termarena::Arena;
 use comparison::OntologyComparison;
-
+use termarena::Arena;
 
 #[cfg_attr(doc, aquamarine::aquamarine)]
 /// `Ontology` is the main interface of the `hpo` crate and contains all data
@@ -186,7 +185,6 @@ impl Ontology {
         };
         Self::from_bytes(&bytes)
     }
-
 
     /// Build an Ontology from bytes
     ///
@@ -401,11 +399,18 @@ impl Ontology {
     /// # Errors
     ///
     /// Fails if `root` is not an ancestor of all leaves
-    pub fn sub_ontology<'a, T:IntoIterator<Item=HpoTerm<'a>>>(&self, root: HpoTerm, leaves: T) -> Result<Self, HpoError> {
+    pub fn sub_ontology<'a, T: IntoIterator<Item = HpoTerm<'a>>>(
+        &self,
+        root: HpoTerm,
+        leaves: T,
+    ) -> Result<Self, HpoError> {
         let mut terms = HashSet::new();
         for term in leaves {
             terms.insert(self.get_unchecked(term.id()));
-            for parent in term.path_to_ancestor(&root).ok_or(HpoError::NotImplemented)? {
+            for parent in term
+                .path_to_ancestor(&root)
+                .ok_or(HpoError::NotImplemented)?
+            {
                 terms.insert(self.get_unchecked(parent));
             }
         }
@@ -415,14 +420,14 @@ impl Ontology {
         for term in &terms {
             let internal = HpoTermInternal::new(term.name().to_string(), *term.id());
             ont.add_term(internal);
-        };
+        }
         for term in &terms {
             for parent in term.parents() {
                 if ids.contains(&parent) {
                     ont.add_parent(parent, *term.id());
                 }
             }
-        };
+        }
 
         ont.create_cache();
 
@@ -435,12 +440,12 @@ impl Ontology {
             }
             let gene_id = ont.add_gene(
                 self.gene(gene.id()).ok_or(HpoError::DoesNotExist)?.name(),
-                &gene.id().as_u32().to_string()
+                &gene.id().as_u32().to_string(),
             )?;
             for term in &matched_terms {
                 ont.link_gene_term(term, gene_id)?;
-                ont
-                    .gene_mut(&gene_id).ok_or(HpoError::DoesNotExist)?
+                ont.gene_mut(&gene_id)
+                    .ok_or(HpoError::DoesNotExist)?
                     .add_term(term);
             }
         }
@@ -453,13 +458,15 @@ impl Ontology {
                 continue;
             }
             let omim_disease_id = ont.add_omim_disease(
-                self.omim_disease(omim_disease.id()).ok_or(HpoError::DoesNotExist)?.name(),
-                &omim_disease.id().as_u32().to_string()
+                self.omim_disease(omim_disease.id())
+                    .ok_or(HpoError::DoesNotExist)?
+                    .name(),
+                &omim_disease.id().as_u32().to_string(),
             )?;
             for term in &matched_terms {
                 ont.link_omim_disease_term(term, omim_disease_id)?;
-                ont
-                    .omim_disease_mut(&omim_disease_id).ok_or(HpoError::DoesNotExist)?
+                ont.omim_disease_mut(&omim_disease_id)
+                    .ok_or(HpoError::DoesNotExist)?
                     .add_term(term);
             }
         }
@@ -475,8 +482,13 @@ impl Ontology {
         let mut code = String::new();
         code.push_str("graph TD\n");
         for term in self {
-            code.push_str(&format!("{}[\"{}\n{}\"]\n", term.id(), term.id(), term.name()));
-            for child in term.children(){
+            code.push_str(&format!(
+                "{}[\"{}\n{}\"]\n",
+                term.id(),
+                term.id(),
+                term.name()
+            ));
+            for child in term.children() {
                 code.push_str(&format!("{} --> {}\n", term.id(), child.id()));
             }
         }

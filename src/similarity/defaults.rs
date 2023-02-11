@@ -279,3 +279,56 @@ impl Similarity for Distance {
             .map_or(0.0, |n| 1.0 / (usize_to_f32(n) + 1.0))
     }
 }
+
+/// Similarity score based on the difference in associated genes or diseases
+///
+/// The [`Mutation`] algorithm calculates how many genes or diseases are
+/// associated to only one term and not the other. If two terms are linked
+/// to the same annotations, their similarity score will be `1`. If both
+/// terms do not have any associated terms, they are considered completely
+/// different, i.e. have a similarity of `0`.
+pub struct Mutation {
+    kind: InformationContentKind,
+}
+
+impl Mutation {
+    pub fn new(kind: InformationContentKind) -> Self {
+        Self { kind }
+    }
+
+    fn gene_similarity(a: &HpoTerm, b: &HpoTerm) -> f32 {
+        let genes_a = a.gene_ids();
+        let genes_b = b.gene_ids();
+
+        let all = genes_a | genes_b;
+        let common = genes_a & genes_b;
+
+        usize_to_f32(common.len()) / usize_to_f32(all.len())
+    }
+
+    fn omim_disease_similarity(a: &HpoTerm, b: &HpoTerm) -> f32 {
+        let omim_diseases_a = a.omim_disease_ids();
+        let omim_diseases_b = b.omim_disease_ids();
+
+        let all = omim_diseases_a | omim_diseases_b;
+        let common = omim_diseases_a & omim_diseases_b;
+
+        if all.is_empty() {
+            return 0.0;
+        }
+
+        usize_to_f32(common.len()) / usize_to_f32(all.len())
+    }
+}
+
+impl Similarity for Mutation {
+    fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+        if a == b {
+            return 1.0;
+        }
+        match self.kind {
+            InformationContentKind::Gene => Mutation::gene_similarity(a, b),
+            InformationContentKind::Omim => Mutation::omim_disease_similarity(a, b),
+        }
+    }
+}

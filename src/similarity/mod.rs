@@ -56,6 +56,8 @@ use crate::{HpoError, HpoResult, HpoTerm, HpoTermId};
 pub mod defaults;
 pub use defaults::{Distance, GraphIc, InformationCoefficient, Jc, Lin, Relevance, Resnik};
 
+use self::defaults::Mutation;
+
 /// Trait for similarity score calculation between 2 [`HpoTerm`]s
 ///
 /// `hpo` already comes pre-loaded with several common and well established
@@ -280,6 +282,7 @@ pub enum Builtins {
     InformationCoefficient(InformationCoefficient),
     Jc(Jc),
     Lin(Lin),
+    Mutation(Mutation),
     Relevance(Relevance),
     Resnik(Resnik),
 }
@@ -302,6 +305,7 @@ impl Builtins {
             "jc" | "jc2" => Ok(Self::Jc(Jc::new(kind))),
             "lin" => Ok(Self::Lin(Lin::new(kind))),
             "relevance" | "rel" => Ok(Self::Relevance(Relevance::new(kind))),
+            "mutation" | "mut" => Ok(Self::Mutation(Mutation::new(kind))),
             _ => Err(HpoError::NotImplemented),
         }
     }
@@ -317,6 +321,7 @@ impl Similarity for Builtins {
             Self::Jc(sim) => sim.calculate(a, b),
             Self::Lin(sim) => sim.calculate(a, b),
             Self::Relevance(sim) => sim.calculate(a, b),
+            Self::Mutation(sim) => sim.calculate(a, b),
         }
     }
 }

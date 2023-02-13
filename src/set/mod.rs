@@ -1,5 +1,4 @@
 //! An `HpoSet` can represent e.g. the clinical information of a patient or the symptoms of a disease
-use crate::HpoResult;
 use crate::annotations::Genes;
 use crate::annotations::OmimDiseases;
 use crate::similarity::GroupSimilarity;
@@ -8,13 +7,56 @@ use crate::similarity::SimilarityCombiner;
 use crate::term::HpoGroup;
 use crate::term::HpoTerms;
 use crate::term::InformationContent;
+use crate::HpoResult;
 use crate::HpoTerm;
 use crate::Ontology;
 
 /// A set of unique HPO terms
 ///
-/// As in a set, each term can only appear once
-/// though that is not yet guaranteed in the implementation (TODO)
+/// It provides several convinience functions to operate on a set of terms.
+/// A typical use-case for an [`HpoSet`] is to record the clinical information
+/// of a patient. You can compare the aggregated information of the patient
+/// with other patients, genes or dieases.
+///
+/// As in a set, each term can only appear once.
+///
+/// # Examples
+///
+/// ```
+/// use hpo::term::InformationContentKind;
+/// use hpo::{Ontology, HpoSet};
+/// use hpo::term::HpoGroup;
+/// use hpo::similarity::{Builtins, StandardCombiner};
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+///
+/// // create one set
+/// let mut hpos = HpoGroup::new();
+/// hpos.insert(707u32.into());
+/// hpos.insert(12639u32.into());
+/// hpos.insert(12638u32.into());
+/// hpos.insert(818u32.into());
+/// hpos.insert(2715u32.into());
+/// let set = HpoSet::new(&ontology, hpos);
+/// assert_eq!(set.len(), 5);
+///
+/// // create another set
+/// let mut hpos_2 = HpoGroup::new();
+/// hpos_2.insert(100547u32.into());
+/// hpos_2.insert(12638u32.into());
+/// hpos_2.insert(864u32.into());
+/// hpos_2.insert(25454u32.into());
+/// let set_2 = HpoSet::new(&ontology, hpos_2);
+/// assert_eq!(set_2.len(), 4);
+///
+/// let similarity = set.similarity(
+///     &set_2,
+///     Builtins::new("graphic", InformationContentKind::Omim).unwrap(),
+///     StandardCombiner::default()
+/// );
+///
+/// assert_eq!(similarity, 0.8177036);
+/// ```
 pub struct HpoSet<'a> {
     ontology: &'a Ontology,
     group: HpoGroup,
@@ -22,6 +64,24 @@ pub struct HpoSet<'a> {
 
 impl<'a> HpoSet<'a> {
     /// Constructs an [`HpoSet`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.len(), 5);
+    /// ```
     pub fn new(ontology: &'a Ontology, group: HpoGroup) -> Self {
         Self { ontology, group }
     }
@@ -30,6 +90,26 @@ impl<'a> HpoSet<'a> {
     ///
     /// This means that it only contains terms that don't have a child
     /// term present in the set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let mut set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.len(), 5);
+    /// let children = set.child_nodes();
+    /// assert_eq!(children.len(), 4);
+    /// ```
     pub fn child_nodes(&mut self) -> HpoSet {
         let group = self
             .group
@@ -48,11 +128,42 @@ impl<'a> HpoSet<'a> {
     }
 
     /// Returns the number of terms in the set
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.len(), 5);
+    /// ```
     pub fn len(&self) -> usize {
         self.group.len()
     }
 
     /// Returns true if there are no terms in the set
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let hpos = HpoGroup::new();
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert!(set.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.group.is_empty()
     }
@@ -76,6 +187,22 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(818u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// // `ABCD1 (HGNC:215)` is linked to `HP:0012639`
+    /// assert!(set.gene_ids().contains(&215u32.into()));
+    /// ```
     pub fn gene_ids(&self) -> Genes {
         self.group
             .into_iter()
@@ -88,6 +215,22 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(818u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// // `Microphthalmia, syndromic 6 (OMIM:607932)` is linked to `HP:0012639`
+    /// assert!(set.omim_disease_ids().contains(&607932u32.into()));
+    /// ```
     pub fn omim_disease_ids(&self) -> OmimDiseases {
         self.group
             .into_iter()
@@ -107,6 +250,24 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// - When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.information_content().unwrap().gene(), 0.14216587);
+    /// ```
     pub fn information_content(&self) -> HpoResult<InformationContent> {
         let n_diseases = self.ontology.omim_diseases().len();
         let n_genes = self.ontology.genes().len();
@@ -131,6 +292,42 @@ impl<'a> HpoSet<'a> {
         Some(HpoTerm::try_new(self.ontology, *term).unwrap())
     }
 
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::term::InformationContentKind;
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// use hpo::similarity::{Builtins, StandardCombiner};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// // create one set
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    ///
+    /// // create another set
+    /// let mut hpos_2 = HpoGroup::new();
+    /// hpos_2.insert(100547u32.into());
+    /// hpos_2.insert(12638u32.into());
+    /// hpos_2.insert(864u32.into());
+    /// hpos_2.insert(25454u32.into());
+    /// let set_2 = HpoSet::new(&ontology, hpos_2);
+    ///
+    /// let similarity = set.similarity(
+    ///     &set_2,
+    ///     Builtins::new("graphic", InformationContentKind::Omim).unwrap(),
+    ///     StandardCombiner::default()
+    /// );
+    ///
+    /// assert_eq!(similarity, 0.8177036);
+    /// ```
     pub fn similarity<S: Similarity, C: SimilarityCombiner>(
         &self,
         other: &HpoSet,
@@ -147,5 +344,45 @@ impl<'a> IntoIterator for &'a HpoSet<'a> {
     type IntoIter = HpoTerms<'a>;
     fn into_iter(self) -> Self::IntoIter {
         HpoTerms::new(&self.group, self.ontology)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::similarity::{Builtins, StandardCombiner};
+    use crate::term::HpoGroup;
+    use crate::term::InformationContentKind;
+    use crate::{HpoSet, Ontology};
+
+    #[test]
+    fn test() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        // create one set
+        let mut hpos = HpoGroup::new();
+        hpos.insert(707u32.into());
+        hpos.insert(12639u32.into());
+        hpos.insert(12638u32.into());
+        hpos.insert(818u32.into());
+        hpos.insert(2715u32.into());
+        let set = HpoSet::new(&ontology, hpos);
+        assert_eq!(set.len(), 5);
+
+        // create another set
+        let mut hpos_2 = HpoGroup::new();
+        hpos_2.insert(100547u32.into());
+        hpos_2.insert(12638u32.into());
+        hpos_2.insert(864u32.into());
+        hpos_2.insert(25454u32.into());
+        let set_2 = HpoSet::new(&ontology, hpos_2);
+        assert_eq!(set_2.len(), 4);
+
+        let similarity = set.similarity(
+            &set_2,
+            Builtins::new("graphic", InformationContentKind::Omim).unwrap(),
+            StandardCombiner::default(),
+        );
+
+        assert_eq!(similarity, 0.8177036);
     }
 }

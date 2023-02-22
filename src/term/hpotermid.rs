@@ -42,7 +42,7 @@ impl TryFrom<&str> for HpoTermId {
     type Error = HpoError;
     fn try_from(s: &str) -> HpoResult<Self> {
         if s.len() < 4 {
-            return Err(HpoError::ParseIntError)
+            return Err(HpoError::ParseIntError);
         }
         Ok(HpoTermId {
             inner: s[3..].parse::<u32>()?,

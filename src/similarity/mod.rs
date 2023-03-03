@@ -277,14 +277,14 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
 ///
 /// For more details about each algorith, check the [`defaults`] description.
 pub enum Builtins {
-    Distance(Distance),
-    GraphIc(GraphIc),
-    InformationCoefficient(InformationCoefficient),
-    Jc(Jc),
-    Lin(Lin),
-    Mutation(Mutation),
-    Relevance(Relevance),
-    Resnik(Resnik),
+    Distance(InformationContentKind),
+    GraphIc(InformationContentKind),
+    InformationCoefficient(InformationContentKind),
+    Jc(InformationContentKind),
+    Lin(InformationContentKind),
+    Mutation(InformationContentKind),
+    Relevance(InformationContentKind),
+    Resnik(InformationContentKind),
 }
 
 impl Builtins {
@@ -292,20 +292,17 @@ impl Builtins {
     ///
     /// # Errors
     ///
-    /// Returns an error if no similary method with the given name
-    /// is known.
+    /// Returns an error if no similary method with the given name exists
     pub fn new(method: &str, kind: InformationContentKind) -> HpoResult<Self> {
         match method.to_lowercase().as_str() {
-            "graphic" => Ok(Self::GraphIc(GraphIc::new(kind))),
-            "resnik" => Ok(Self::Resnik(Resnik::new(kind))),
-            "distance" | "dist" => Ok(Self::Distance(Distance::new())),
-            "informationcoefficient" | "ic" => Ok(Self::InformationCoefficient(
-                InformationCoefficient::new(kind),
-            )),
-            "jc" | "jc2" => Ok(Self::Jc(Jc::new(kind))),
-            "lin" => Ok(Self::Lin(Lin::new(kind))),
-            "relevance" | "rel" => Ok(Self::Relevance(Relevance::new(kind))),
-            "mutation" | "mut" => Ok(Self::Mutation(Mutation::new(kind))),
+            "graphic" => Ok(Self::GraphIc(kind)),
+            "resnik" => Ok(Self::Resnik(kind)),
+            "distance" | "dist" => Ok(Self::Distance(kind)),
+            "informationcoefficient" | "ic" => Ok(Self::InformationCoefficient(kind)),
+            "jc" | "jc2" => Ok(Self::Jc(kind)),
+            "lin" => Ok(Self::Lin(kind)),
+            "relevance" | "rel" => Ok(Self::Relevance(kind)),
+            "mutation" | "mut" => Ok(Self::Mutation(kind)),
             _ => Err(HpoError::NotImplemented),
         }
     }
@@ -314,14 +311,14 @@ impl Builtins {
 impl Similarity for Builtins {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
         match self {
-            Self::GraphIc(sim) => sim.calculate(a, b),
-            Self::Resnik(sim) => sim.calculate(a, b),
-            Self::Distance(sim) => sim.calculate(a, b),
-            Self::InformationCoefficient(sim) => sim.calculate(a, b),
-            Self::Jc(sim) => sim.calculate(a, b),
-            Self::Lin(sim) => sim.calculate(a, b),
-            Self::Relevance(sim) => sim.calculate(a, b),
-            Self::Mutation(sim) => sim.calculate(a, b),
+            Self::GraphIc(kind) => GraphIc::new(*kind).calculate(a, b),
+            Self::Resnik(kind) => Resnik::new(*kind).calculate(a, b),
+            Self::Distance(_) => Distance::new().calculate(a, b),
+            Self::InformationCoefficient(kind) => InformationCoefficient::new(*kind).calculate(a, b),
+            Self::Jc(kind) => Jc::new(*kind).calculate(a, b),
+            Self::Lin(kind) => Lin::new(*kind).calculate(a, b),
+            Self::Relevance(kind) => Relevance::new(*kind).calculate(a, b),
+            Self::Mutation(kind) => Mutation::new(*kind).calculate(a, b),
         }
     }
 }

@@ -51,7 +51,7 @@ use crate::Ontology;
 ///
 /// let similarity = set.similarity(
 ///     &set_2,
-///     Builtins::new("graphic", InformationContentKind::Omim).unwrap(),
+///     Builtins::GraphIc(InformationContentKind::Omim),
 ///     StandardCombiner::default()
 /// );
 ///
@@ -322,7 +322,7 @@ impl<'a> HpoSet<'a> {
     ///
     /// let similarity = set.similarity(
     ///     &set_2,
-    ///     Builtins::new("graphic", InformationContentKind::Omim).unwrap(),
+    ///     Builtins::GraphIc(InformationContentKind::Omim),
     ///     StandardCombiner::default()
     /// );
     ///
@@ -379,7 +379,7 @@ mod test {
 
         let similarity = set.similarity(
             &set_2,
-            Builtins::new("graphic", InformationContentKind::Omim).unwrap(),
+            Builtins::GraphIc(InformationContentKind::Omim),
             StandardCombiner::default(),
         );
 

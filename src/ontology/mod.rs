@@ -134,6 +134,70 @@ use termarena::Arena;
 ///     }
 /// ```
 ///
+/// # Relations of different public struct in this module
+///
+/// ```mermaid
+/// classDiagram
+///     class Ontology {
+///     }
+///
+///     class HpoTerm{
+///         -HpoTermId id
+///         - &Ontology
+///         - parents() HpoTerms
+///         - children() HpoTerms
+///         - all_parents() HpoTerms
+///         - parent_ids() HpoGroup
+///         - all_parent_ids() HpoGroup
+///         - many-more()
+///     }
+///
+///     class HpoGroup {
+///         - Set~HpoTermId~
+///         into_iter()
+///     }
+///
+///     class HpoTermIds{
+///         - slice::Iter~Item=HpoTermId~
+///         next() HpoTermId
+///     }
+///
+///     class HpoTerms{
+///         - HpoTermIds
+///         - &Ontology
+///         next() HpoTerm
+///     }
+///
+///     class HpoTermId {
+///         u32: id
+///     }
+///
+///     class HpoSet {
+///         - HpoGroup
+///         - &Ontology
+///         similarity(...) f32
+///         information_content()
+///         gene_ids() Genes
+///         omim_disease_ids() OmimDiseases
+///     }
+///
+///     class OntologyIterator{
+///         - slice::Iter~HpoTermInternal~
+///         - &Ontology
+///         next() HpoTerm
+///     }
+///
+///     Ontology --> OntologyIterator: into_iter()
+///     OntologyIterator --> HpoTerm: iterates
+///     OntologyIterator --> HpoGroup: collect
+///     HpoSet --> HpoTerms: into_iter
+///     HpoTerms --> HpoTerm: iterates
+///     HpoTerms --> HpoGroup: collect
+///     HpoGroup --> HpoTermIds: into_iter()
+///     HpoTermIds --> HpoTermId: iterates
+///     HpoTermIds --> HpoGroup: collect
+/// ```
+///
 /// # Example ontology
 ///
 /// For all examples and tests in this documentation, we're using the

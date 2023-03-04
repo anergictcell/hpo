@@ -134,16 +134,6 @@ impl From<Vec<u32>> for HpoGroup {
     }
 }
 
-impl<'a> IntoIterator for &'a HpoGroup {
-    type Item = HpoTermId;
-
-    type IntoIter = HpoTermIds<'a>;
-
-    fn into_iter(self) -> HpoTermIds<'a> {
-        HpoTermIds::new(self.ids.iter())
-    }
-}
-
 impl FromIterator<HpoTermId> for HpoGroup {
     fn from_iter<T: IntoIterator<Item = HpoTermId>>(iter: T) -> Self {
         let mut group = HpoGroup::new();
@@ -161,6 +151,16 @@ impl<'a> FromIterator<HpoTerm<'a>> for HpoGroup {
             group.insert(term.id());
         }
         group
+    }
+}
+
+impl<'a> IntoIterator for &'a HpoGroup {
+    type Item = HpoTermId;
+
+    type IntoIter = HpoTermIds<'a>;
+
+    fn into_iter(self) -> HpoTermIds<'a> {
+        HpoTermIds::new(self.ids.iter())
     }
 }
 

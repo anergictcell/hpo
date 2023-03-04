@@ -6,26 +6,30 @@
 //!
 //! # Examples
 //!
-//! ```no_run
-//! use hpo::Ontology;
-//! use hpo::{HpoSet, term::HpoGroup};
+//! ```
+//! use hpo::term::InformationContentKind;
+//! use hpo::{Ontology, HpoSet};
+//! use hpo::term::HpoGroup;
 //! use hpo::stats::hypergeom::gene_enrichment;
 //!
-//! let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
+//! fn clinial_info_set(ontology: &Ontology) -> HpoSet {
+//! // ...
+//! # let mut hpos = HpoGroup::new();
+//! # hpos.insert(707u32.into());
+//! # hpos.insert(12639u32.into());
+//! # hpos.insert(12638u32.into());
+//! # hpos.insert(818u32.into());
+//! # hpos.insert(2715u32.into());
+//! # HpoSet::new(ontology, hpos)
+//! }
 //!
-//! let mut hpos = HpoGroup::new();
-//! hpos.insert(2943u32.into());
-//! hpos.insert(8458u32.into());
-//! hpos.insert(100884u32.into());
-//! hpos.insert(2944u32.into());
-//! hpos.insert(2751u32.into());
+//! let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 //!
-//! let patient_ci = HpoSet::new(&ontology, hpos);
-//!
+//! let patient_ci = clinial_info_set(&ontology);
 //! let mut enrichments = gene_enrichment(&ontology, &patient_ci);
 //!     
 //! // the results are not sorted by default
-//! enrichments.sort_by(|a, b| {
+//! enrichments.sort_unstable_by(|a, b| {
 //!         a.pvalue().partial_cmp(&b.pvalue()).unwrap()
 //!     });
 //!
@@ -38,12 +42,12 @@
 //! to the gene `EZH2`. We're then checking which genes are enriched in the
 //! directly and indirectly linked `HpoTerm`s.
 //!
-//! ```no_run
+//! ```
 //! use hpo::Ontology;
 //! use hpo::{HpoSet, term::HpoGroup};
 //! use hpo::stats::hypergeom::gene_enrichment;
 //!
-//! let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
+//! let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 //!
 //! let gene = ontology.gene_by_name("EZH2").unwrap();
 //! let gene_hpo_set = gene.to_hpo_set(&ontology);
@@ -54,10 +58,8 @@
 //! enrichments.sort_by(|a, b| {
 //!         a.pvalue().partial_cmp(&b.pvalue()).unwrap()
 //! });
-//!
-//! for gene in enrichments {
-//!     println!("{}\t{}\t({})", gene.id(), gene.pvalue(), gene.enrichment());
-//! }
+//! assert!(enrichments.first().unwrap().pvalue() < enrichments.last().unwrap().pvalue());
+//! assert!(enrichments.first().unwrap().enrichment() > enrichments.last().unwrap().enrichment());
 //! ```
 
 use log::debug;
@@ -68,6 +70,28 @@ use crate::stats::{f64_from_u64, Enrichment, SampleSet};
 use crate::HpoTerm;
 
 /// Calculates the hypergeometric enrichment of genes within the `set` compared to the `background`
+///
+/// # Examples
+///
+/// ```
+/// use hpo::Ontology;
+/// use hpo::{HpoSet, term::HpoGroup};
+/// use hpo::stats::hypergeom::gene_enrichment;
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+///
+/// let gene = ontology.gene_by_name("EZH2").unwrap();
+/// let gene_hpo_set = gene.to_hpo_set(&ontology);
+///
+/// let mut enrichments = gene_enrichment(&ontology, &gene_hpo_set);
+///
+/// // the results are not sorted by default
+/// enrichments.sort_by(|a, b| {
+///         a.pvalue().partial_cmp(&b.pvalue()).unwrap()
+/// });
+/// assert!(enrichments.first().unwrap().pvalue() < enrichments.last().unwrap().pvalue());
+/// assert!(enrichments.first().unwrap().enrichment() > enrichments.last().unwrap().enrichment());
+/// ```
 pub fn gene_enrichment<'a, T, U>(background: T, set: U) -> Vec<Enrichment<GeneId>>
 where
     T: IntoIterator<Item = HpoTerm<'a>>,
@@ -129,6 +153,28 @@ where
 }
 
 /// Calculates the hypergeometric enrichment of diseases within the `set` compared to the `background`
+///
+/// # Examples
+///
+/// ```
+/// use hpo::Ontology;
+/// use hpo::{HpoSet, term::HpoGroup};
+/// use hpo::stats::hypergeom::disease_enrichment;
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+///
+/// let gene = ontology.gene_by_name("EZH2").unwrap();
+/// let gene_hpo_set = gene.to_hpo_set(&ontology);
+///
+/// let mut enrichments = disease_enrichment(&ontology, &gene_hpo_set);
+///
+/// // the results are not sorted by default
+/// enrichments.sort_by(|a, b| {
+///         a.pvalue().partial_cmp(&b.pvalue()).unwrap()
+/// });
+/// assert!(enrichments.first().unwrap().pvalue() < enrichments.last().unwrap().pvalue());
+/// assert!(enrichments.first().unwrap().enrichment() > enrichments.last().unwrap().enrichment());
+/// ```
 pub fn disease_enrichment<'a, T, U>(background: T, set: U) -> Vec<Enrichment<OmimDiseaseId>>
 where
     T: IntoIterator<Item = HpoTerm<'a>>,

@@ -20,7 +20,8 @@ pub mod hypergeom;
 /// The fold enrichment and p-value for an enriched Gene or Disease
 ///
 /// [`Enrichment`] is returned from statistics enrichment methods, such as
-/// [`hypergeom::gene_enrichment`] and [`hypergeom::disease_enrichment`]
+/// [`hypergeom::gene_enrichment`] and [`hypergeom::disease_enrichment`].
+///
 #[derive(Debug)]
 pub struct Enrichment<T> {
     annotation: T,

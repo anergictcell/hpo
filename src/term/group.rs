@@ -79,7 +79,7 @@ impl HpoGroup {
     }
 
     /// Returns an Iterator of the [`HpoTermId`]s inside the group
-    pub fn iter(&self) -> HpoTermIds {
+    pub fn iter(&self) -> HpoTermIds<std::slice::Iter<HpoTermId>> {
         HpoTermIds::new(self.ids.iter())
     }
 
@@ -157,9 +157,9 @@ impl<'a> FromIterator<HpoTerm<'a>> for HpoGroup {
 impl<'a> IntoIterator for &'a HpoGroup {
     type Item = HpoTermId;
 
-    type IntoIter = HpoTermIds<'a>;
+    type IntoIter = HpoTermIds<std::slice::Iter<'a, HpoTermId>>;
 
-    fn into_iter(self) -> HpoTermIds<'a> {
+    fn into_iter(self) -> HpoTermIds<std::slice::Iter<'a, HpoTermId>> {
         HpoTermIds::new(self.ids.iter())
     }
 }
@@ -300,17 +300,17 @@ impl<'a> Iterator for GroupCombine<'a> {
 }
 
 /// An iterator over [`HpoTermId`]s
-pub struct HpoTermIds<'a> {
-    inner: std::slice::Iter<'a, HpoTermId>,
+pub struct HpoTermIds<T> {
+    inner: T
 }
 
-impl<'a> HpoTermIds<'a> {
-    fn new(inner: std::slice::Iter<'a, HpoTermId>) -> Self {
+impl<'a, T: Iterator<Item = &'a HpoTermId>> HpoTermIds<T> {
+    pub fn new(inner: T) -> Self {
         Self { inner }
     }
 }
 
-impl<'a> Iterator for HpoTermIds<'a> {
+impl<'a, T: Iterator<Item = &'a HpoTermId>> Iterator for HpoTermIds<T> {
     type Item = HpoTermId;
     fn next(&mut self) -> Option<HpoTermId> {
         self.inner.next().copied()

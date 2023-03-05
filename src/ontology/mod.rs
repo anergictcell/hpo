@@ -9,7 +9,7 @@ use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
-use crate::term::{HpoGroup, HpoParents, HpoTerm};
+use crate::term::{HpoGroup, HpoParents, HpoTerm, HpoTerms, HpoTermIds};
 use crate::u32_from_bytes;
 use crate::HpoResult;
 use crate::{HpoError, HpoTermId};
@@ -612,7 +612,7 @@ impl Ontology {
     ///     println!("{}", term.name());
     /// }
     /// ```
-    pub fn hpos(&self) -> OntologyIterator {
+    pub fn hpos<'a>(&'a self) -> OntologyIterator {
         OntologyIterator {
             inner: self.hpo_terms.values().iter(),
             ontology: self,

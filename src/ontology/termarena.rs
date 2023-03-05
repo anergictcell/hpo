@@ -70,7 +70,7 @@
 #![allow(clippy::slow_vector_initialization)]
 use log::trace;
 use log::warn;
-
+use crate::term::HpoTermIds;
 use crate::term::internal::HpoTermInternal;
 use crate::HpoTermId;
 
@@ -184,5 +184,17 @@ impl Arena {
     /// Returns all [`HpoTermId`]s
     pub fn keys(&mut self) -> Vec<HpoTermId> {
         self.terms[1..].iter().map(|term| *term.id()).collect()
+    }
+}
+
+type MapTermToId<'a> = fn(&'a HpoTermInternal) -> &'a HpoTermId;
+type HpoTermInternalIterator<'a> = std::slice::Iter<'a, HpoTermInternal>;
+type MappedHpoTermIds<'a> = std::iter::Map<HpoTermInternalIterator<'a>, MapTermToId<'a>>;
+
+impl<'a> IntoIterator for &'a Arena {
+    type Item = HpoTermId;
+    type IntoIter = HpoTermIds<MappedHpoTermIds<'a>>;
+    fn into_iter(self) -> Self::IntoIter {
+        HpoTermIds::new(self.terms[1..].iter().map(|term| term.id()))
     }
 }

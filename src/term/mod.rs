@@ -48,7 +48,7 @@ pub type HpoChildren = HpoGroup;
 /// This struct creates [`HpoTerm`]s from a reference to [`HpoGroup`]
 pub struct HpoTerms<'a> {
     ontology: &'a Ontology,
-    group: HpoTermIds<'a>,
+    group: HpoTermIds<std::slice::Iter<'a, HpoTermId>>,
 }
 
 impl<'a> HpoTerms<'a> {

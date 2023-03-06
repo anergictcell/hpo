@@ -2,8 +2,8 @@ use crate::annotations::AnnotationId;
 use std::collections::HashSet;
 use std::ops::{Add, BitAnd, BitOr};
 
-use crate::term;
 use crate::{HpoTerm, HpoTermId, Ontology};
+use crate::term;
 
 /// A set of [`HpoTermId`] representing a group of HPO terms
 ///
@@ -165,9 +165,7 @@ impl<'a> IntoIterator for &'a HpoGroup {
 
     type IntoIter = Iter<'a>;
     fn into_iter(self) -> Self::IntoIter {
-        Iter {
-            iter: self.ids.iter(),
-        }
+        Iter { iter: self.ids.iter() }
     }
 }
 
@@ -271,7 +269,7 @@ impl BitAnd<&HpoGroup> for HpoGroup {
 }
 
 pub struct Iter<'a> {
-    iter: std::slice::Iter<'a, HpoTermId>,
+    iter: std::slice::Iter<'a, HpoTermId>
 }
 
 impl Iterator for Iter<'_> {
@@ -281,9 +279,10 @@ impl Iterator for Iter<'_> {
     }
 }
 
+
 /// [`HpoTerm`] iterator for an owned [`HpoGroup`]
 ///
-/// This iterator is needed for some cases where an HpoGroup is created
+/// This iterator is needed for some cases where an `HpoGroup` is created
 /// by a method and does not live long enough to be used with [`Iter`].
 pub struct Combine<'a> {
     group: HpoGroup,
@@ -294,7 +293,10 @@ impl<'a> Combine<'a> {
     /// Constructs a new [`Combine`] from an [`HpoGroup`] and a reference
     /// to the [`Ontology`]
     pub fn new(group: HpoGroup, ontology: &'a Ontology) -> Self {
-        Self { group, ontology }
+        Self {
+            group,
+            ontology,
+        }
     }
 
     pub fn iter(&self) -> term::Iter<'_> {
@@ -310,6 +312,7 @@ impl<'a> IntoIterator for &'a Combine<'a> {
         term::Iter::new(self.group.iter(), self.ontology)
     }
 }
+
 
 #[cfg(test)]
 mod tests {

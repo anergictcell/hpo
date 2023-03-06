@@ -105,8 +105,8 @@ pub trait Similarity {
 /// the similarity scores must be combined to derive a single `f32` value
 /// from a matrix of term - term similarities
 ///
-/// `hpo` provides some default implementations of SimilarityCombiner:
-/// [StandardCombiner](`crate::similarity::StandardCombiner`)
+/// `hpo` provides some default implementations of `SimilarityCombiner`:
+/// [`StandardCombiner`](`crate::similarity::StandardCombiner`)
 pub trait SimilarityCombiner {
     /// This method implements the actual logic to calculate a single
     /// similarity score from a Matrix of term - term similarity scores.
@@ -304,7 +304,7 @@ impl SimilarityCombiner for StandardCombiner {
 /// assert_eq!(similarity, 0.8177036);
 /// ```
 ///
-/// ## Using GroupSimilarity directly
+/// ## Using `GroupSimilarity` directly
 ///
 /// ```
 /// use hpo::term::InformationContentKind;

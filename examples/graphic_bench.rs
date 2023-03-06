@@ -5,12 +5,12 @@ use hpo::term::InformationContentKind;
 use hpo::HpoTermId;
 use rayon::prelude::*;
 
-use hpo::similarity::GraphIc;
+use hpo::similarity::Builtins;
 use hpo::Ontology;
 
 fn bench(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
-    let ic = GraphIc::new(InformationContentKind::Omim);
+    let ic = Builtins::GraphIc(InformationContentKind::Omim);
 
     let mut count = 0usize;
     for term1 in ontology.hpos() {
@@ -35,7 +35,7 @@ fn bench(ontology: &Ontology, times: usize) {
 
 fn parallel(ontology: &Ontology, times: usize) {
     let start = SystemTime::now();
-    let ic = GraphIc::new(InformationContentKind::Omim);
+    let ic = Builtins::GraphIc(InformationContentKind::Omim);
 
     let scores: Vec<(HpoTermId, HpoTermId, f32)> = ontology.into_iter()
     .par_bridge()

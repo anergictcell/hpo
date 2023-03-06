@@ -34,7 +34,7 @@ fn bench(ontology: &Ontology, times: usize) {
 fn common_ancestors(termid1: HpoTermId, termid2: HpoTermId, ontology: &Ontology) {
     let term1 = ontology.hpo(termid1).unwrap();
     let term2 = ontology.hpo(termid2).unwrap();
-    for term in term1.common_ancestors(&term2) {
+    for term in &term1.common_ancestors(&term2) {
         println!(
             "Term {} | IC (Omim) {} | IC (Gene) {} | nOmim {} | nGene {}",
             term.id(),

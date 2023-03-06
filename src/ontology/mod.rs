@@ -9,7 +9,7 @@ use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
-use crate::term::{HpoGroup, HpoParents, HpoTerm};
+use crate::term::{HpoGroup, HpoTerm};
 use crate::u32_from_bytes;
 use crate::HpoResult;
 use crate::{HpoError, HpoTermId};
@@ -136,40 +136,35 @@ use termarena::Arena;
 ///
 /// # Relations of different public struct in this module
 ///
+/// The below diagram looks complicated at first, but the
+/// relationship of all entities follows a logical pattern.
+/// `HpoTerm` and `HpoSet` are the most important public structs.
+/// The `HpoGroup` is more relevant for internal use, but can also be
+/// useful for fast set-based operations.
+///
 /// ```mermaid
 /// classDiagram
 ///     class Ontology {
+///         into_iter()
 ///     }
 ///
 ///     class HpoTerm{
-///         -HpoTermId id
+///         - HpoTermId id
 ///         - &Ontology
-///         - parents() HpoTerms
-///         - children() HpoTerms
-///         - all_parents() HpoTerms
-///         - parent_ids() HpoGroup
-///         - all_parent_ids() HpoGroup
-///         - many-more()
+///         parents() HpoTerms
+///         parent_ids() HpoGroup
+///         all_parent_ids() HpoGroup
+///         children() HpoTerms
+///         children_ids() HpoTerms
+///         common_ancestors() Combine
+///         union_ancestors() Combine
+///         many-more()
 ///     }
 ///
 ///     class HpoGroup {
 ///         - Set~HpoTermId~
 ///         into_iter()
-///     }
-///
-///     class HpoTermIds{
-///         - slice::Iter~Item=HpoTermId~
-///         next() HpoTermId
-///     }
-///
-///     class HpoTerms{
-///         - HpoTermIds
-///         - &Ontology
-///         next() HpoTerm
-///     }
-///
-///     class HpoTermId {
-///         u32: id
+///         terms()
 ///     }
 ///
 ///     class HpoSet {
@@ -177,25 +172,47 @@ use termarena::Arena;
 ///         - &Ontology
 ///         similarity(...) f32
 ///         information_content()
-///         gene_ids() Genes
-///         omim_disease_ids() OmimDiseases
 ///     }
 ///
-///     class OntologyIterator{
-///         - slice::Iter~HpoTermInternal~
-///         - &Ontology
+///     class HpoTermId {
+///         - u32: id
+///     }
+///
+///     class `ontology::Iter` {
 ///         next() HpoTerm
 ///     }
 ///
-///     Ontology --> OntologyIterator: into_iter()
-///     OntologyIterator --> HpoTerm: iterates
-///     OntologyIterator --> HpoGroup: collect
-///     HpoSet --> HpoTerms: into_iter
-///     HpoTerms --> HpoTerm: iterates
-///     HpoTerms --> HpoGroup: collect
-///     HpoGroup --> HpoTermIds: into_iter()
-///     HpoTermIds --> HpoTermId: iterates
-///     HpoTermIds --> HpoGroup: collect
+///     class `term::Iter` {
+///         next() HpoTerm
+///     }
+///
+///     class `group::Iter` {
+///         next() HpoTermId
+///     }
+///
+///     class Combine {
+///         - HpoGroup
+///         into_iter()
+///     }
+///
+///     Ontology ..|> `ontology::Iter`: hpos()
+///     HpoSet ..|> `term::Iter`: iter()
+///     HpoGroup ..|> `group::Iter`: iter()
+///     HpoGroup ..|> `term::Iter`: terms()
+///     Combine ..|> `term::Iter`: iter()
+///
+///     `ontology::Iter` --o HpoGroup: collect()
+///     `ontology::Iter` --* HpoTerm: iterates()
+///
+///     `term::Iter` --* HpoTerm: iterates()
+///     `term::Iter` --o HpoGroup: collect()
+///
+///     `group::Iter` --* HpoTermId: iterates()
+///     `group::Iter` --o HpoGroup: collect()
+///
+///     HpoTerm ..|> HpoGroup: parent_ids()/children_ids()
+///     HpoTerm ..|> `term::Iter`: parents()/children()
+///     HpoTerm ..|> `Combine`: ..._ancestors()
 /// ```
 ///
 /// # Example ontology
@@ -1311,7 +1328,7 @@ impl Ontology {
     /// # Panics
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
-    fn all_grandparents(&mut self, term_id: HpoTermId) -> &HpoParents {
+    fn all_grandparents(&mut self, term_id: HpoTermId) -> &HpoGroup {
         if !self.get_unchecked(term_id).parents_cached() {
             self.create_cache_of_grandparents(term_id);
         }
@@ -1335,7 +1352,7 @@ impl Ontology {
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
     fn create_cache_of_grandparents(&mut self, term_id: HpoTermId) {
-        let mut res = HpoParents::default();
+        let mut res = HpoGroup::default();
         let parents = self.get_unchecked(term_id).parents().clone();
         for parent in &parents {
             let grandparents = self.all_grandparents(parent);

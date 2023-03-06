@@ -4,8 +4,8 @@ use crate::annotations::OmimDiseaseIterator;
 use crate::annotations::OmimDiseases;
 use crate::similarity::Similarity;
 use crate::term::internal::HpoTermInternal;
-use crate::term::HpoParents;
-use crate::term::HpoTerms;
+use crate::term::HpoGroup;
+use crate::term::Iter;
 use crate::HpoTermId;
 use crate::Ontology;
 
@@ -13,12 +13,9 @@ use crate::HpoError;
 
 use crate::HpoResult;
 
-use super::group::GroupCombine;
-use super::HpoChildren;
-use super::HpoTermIds;
-use super::InformationContent;
+use super::group::Combine;
 
-type HpoTermIdIter<'a> = HpoTermIds<std::slice::Iter<'a, HpoTermId>>;
+use super::InformationContent;
 
 /// The `HpoTerm` represents a single term from the HP Ontology
 ///
@@ -28,9 +25,9 @@ type HpoTermIdIter<'a> = HpoTermIds<std::slice::Iter<'a, HpoTermId>>;
 pub struct HpoTerm<'a> {
     id: &'a HpoTermId,
     name: &'a str,
-    parents: &'a HpoParents,
-    all_parents: &'a HpoParents,
-    children: &'a HpoChildren,
+    parents: &'a HpoGroup,
+    all_parents: &'a HpoGroup,
+    children: &'a HpoGroup,
     genes: &'a Genes,
     omim_diseases: &'a OmimDiseases,
     information_content: &'a InformationContent,
@@ -78,29 +75,34 @@ impl<'a> HpoTerm<'a> {
         self.name
     }
 
-    /// Returns an iterator of the direct patients of the term
-    pub fn parents(&self) -> HpoTerms<'a, HpoTermIdIter> {
-        HpoTerms::new(self.parents, self.ontology)
-    }
-
-    /// Returns an iterator of the direct children of the term
-    pub fn children(&self) -> HpoTerms<'a, HpoTermIdIter> {
-        HpoTerms::new(self.children, self.ontology)
-    }
-
     /// Returns the [`HpoTermId`]s of the direct parents
-    pub fn parent_ids(&self) -> &HpoParents {
+    pub fn parent_ids(&self) -> &HpoGroup {
         self.parents
     }
 
+    /// Returns an iterator of the direct patients of the term
+    pub fn parents(&self) -> Iter<'a> {
+        Iter::new(self.parents.iter(), self.ontology)
+    }
+
     /// Returns the [`HpoTermId`]s of al; direct and indirect parents
-    pub fn all_parent_ids(&self) -> &HpoParents {
+    pub fn all_parent_ids(&self) -> &HpoGroup {
         self.all_parents
     }
 
     /// Returns an iterator of the direct and indrect patients of the term
-    pub fn all_parents(&self) -> HpoTerms<'a, HpoTermIdIter> {
-        HpoTerms::new(self.all_parents, self.ontology)
+    pub fn all_parents(&self) -> Iter<'a> {
+        Iter::new(self.all_parents.iter(), self.ontology)
+    }
+
+    /// Returns the [`HpoTermId`]s of the direct children
+    pub fn children_ids(&self) -> &HpoGroup {
+        self.children
+    }
+
+    /// Returns an iterator of the direct children of the term
+    pub fn children(&self) -> Iter<'a> {
+        Iter::new(self.children.iter(), self.ontology)
     }
 
     /// Returns the [`HpoTermId`]s that are parents of both `self` **and** `other`
@@ -113,7 +115,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// This might seem counter-intuitive at first, but in most cases this
     /// is what is actually needed
-    pub fn all_common_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
+    pub fn all_common_ancestor_ids(&self, other: &HpoTerm) -> HpoGroup {
         (self.all_parent_ids() + self.id()) & (other.all_parent_ids() + other.id())
     }
 
@@ -123,7 +125,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// This method does not include `self` and `other`. Depending on your
     /// use case, you might prefer [`HpoTerm.all_common_ancestor_ids`].
-    pub fn common_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
+    pub fn common_ancestor_ids(&self, other: &HpoTerm) -> HpoGroup {
         self.all_parent_ids() & other.all_parent_ids()
     }
 
@@ -136,12 +138,12 @@ impl<'a> HpoTerm<'a> {
     ///
     /// This might seem counter-intuitive at first, but in many cases this
     /// is what is actually needed
-    pub fn all_union_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
+    pub fn all_union_ancestor_ids(&self, other: &HpoTerm) -> HpoGroup {
         self.all_parent_ids() | other.all_parent_ids()
     }
 
     /// Returns the [`HpoTermId`]s that are parents of either `self` **or** `other`
-    pub fn union_ancestor_ids(&self, other: &HpoTerm) -> HpoParents {
+    pub fn union_ancestor_ids(&self, other: &HpoTerm) -> HpoGroup {
         self.all_parent_ids() | other.all_parent_ids()
     }
 
@@ -155,8 +157,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// This might seem counter-intuitive at first, but in most cases this
     /// is what is actually needed
-    pub fn all_common_ancestors(&self, other: &HpoTerm) -> GroupCombine {
-        GroupCombine::new(self.all_common_ancestor_ids(other), self.ontology)
+    pub fn all_common_ancestors(&self, other: &HpoTerm) -> Combine {
+        Combine::new(self.all_common_ancestor_ids(other), self.ontology)
     }
 
     /// Returns an iterator of [`HpoTerm`]s that are parents of both `self` **and** `other`
@@ -165,8 +167,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// This method does not include `self` and `other`. Depending on your
     /// use case, you might prefer [`HpoTerm.all_common_ancestor_ids`].
-    pub fn common_ancestors(&self, other: &HpoTerm) -> GroupCombine {
-        GroupCombine::new(self.common_ancestor_ids(other), self.ontology)
+    pub fn common_ancestors(&self, other: &HpoTerm) -> Combine {
+        Combine::new(self.common_ancestor_ids(other), self.ontology)
     }
 
     /// Returns an iterator of [`HpoTerm`]s that are parents of either `self` **or** `other`
@@ -178,13 +180,13 @@ impl<'a> HpoTerm<'a> {
     ///
     /// This might seem counter-intuitive at first, but in many cases this
     /// is what is actually needed
-    pub fn all_union_ancestors(&self, other: &HpoTerm) -> GroupCombine {
-        GroupCombine::new(self.union_ancestor_ids(other), self.ontology)
+    pub fn all_union_ancestors(&self, other: &HpoTerm) -> Combine {
+        Combine::new(self.union_ancestor_ids(other), self.ontology)
     }
 
     /// Returns an iterator of [`HpoTerm`]s that are parents of either `self` **or** `other`
-    pub fn union_ancestors(&self, other: &HpoTerm) -> GroupCombine {
-        GroupCombine::new(self.union_ancestor_ids(other), self.ontology)
+    pub fn union_ancestors(&self, other: &HpoTerm) -> Combine {
+        Combine::new(self.union_ancestor_ids(other), self.ontology)
     }
 
     /// Returns an iterator of all associated [`crate::annotations::Gene`]s
@@ -267,6 +269,7 @@ impl<'a> HpoTerm<'a> {
     /// Returns the distance (steps) from `self` to `other`
     pub fn distance_to_term(&self, other: &HpoTerm) -> Option<usize> {
         self.all_common_ancestors(other)
+            .iter()
             .filter_map(|parent| {
                 Some(self.distance_to_ancestor(&parent)? + other.distance_to_ancestor(&parent)?)
             })

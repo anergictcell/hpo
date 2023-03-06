@@ -12,75 +12,39 @@
 //!
 //! Each term is identified by a unique [`HpoTermId`].
 //!
-//! 'hpo' supports many operations that work on sets of `HpoTerms`, they differ
-//! in their implementation details. The two most common are:
-//! - [`HpoTerms`]: An iterator of [`HpoTerm`] structs. In most cases this
-//!   represents a set, i.e. every term is unique, although that is not guaranteed
-//! - [`HpoGroup`]: A set of [`HpoTermId`] implements various functionality
-//! - [`HpoTermIds`]: An iterator of [`HpoTermId`], which can be converted from/into an [`HpoGroup`]
-//!
 use crate::Ontology;
 use core::fmt::Debug;
 
-mod group;
+pub mod group;
 mod hpoterm;
 mod hpotermid;
 mod information_content;
 pub(crate) mod internal;
 
-pub use group::{HpoGroup, HpoTermIds};
+pub use group::HpoGroup;
 pub use hpoterm::HpoTerm;
 pub use hpotermid::HpoTermId;
 pub use information_content::{InformationContent, InformationContentKind};
 
-/// A set of parent [`HpoTermId`]s
-///
-/// It uses [`HpoGroup`] underneath
-pub type HpoParents = HpoGroup;
-
-/// A set of child [`HpoTermId`]s
-///
-/// It uses [`HpoGroup`] underneath
-pub type HpoChildren = HpoGroup;
-
-/// Iterate [`HpoTerm`]s
-///
-/// This struct creates [`HpoTerm`]s from a reference to [`HpoGroup`]
-pub struct HpoTerms<'a, T> {
+/// [`HpoTerm`] iterator
+pub struct Iter<'a> {
+    group_iter: group::Iter<'a>,
     ontology: &'a Ontology,
-    group: T,
 }
 
-impl<'a> HpoTerms<'a, HpoTermIds<std::slice::Iter<'a, HpoTermId>>> {
-    /// Returns a new [`HpoTerms`]
-    #[must_use]
-    pub fn new(group: &'a HpoGroup, ontology: &'a Ontology) -> Self {
-        HpoTerms {
-            group: group.iter(),
+impl<'a> Iter<'a> {
+    pub(crate) fn new(group_iter: group::Iter<'a>, ontology: &'a Ontology) -> Self {
+        Self {
+            group_iter,
             ontology,
         }
     }
 }
 
-impl<'a, T: Iterator<Item = HpoTermId>> HpoTerms<'a, T> {
-    pub fn from_iter(iter: T, ontology: &'a Ontology) -> Self {
-        HpoTerms {
-            group: iter,
-            ontology,
-        }
-    }
-}
-
-impl<'a, T> HpoTerms<'a, T> {
-    pub fn ontology(&self) -> &Ontology {
-        self.ontology
-    }
-}
-
-impl<'a, T: Iterator<Item = HpoTermId>> Iterator for HpoTerms<'a, T> {
+impl<'a> Iterator for Iter<'a> {
     type Item = HpoTerm<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.group.next() {
+        match self.group_iter.next() {
             Some(term) => {
                 let term = self
                     .ontology
@@ -93,8 +57,8 @@ impl<'a, T: Iterator<Item = HpoTermId>> Iterator for HpoTerms<'a, T> {
     }
 }
 
-impl<T> Debug for HpoTerms<'_, T> {
+impl Debug for Iter<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "HpoTermIterator")
+        write!(f, "Iter<HpoTerm>")
     }
 }

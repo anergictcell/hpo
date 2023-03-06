@@ -109,3 +109,20 @@ impl PartialEq<str> for HpoTermId {
         self == &HpoTermId::new(other)
     }
 }
+
+// pub(crate) struct Iter<T> {
+//     iter: T
+// }
+
+// impl<T: Iterator<Item = HpoTermId>> Iter<T> {
+//     pub(crate) fn new(iter: T) -> Self {
+//         Self {iter}
+//     }
+// }
+
+// impl<T: Iterator<Item = HpoTermId>> Iterator for Iter<T> {
+//     type Item = HpoTermId;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.iter.next()
+//     }
+// }

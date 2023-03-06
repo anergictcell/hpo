@@ -301,7 +301,7 @@ impl<'a> Iterator for GroupCombine<'a> {
 
 /// An iterator over [`HpoTermId`]s
 pub struct HpoTermIds<T> {
-    inner: T
+    inner: T,
 }
 
 impl<'a, T: Iterator<Item = &'a HpoTermId>> HpoTermIds<T> {

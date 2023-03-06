@@ -46,12 +46,12 @@ pub type HpoChildren = HpoGroup;
 /// Iterate [`HpoTerm`]s
 ///
 /// This struct creates [`HpoTerm`]s from a reference to [`HpoGroup`]
-pub struct HpoTerms<'a> {
+pub struct HpoTerms<'a, T> {
     ontology: &'a Ontology,
-    group: HpoTermIds<std::slice::Iter<'a, HpoTermId>>,
+    group: T,
 }
 
-impl<'a> HpoTerms<'a> {
+impl<'a> HpoTerms<'a, HpoTermIds<std::slice::Iter<'a, HpoTermId>>> {
     /// Returns a new [`HpoTerms`]
     #[must_use]
     pub fn new(group: &'a HpoGroup, ontology: &'a Ontology) -> Self {
@@ -60,13 +60,24 @@ impl<'a> HpoTerms<'a> {
             ontology,
         }
     }
+}
 
+impl<'a, T: Iterator<Item = HpoTermId>> HpoTerms<'a, T> {
+    pub fn from_iter(iter: T, ontology: &'a Ontology) -> Self {
+        HpoTerms {
+            group: iter,
+            ontology,
+        }
+    }
+}
+
+impl<'a, T> HpoTerms<'a, T> {
     pub fn ontology(&self) -> &Ontology {
         self.ontology
     }
 }
 
-impl<'a> Iterator for HpoTerms<'a> {
+impl<'a, T: Iterator<Item = HpoTermId>> Iterator for HpoTerms<'a, T> {
     type Item = HpoTerm<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         match self.group.next() {
@@ -82,7 +93,7 @@ impl<'a> Iterator for HpoTerms<'a> {
     }
 }
 
-impl Debug for HpoTerms<'_> {
+impl<T> Debug for HpoTerms<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "HpoTermIterator")
     }

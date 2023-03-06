@@ -15,7 +15,10 @@ use crate::HpoResult;
 
 use super::group::GroupCombine;
 use super::HpoChildren;
+use super::HpoTermIds;
 use super::InformationContent;
+
+type HpoTermIdIter<'a> = HpoTermIds<std::slice::Iter<'a, HpoTermId>>;
 
 /// The `HpoTerm` represents a single term from the HP Ontology
 ///
@@ -76,12 +79,12 @@ impl<'a> HpoTerm<'a> {
     }
 
     /// Returns an iterator of the direct patients of the term
-    pub fn parents(&self) -> HpoTerms<'a> {
+    pub fn parents(&self) -> HpoTerms<'a, HpoTermIdIter> {
         HpoTerms::new(self.parents, self.ontology)
     }
 
     /// Returns an iterator of the direct children of the term
-    pub fn children(&self) -> HpoTerms<'a> {
+    pub fn children(&self) -> HpoTerms<'a, HpoTermIdIter> {
         HpoTerms::new(self.children, self.ontology)
     }
 
@@ -96,7 +99,7 @@ impl<'a> HpoTerm<'a> {
     }
 
     /// Returns an iterator of the direct and indrect patients of the term
-    pub fn all_parents(&self) -> HpoTerms<'a> {
+    pub fn all_parents(&self) -> HpoTerms<'a, HpoTermIdIter> {
         HpoTerms::new(self.all_parents, self.ontology)
     }
 

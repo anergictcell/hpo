@@ -5,10 +5,12 @@ use crate::similarity::GroupSimilarity;
 use crate::similarity::Similarity;
 use crate::similarity::SimilarityCombiner;
 use crate::term::HpoGroup;
+use crate::term::HpoTermIds;
 use crate::term::HpoTerms;
 use crate::term::InformationContent;
 use crate::HpoResult;
 use crate::HpoTerm;
+use crate::HpoTermId;
 use crate::Ontology;
 
 /// A set of unique HPO terms
@@ -341,7 +343,7 @@ impl<'a> HpoSet<'a> {
 
 impl<'a> IntoIterator for &'a HpoSet<'a> {
     type Item = HpoTerm<'a>;
-    type IntoIter = HpoTerms<'a>;
+    type IntoIter = HpoTerms<'a, HpoTermIds<std::slice::Iter<'a, HpoTermId>>>;
     fn into_iter(self) -> Self::IntoIter {
         HpoTerms::new(&self.group, self.ontology)
     }

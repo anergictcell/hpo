@@ -9,7 +9,7 @@ use crate::annotations::{Gene, GeneId};
 use crate::annotations::{OmimDisease, OmimDiseaseId};
 use crate::parser;
 use crate::term::internal::{BinaryTermBuilder, HpoTermInternal};
-use crate::term::{HpoGroup, HpoParents, HpoTerm, HpoTerms, HpoTermIds};
+use crate::term::{HpoGroup, HpoParents, HpoTerm};
 use crate::u32_from_bytes;
 use crate::HpoResult;
 use crate::{HpoError, HpoTermId};
@@ -612,11 +612,9 @@ impl Ontology {
     ///     println!("{}", term.name());
     /// }
     /// ```
-    pub fn hpos<'a>(&'a self) -> OntologyIterator {
-        OntologyIterator {
-            inner: self.hpo_terms.values().iter(),
-            ontology: self,
-        }
+    ///
+    pub fn hpos(&self) -> Iter<'_> {
+        self.into_iter()
     }
 
     /// Returns a reference to the [`Gene`] of the provided [`GeneId`]
@@ -1415,17 +1413,20 @@ impl Ontology {
     }
 }
 
-/// An iterator of [`HpoTerm`]s
-pub struct OntologyIterator<'a> {
-    inner: std::slice::Iter<'a, HpoTermInternal>,
+/// Iterates the Ontology and yields [`HpoTerm`]s
+pub struct Iter<'a> {
+    inner: termarena::Iter<'a>,
     ontology: &'a Ontology,
 }
 
-impl<'a> std::iter::Iterator for OntologyIterator<'a> {
+impl<'a> std::iter::Iterator for Iter<'a> {
     type Item = HpoTerm<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         match self.inner.next() {
-            Some(term) => Some(HpoTerm::new(self.ontology, term)),
+            Some(term) => Some(
+                HpoTerm::try_new(self.ontology, term)
+                    .expect("Iterator can only iterate valid HpoTermIds"),
+            ),
             None => None,
         }
     }
@@ -1433,10 +1434,13 @@ impl<'a> std::iter::Iterator for OntologyIterator<'a> {
 
 impl<'a> IntoIterator for &'a Ontology {
     type Item = HpoTerm<'a>;
-    type IntoIter = OntologyIterator<'a>;
+    type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.hpos()
+        Iter {
+            inner: self.hpo_terms.iter(),
+            ontology: self,
+        }
     }
 }
 

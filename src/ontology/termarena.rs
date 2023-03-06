@@ -68,15 +68,14 @@
 //!
 
 #![allow(clippy::slow_vector_initialization)]
-use log::trace;
-use log::warn;
-use crate::term::HpoTermIds;
 use crate::term::internal::HpoTermInternal;
 use crate::HpoTermId;
+use log::trace;
+use log::warn;
 
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
-pub(crate) struct Arena {
+pub(super) struct Arena {
     terms: Vec<HpoTermInternal>,
     ids: Vec<usize>,
 }
@@ -185,16 +184,20 @@ impl Arena {
     pub fn keys(&mut self) -> Vec<HpoTermId> {
         self.terms[1..].iter().map(|term| *term.id()).collect()
     }
+
+    pub(super) fn iter(&self) -> Iter {
+        Iter(self.terms[1..].iter().map(|term| *term.id()))
+    }
 }
 
-type MapTermToId<'a> = fn(&'a HpoTermInternal) -> &'a HpoTermId;
-type HpoTermInternalIterator<'a> = std::slice::Iter<'a, HpoTermInternal>;
-type MappedHpoTermIds<'a> = std::iter::Map<HpoTermInternalIterator<'a>, MapTermToId<'a>>;
+/// Iterates the Arena and yields [`HpoTermId`]s
+pub(super) struct Iter<'a>(
+    std::iter::Map<std::slice::Iter<'a, HpoTermInternal>, fn(&HpoTermInternal) -> HpoTermId>,
+);
 
-impl<'a> IntoIterator for &'a Arena {
+impl Iterator for Iter<'_> {
     type Item = HpoTermId;
-    type IntoIter = HpoTermIds<MappedHpoTermIds<'a>>;
-    fn into_iter(self) -> Self::IntoIter {
-        HpoTermIds::new(self.terms[1..].iter().map(|term| term.id()))
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }

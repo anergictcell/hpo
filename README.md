@@ -25,9 +25,6 @@ At the moment, this library provides most of the functionality of `PyHPO` and it
 
 You can check out some examples, including benchmarks, in the `examples` folder. I sometimes also include the corresponding Python code. As with all benchmarks, your mileage may vary, depending on your computer. But the overall trend stays the same.
 
-The library currently does not have many tests. The main reason is that most functionality requires a working ontology and I did not find a time to crate a Test-Set ontology that can be used for unit and integration tests. So far I am running several tests by using the `examples` and compare the output to `PyHPO`. I am planning to add a standardized small ontology to use for automated tests.
-I am confident that the results are correct for pretty much all functionality.
-
 ## API
 
 The API is quite similar to the `PyHPO` functionality, but has several adoptions for more idiomatic Rust code and performance improvements.

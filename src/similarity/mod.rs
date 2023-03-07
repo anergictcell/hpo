@@ -1,30 +1,34 @@
 //! Methods to calculate the Similarity between two terms or sets of terms
 //!
 //! Several methods and algorithms to calculate the similarity are already
-//! provided in the library, but you can easily add your own one as well.
-//! The easiest way to use the built-in methods is to use the [`Builtins`] enum.
+//! provided in the library, but you can easily add your own as well.
+//! The easiest way is to use the [`Builtins`] enum.
 //!
 //! # Examples
 //!
 //! ## Using built-in methods
 //!
-//! ```no_run
+//! ```
 //! use hpo::Ontology;
 //! use hpo::similarity::{Builtins, Similarity};
 //! use hpo::term::InformationContentKind;
 //!
-//! let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
-//! let term1 = ontology.hpo(123u32.into()).unwrap();
-//! let term2 = ontology.hpo(1u32.into()).unwrap();
+//! let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+//! let term1 = ontology.hpo(12638u32.into()).unwrap();
+//! let term2 = ontology.hpo(100547u32.into()).unwrap();
 //!
-//! let ic = Builtins::new("graphic", InformationContentKind::Omim).unwrap();
+//! let ic = Builtins::GraphIc(InformationContentKind::Omim);
 //!
 //! let similarity = ic.calculate(&term1, &term2);
+//! println!("The termss {} and {} have a similarity of {}", term1.id(), term2.id(), similarity);
+//! // ==> "The terms HP:0012638 and HP:0100547 have a similarity of 0.2704636"
 //! ```
 //!
-//! ## Create a custom method
+//! ## Create a custom similarity algorithm
+//! Creating you own similarity algorithm is as easy as implementing the
+//! [Similarity](`crate::similarity::Similarity`) trait.
 //!
-//! ```no_run
+//! ```
 //! use hpo::{Ontology, HpoTerm};
 //! use hpo::similarity::Similarity;
 //!
@@ -36,13 +40,16 @@
 //!     }
 //! }
 //!
-//! let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
-//! let term1 = ontology.hpo(123u32.into()).unwrap();
-//! let term2 = ontology.hpo(1u32.into()).unwrap();
+//! let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+//! let term1 = ontology.hpo(12638u32.into()).unwrap();
+//! // ==> "Abnormal nervous system physiology"
+//! let term2 = ontology.hpo(100547u32.into()).unwrap();
+//! // ==> "Abnormal forebrain morphology"
 //!
 //! let ic = Foo{};
 //!
 //! let similarity = ic.calculate(&term1, &term2);
+//! assert_eq!(similarity, 5.0);
 //! ```
 
 use std::cell::RefCell;
@@ -54,14 +61,39 @@ use crate::term::InformationContentKind;
 use crate::{HpoError, HpoResult, HpoTerm, HpoTermId};
 
 pub mod defaults;
-pub use defaults::{Distance, GraphIc, InformationCoefficient, Jc, Lin, Relevance, Resnik};
-
-use self::defaults::Mutation;
+pub use defaults::{
+    Distance, GraphIc, InformationCoefficient, Jc, Lin, Mutation, Relevance, Resnik,
+};
 
 /// Trait for similarity score calculation between 2 [`HpoTerm`]s
 ///
 /// `hpo` already comes pre-loaded with several common and well established
-/// similarity algorithms that implement the `Similarity` trait.
+/// similarity algorithms that implement the `Similarity` trait:
+/// [Builtins](`crate::similarity::Builtins`)
+///
+/// ```
+/// use hpo::{Ontology, HpoTerm};
+/// use hpo::similarity::Similarity;
+///
+/// struct Foo {}
+/// impl Similarity for Foo {
+///     /// Calculate similarity based on length of the term names
+///     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
+///         return (a.name().len() - b.name().len()) as f32
+///     }
+/// }
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+/// let term1 = ontology.hpo(12638u32.into()).unwrap();
+/// // ==> "Abnormal nervous system physiology"
+/// let term2 = ontology.hpo(100547u32.into()).unwrap();
+/// // ==> "Abnormal forebrain morphology"
+///
+/// let ic = Foo{};
+///
+/// let similarity = ic.calculate(&term1, &term2);
+/// assert_eq!(similarity, 5.0);
+/// ```
 pub trait Similarity {
     /// calculates the actual similarity between term a and term b
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32;
@@ -72,6 +104,9 @@ pub trait Similarity {
 /// For similarity calculation between [`HpoSet`]s
 /// the similarity scores must be combined to derive a single `f32` value
 /// from a matrix of term - term similarities
+///
+/// `hpo` provides some default implementations of `SimilarityCombiner`:
+/// [`StandardCombiner`](`crate::similarity::StandardCombiner`)
 pub trait SimilarityCombiner {
     /// This method implements the actual logic to calculate a single
     /// similarity score from a Matrix of term - term similarity scores.
@@ -221,6 +256,95 @@ impl SimilarityCombiner for StandardCombiner {
 }
 
 /// calculate the Similarity score between two [`HpoSet`](`crate::HpoSet`)s
+///
+/// # Note
+///
+/// It is recommended to use the [`HpoSet::similarity`](`crate::HpoSet::similarity`)
+/// method instead of creating a `GroupSimilarity` struct yourself.
+///
+/// # Examples
+/// ## Using the preferred way
+/// ```
+/// use hpo::term::InformationContentKind;
+/// use hpo::{Ontology, HpoSet};
+/// use hpo::term::HpoGroup;
+/// use hpo::similarity::{Builtins, StandardCombiner};
+///
+/// fn set1(ontology: &Ontology) -> HpoSet {
+/// // ...
+/// # let mut hpos = HpoGroup::new();
+/// # hpos.insert(707u32.into());
+/// # hpos.insert(12639u32.into());
+/// # hpos.insert(12638u32.into());
+/// # hpos.insert(818u32.into());
+/// # hpos.insert(2715u32.into());
+/// # HpoSet::new(ontology, hpos)
+/// }
+///
+/// fn set2(ontology: &Ontology) -> HpoSet {
+/// // ...
+/// # let mut hpos = HpoGroup::new();
+/// # hpos.insert(100547u32.into());
+/// # hpos.insert(12638u32.into());
+/// # hpos.insert(864u32.into());
+/// # hpos.insert(25454u32.into());
+/// # HpoSet::new(ontology, hpos)
+/// }
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+/// let set_1 = set1(&ontology);
+/// let set_2 = set2(&ontology);
+///
+/// let similarity = set_1.similarity(
+///     &set_2,
+///     Builtins::GraphIc(InformationContentKind::Omim),
+///     StandardCombiner::default()
+/// );
+///
+/// assert_eq!(similarity, 0.8177036);
+/// ```
+///
+/// ## Using `GroupSimilarity` directly
+///
+/// ```
+/// use hpo::term::InformationContentKind;
+/// use hpo::{Ontology, HpoSet};
+/// use hpo::term::HpoGroup;
+/// use hpo::similarity::{Builtins, GroupSimilarity, StandardCombiner};
+///
+/// fn set1(ontology: &Ontology) -> HpoSet {
+/// // ...
+/// # let mut hpos = HpoGroup::new();
+/// # hpos.insert(707u32.into());
+/// # hpos.insert(12639u32.into());
+/// # hpos.insert(12638u32.into());
+/// # hpos.insert(818u32.into());
+/// # hpos.insert(2715u32.into());
+/// # HpoSet::new(ontology, hpos)
+/// }
+///
+/// fn set2(ontology: &Ontology) -> HpoSet {
+/// // ...
+/// # let mut hpos = HpoGroup::new();
+/// # hpos.insert(100547u32.into());
+/// # hpos.insert(12638u32.into());
+/// # hpos.insert(864u32.into());
+/// # hpos.insert(25454u32.into());
+/// # HpoSet::new(ontology, hpos)
+/// }
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+/// let set_1 = set1(&ontology);
+/// let set_2 = set2(&ontology);
+///
+///
+/// let sim = GroupSimilarity::new(
+///     StandardCombiner::FunSimAvg,
+///     Builtins::GraphIc(InformationContentKind::Omim)
+/// );
+///
+/// assert_eq!(sim.calculate(&set_1, &set_2), 0.8177036);
+/// ```
 pub struct GroupSimilarity<T, C> {
     combiner: C,
     similarity: T,
@@ -275,38 +399,97 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
 
 /// Contains similarity methods for the standard built-in algorithms
 ///
-/// For more details about each algorith, check the [`defaults`] description.
+/// For more details about each algorithm, check the [`defaults`] description.
+///
+/// # Examples
+///
+/// ```
+/// use hpo::{Ontology, HpoSet};
+/// use hpo::term::{InformationContentKind, HpoGroup};
+/// use hpo::similarity::{Builtins, StandardCombiner};
+///
+/// fn set1(ontology: &Ontology) -> HpoSet {
+/// // ...
+/// # let mut hpos = HpoGroup::new();
+/// # hpos.insert(707u32.into());
+/// # hpos.insert(12639u32.into());
+/// # hpos.insert(12638u32.into());
+/// # hpos.insert(818u32.into());
+/// # hpos.insert(2715u32.into());
+/// # HpoSet::new(ontology, hpos)
+/// }
+///
+/// fn set2(ontology: &Ontology) -> HpoSet {
+/// // ...
+/// # let mut hpos = HpoGroup::new();
+/// # hpos.insert(100547u32.into());
+/// # hpos.insert(12638u32.into());
+/// # hpos.insert(864u32.into());
+/// # hpos.insert(25454u32.into());
+/// # HpoSet::new(ontology, hpos)
+/// }
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+/// let set_1 = set1(&ontology);
+/// let set_2 = set2(&ontology);
+///
+/// let sim_method = Builtins::GraphIc(InformationContentKind::Omim);
+///
+/// let similarity = set_1.similarity(
+///     &set_2,
+///     sim_method,
+///     StandardCombiner::default()
+/// );
+/// ```
 pub enum Builtins {
-    Distance(Distance),
-    GraphIc(GraphIc),
-    InformationCoefficient(InformationCoefficient),
-    Jc(Jc),
-    Lin(Lin),
-    Mutation(Mutation),
-    Relevance(Relevance),
-    Resnik(Resnik),
+    /// [Distance](`Distance`) - based similarity
+    Distance(InformationContentKind),
+    /// [GraphIc](`GraphIc`) - based similarity
+    GraphIc(InformationContentKind),
+    /// [InformationCoefficient](`InformationCoefficient`) - based similarity
+    InformationCoefficient(InformationContentKind),
+    /// [Jiang & Conrath](`Jc`) - based similarity
+    Jc(InformationContentKind),
+    /// [Lin](`Lin`) - based similarity
+    Lin(InformationContentKind),
+    /// [Mutation](`Mutation`) - based similarity
+    Mutation(InformationContentKind),
+    /// [Relevance](`Relevance`) - based similarity
+    Relevance(InformationContentKind),
+    /// [Resnik](`Resnik`) - based similarity
+    Resnik(InformationContentKind),
 }
 
 impl Builtins {
-    /// Constructs a new `Builtins` struct
+    /// Constructs a new `Builtins` struct from a `str`
+    ///
+    /// This method is useful to get a Similarity algorithm from a user provided string
+    ///
+    /// ```
+    /// use hpo::term::InformationContentKind;
+    /// use hpo::similarity::Builtins;
+    ///
+    /// let sim_method = Builtins::new("graphic", InformationContentKind::Omim);
+    /// assert!(sim_method.is_ok());
+    ///
+    /// let sim_method = Builtins::new("does-not-exist", InformationContentKind::Omim);
+    /// assert!(sim_method.is_err());
+    /// ```
     ///
     /// # Errors
     ///
-    /// Returns an error if no similary method with the given name
-    /// is known.
+    /// Returns an [`HpoError::DoesNotExist`] error if no similary method with the given name exists
     pub fn new(method: &str, kind: InformationContentKind) -> HpoResult<Self> {
         match method.to_lowercase().as_str() {
-            "graphic" => Ok(Self::GraphIc(GraphIc::new(kind))),
-            "resnik" => Ok(Self::Resnik(Resnik::new(kind))),
-            "distance" | "dist" => Ok(Self::Distance(Distance::new())),
-            "informationcoefficient" | "ic" => Ok(Self::InformationCoefficient(
-                InformationCoefficient::new(kind),
-            )),
-            "jc" | "jc2" => Ok(Self::Jc(Jc::new(kind))),
-            "lin" => Ok(Self::Lin(Lin::new(kind))),
-            "relevance" | "rel" => Ok(Self::Relevance(Relevance::new(kind))),
-            "mutation" | "mut" => Ok(Self::Mutation(Mutation::new(kind))),
-            _ => Err(HpoError::NotImplemented),
+            "graphic" => Ok(Self::GraphIc(kind)),
+            "resnik" => Ok(Self::Resnik(kind)),
+            "distance" | "dist" => Ok(Self::Distance(kind)),
+            "informationcoefficient" | "ic" => Ok(Self::InformationCoefficient(kind)),
+            "jc" | "jc2" => Ok(Self::Jc(kind)),
+            "lin" => Ok(Self::Lin(kind)),
+            "relevance" | "rel" => Ok(Self::Relevance(kind)),
+            "mutation" | "mut" => Ok(Self::Mutation(kind)),
+            _ => Err(HpoError::DoesNotExist),
         }
     }
 }
@@ -314,14 +497,16 @@ impl Builtins {
 impl Similarity for Builtins {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
         match self {
-            Self::GraphIc(sim) => sim.calculate(a, b),
-            Self::Resnik(sim) => sim.calculate(a, b),
-            Self::Distance(sim) => sim.calculate(a, b),
-            Self::InformationCoefficient(sim) => sim.calculate(a, b),
-            Self::Jc(sim) => sim.calculate(a, b),
-            Self::Lin(sim) => sim.calculate(a, b),
-            Self::Relevance(sim) => sim.calculate(a, b),
-            Self::Mutation(sim) => sim.calculate(a, b),
+            Self::GraphIc(kind) => GraphIc::new(*kind).calculate(a, b),
+            Self::Resnik(kind) => Resnik::new(*kind).calculate(a, b),
+            Self::Distance(_) => Distance::new().calculate(a, b),
+            Self::InformationCoefficient(kind) => {
+                InformationCoefficient::new(*kind).calculate(a, b)
+            }
+            Self::Jc(kind) => Jc::new(*kind).calculate(a, b),
+            Self::Lin(kind) => Lin::new(*kind).calculate(a, b),
+            Self::Relevance(kind) => Relevance::new(*kind).calculate(a, b),
+            Self::Mutation(kind) => Mutation::new(*kind).calculate(a, b),
         }
     }
 }

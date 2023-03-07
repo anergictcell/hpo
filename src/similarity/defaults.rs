@@ -41,6 +41,7 @@ impl Similarity for GraphIc {
 
         let ic_union: f32 = a
             .all_union_ancestors(b)
+            .iter()
             .map(|p| p.information_content().get_kind(&self.kind))
             .sum();
 
@@ -50,6 +51,7 @@ impl Similarity for GraphIc {
 
         let ic_common: f32 = a
             .all_common_ancestors(b)
+            .iter()
             .map(|p| p.information_content().get_kind(&self.kind))
             .sum();
 
@@ -86,6 +88,7 @@ impl Resnik {
 impl Similarity for Resnik {
     fn calculate(&self, a: &HpoTerm, b: &HpoTerm) -> f32 {
         a.all_common_ancestors(b)
+            .iter()
             .map(|term| term.information_content().get_kind(&self.kind))
             .fold(0.0, |max, term| if term > max { term } else { max })
     }

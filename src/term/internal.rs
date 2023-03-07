@@ -3,9 +3,7 @@ use std::hash::Hash;
 
 use crate::annotations::{GeneId, Genes};
 use crate::annotations::{OmimDiseaseId, OmimDiseases};
-use crate::term::HpoGroup;
-use crate::term::InformationContent;
-use crate::term::{HpoChildren, HpoParents, HpoTermId};
+use crate::term::{HpoGroup, HpoTermId, InformationContent};
 use crate::DEFAULT_NUM_OMIM;
 use crate::DEFAULT_NUM_PARENTS;
 use crate::{HpoError, DEFAULT_NUM_GENES};
@@ -15,9 +13,9 @@ use crate::{HpoResult, DEFAULT_NUM_ALL_PARENTS};
 pub(crate) struct HpoTermInternal {
     id: HpoTermId,
     name: String,
-    parents: HpoParents,
-    all_parents: HpoParents,
-    children: HpoChildren,
+    parents: HpoGroup,
+    all_parents: HpoGroup,
+    children: HpoGroup,
     genes: Genes,
     omim_diseases: OmimDiseases,
     ic: InformationContent,
@@ -46,7 +44,7 @@ impl HpoTermInternal {
             name,
             parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
             all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
-            children: HpoChildren::with_capacity(DEFAULT_NUM_PARENTS),
+            children: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
             genes: Genes::with_capacity(DEFAULT_NUM_GENES),
             omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
             ic: InformationContent::default(),
@@ -62,7 +60,7 @@ impl HpoTermInternal {
             name: name.to_string(),
             parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
             all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
-            children: HpoChildren::with_capacity(DEFAULT_NUM_PARENTS),
+            children: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
             genes: Genes::with_capacity(DEFAULT_NUM_GENES),
             omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
             ic: InformationContent::default(),
@@ -79,19 +77,19 @@ impl HpoTermInternal {
         &self.name
     }
 
-    pub fn parents(&self) -> &HpoParents {
+    pub fn parents(&self) -> &HpoGroup {
         &self.parents
     }
 
-    pub fn children(&self) -> &HpoChildren {
+    pub fn children(&self) -> &HpoGroup {
         &self.children
     }
 
-    pub fn all_parents(&self) -> &HpoParents {
+    pub fn all_parents(&self) -> &HpoGroup {
         &self.all_parents
     }
 
-    pub fn all_parents_mut(&mut self) -> &mut HpoParents {
+    pub fn all_parents_mut(&mut self) -> &mut HpoGroup {
         &mut self.all_parents
     }
 

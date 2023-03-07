@@ -28,7 +28,7 @@ fn main() {
         let term1 = ontology.hpo(termid1).unwrap();
         let term2 = ontology.hpo(termid2).unwrap();
         print_distance(&term1, &term2);
-        for t in term1.common_ancestors(&term2) {
+        for t in &term1.common_ancestors(&term2) {
             println!("{}", t.id());
         }
         println!("----");

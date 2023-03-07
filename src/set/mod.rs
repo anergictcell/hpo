@@ -5,15 +5,59 @@ use crate::similarity::GroupSimilarity;
 use crate::similarity::Similarity;
 use crate::similarity::SimilarityCombiner;
 use crate::term::HpoGroup;
-use crate::term::HpoTerms;
-use crate::term::InformationContent;
+
+use crate::term::{InformationContent, Iter};
+use crate::HpoResult;
 use crate::HpoTerm;
+
 use crate::Ontology;
 
 /// A set of unique HPO terms
 ///
-/// As in a set, each term can only appear once
-/// though that is not yet guaranteed in the implementation (TODO)
+/// It provides several convinience functions to operate on a set of terms.
+/// A typical use-case for an [`HpoSet`] is to record the clinical information
+/// of a patient. You can compare the aggregated information of the patient
+/// with other patients, genes or dieases.
+///
+/// As in a set, each term can only appear once.
+///
+/// # Examples
+///
+/// ```
+/// use hpo::term::InformationContentKind;
+/// use hpo::{Ontology, HpoSet};
+/// use hpo::term::HpoGroup;
+/// use hpo::similarity::{Builtins, StandardCombiner};
+///
+/// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+///
+/// // create one set
+/// let mut hpos = HpoGroup::new();
+/// hpos.insert(707u32.into());
+/// hpos.insert(12639u32.into());
+/// hpos.insert(12638u32.into());
+/// hpos.insert(818u32.into());
+/// hpos.insert(2715u32.into());
+/// let set = HpoSet::new(&ontology, hpos);
+/// assert_eq!(set.len(), 5);
+///
+/// // create another set
+/// let mut hpos_2 = HpoGroup::new();
+/// hpos_2.insert(100547u32.into());
+/// hpos_2.insert(12638u32.into());
+/// hpos_2.insert(864u32.into());
+/// hpos_2.insert(25454u32.into());
+/// let set_2 = HpoSet::new(&ontology, hpos_2);
+/// assert_eq!(set_2.len(), 4);
+///
+/// let similarity = set.similarity(
+///     &set_2,
+///     Builtins::GraphIc(InformationContentKind::Omim),
+///     StandardCombiner::default()
+/// );
+///
+/// assert_eq!(similarity, 0.8177036);
+/// ```
 pub struct HpoSet<'a> {
     ontology: &'a Ontology,
     group: HpoGroup,
@@ -21,6 +65,24 @@ pub struct HpoSet<'a> {
 
 impl<'a> HpoSet<'a> {
     /// Constructs an [`HpoSet`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.len(), 5);
+    /// ```
     pub fn new(ontology: &'a Ontology, group: HpoGroup) -> Self {
         Self { ontology, group }
     }
@@ -29,6 +91,26 @@ impl<'a> HpoSet<'a> {
     ///
     /// This means that it only contains terms that don't have a child
     /// term present in the set.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let mut set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.len(), 5);
+    /// let children = set.child_nodes();
+    /// assert_eq!(children.len(), 4);
+    /// ```
     pub fn child_nodes(&mut self) -> HpoSet {
         let group = self
             .group
@@ -47,11 +129,42 @@ impl<'a> HpoSet<'a> {
     }
 
     /// Returns the number of terms in the set
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.len(), 5);
+    /// ```
     pub fn len(&self) -> usize {
         self.group.len()
     }
 
     /// Returns true if there are no terms in the set
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let hpos = HpoGroup::new();
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert!(set.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.group.is_empty()
     }
@@ -75,6 +188,22 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(818u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// // `ABCD1 (HGNC:215)` is linked to `HP:0012639`
+    /// assert!(set.gene_ids().contains(&215u32.into()));
+    /// ```
     pub fn gene_ids(&self) -> Genes {
         self.group
             .into_iter()
@@ -87,6 +216,22 @@ impl<'a> HpoSet<'a> {
     /// # Panics
     ///
     /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(818u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// // `Microphthalmia, syndromic 6 (OMIM:607932)` is linked to `HP:0012639`
+    /// assert!(set.omim_disease_ids().contains(&607932u32.into()));
+    /// ```
     pub fn omim_disease_ids(&self) -> OmimDiseases {
         self.group
             .into_iter()
@@ -99,27 +244,42 @@ impl<'a> HpoSet<'a> {
     /// The `InformationContent` is not cached internally, so this operation
     /// is not cheap
     ///
+    /// # Errors
+    ///
+    /// - When the ontology or set have more than `u16::MAX` genes or diseases
+    ///
     /// # Panics
     ///
     /// - When an `HpoTermId` of the set is not part of the Ontology
-    /// - When the ontology or set have more than `u16::MAX` genes or diseases
-    pub fn information_content(&self) -> InformationContent {
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// assert_eq!(set.information_content().unwrap().gene(), 0.14216587);
+    /// ```
+    pub fn information_content(&self) -> HpoResult<InformationContent> {
         let n_diseases = self.ontology.omim_diseases().len();
         let n_genes = self.ontology.genes().len();
 
         let mut ic = InformationContent::default();
-        ic.set_gene(n_genes, self.gene_ids().len())
-            .expect("Too many genes caused overflow");
-        ic.set_omim_disease(n_diseases, self.omim_disease_ids().len())
-            .expect("Too many genes caused overflow");
-        ic
+        ic.set_gene(n_genes, self.gene_ids().len())?;
+        ic.set_omim_disease(n_diseases, self.omim_disease_ids().len())?;
+        Ok(ic)
     }
 
     pub fn common_ancestor_ids(&self) -> HpoGroup {
-        unimplemented!()
-    }
-
-    pub fn combinations(&self) -> BothWayCombinations {
         unimplemented!()
     }
 
@@ -133,6 +293,42 @@ impl<'a> HpoSet<'a> {
         Some(HpoTerm::try_new(self.ontology, *term).unwrap())
     }
 
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::term::InformationContentKind;
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// use hpo::similarity::{Builtins, StandardCombiner};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// // create one set
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    /// hpos.insert(12638u32.into());
+    /// hpos.insert(818u32.into());
+    /// hpos.insert(2715u32.into());
+    /// let set = HpoSet::new(&ontology, hpos);
+    ///
+    /// // create another set
+    /// let mut hpos_2 = HpoGroup::new();
+    /// hpos_2.insert(100547u32.into());
+    /// hpos_2.insert(12638u32.into());
+    /// hpos_2.insert(864u32.into());
+    /// hpos_2.insert(25454u32.into());
+    /// let set_2 = HpoSet::new(&ontology, hpos_2);
+    ///
+    /// let similarity = set.similarity(
+    ///     &set_2,
+    ///     Builtins::GraphIc(InformationContentKind::Omim),
+    ///     StandardCombiner::default()
+    /// );
+    ///
+    /// assert_eq!(similarity, 0.8177036);
+    /// ```
     pub fn similarity<S: Similarity, C: SimilarityCombiner>(
         &self,
         other: &HpoSet,
@@ -142,85 +338,57 @@ impl<'a> HpoSet<'a> {
         let group_sim = GroupSimilarity::new(combiner, similarity);
         group_sim.calculate(self, other)
     }
+
+    /// Returns an Iterator of [`HpoTerm`]
+    pub fn iter(&self) -> Iter<'_> {
+        self.into_iter()
+    }
 }
 
 impl<'a> IntoIterator for &'a HpoSet<'a> {
     type Item = HpoTerm<'a>;
-    type IntoIter = HpoTerms<'a>;
+    type IntoIter = Iter<'a>;
     fn into_iter(self) -> Self::IntoIter {
-        HpoTerms::new(&self.group, self.ontology)
+        Iter::new(self.group.iter(), self.ontology)
     }
 }
 
-// impl<'a> From<HpoTerms<'a>> for HpoSet<'a> {
-//     fn from(terms: HpoTerms<'a>) -> HpoSet<'a> {
-//         let ontology = terms.ontology();
-//         let group = HpoGroup::default();
-//         for term in &terms {
-//             group.insert(term.id());
-//         }
-//         // = &terms.map(|t| *t.id()).collect();
-//         Self {
-//             ontology,
-//             group,
-//         }
-//     }
-// }
+#[cfg(test)]
+mod test {
+    use crate::similarity::{Builtins, StandardCombiner};
+    use crate::term::HpoGroup;
+    use crate::term::InformationContentKind;
+    use crate::{HpoSet, Ontology};
 
-pub struct BothWayCombinations<'a> {
-    group: HpoSet<'a>,
-    index_a: usize,
-    index_b: usize,
-}
+    #[test]
+    fn test() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 
-impl<'a> Iterator for BothWayCombinations<'a> {
-    type Item = (HpoTerm<'a>, HpoTerm<'a>);
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index_a > self.group.len() {
-            return None;
-        }
+        // create one set
+        let mut hpos = HpoGroup::new();
+        hpos.insert(707u32.into());
+        hpos.insert(12639u32.into());
+        hpos.insert(12638u32.into());
+        hpos.insert(818u32.into());
+        hpos.insert(2715u32.into());
+        let set = HpoSet::new(&ontology, hpos);
+        assert_eq!(set.len(), 5);
 
-        let b = if let Some(b) = self.group.get(self.index_b) {
-            b
-        } else {
-            self.index_a += 1;
-            self.index_b = 0;
-            return self.next();
-        };
+        // create another set
+        let mut hpos_2 = HpoGroup::new();
+        hpos_2.insert(100547u32.into());
+        hpos_2.insert(12638u32.into());
+        hpos_2.insert(864u32.into());
+        hpos_2.insert(25454u32.into());
+        let set_2 = HpoSet::new(&ontology, hpos_2);
+        assert_eq!(set_2.len(), 4);
 
-        let a = self.group.get(self.index_a)?;
+        let similarity = set.similarity(
+            &set_2,
+            Builtins::GraphIc(InformationContentKind::Omim),
+            StandardCombiner::default(),
+        );
 
-        self.index_b += 1;
-
-        Some((a, b))
-    }
-}
-
-pub struct OneWayCombinations<'a> {
-    group: HpoSet<'a>,
-    index_a: usize,
-    index_b: usize,
-}
-
-impl<'a> Iterator for OneWayCombinations<'a> {
-    type Item = (HpoTerm<'a>, HpoTerm<'a>);
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index_a > self.group.len() {
-            return None;
-        }
-
-        let b = if let Some(b) = self.group.get(self.index_b) {
-            b
-        } else {
-            self.index_a += 1;
-            self.index_b = self.index_a + 1;
-            return self.next();
-        };
-
-        let a = self.group.get(self.index_a)?;
-
-        self.index_b += 1;
-
-        Some((a, b))
+        assert_eq!(similarity, 0.8177036);
     }
 }

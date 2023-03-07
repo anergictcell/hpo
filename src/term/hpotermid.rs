@@ -110,6 +110,12 @@ impl PartialEq<str> for HpoTermId {
     }
 }
 
+impl PartialEq<&str> for HpoTermId {
+    fn eq(&self, other: &&str) -> bool {
+        self == &HpoTermId::new(other)
+    }
+}
+
 // pub(crate) struct Iter<T> {
 //     iter: T
 // }

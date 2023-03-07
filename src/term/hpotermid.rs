@@ -41,6 +41,9 @@ impl AnnotationId for HpoTermId {
 impl TryFrom<&str> for HpoTermId {
     type Error = HpoError;
     fn try_from(s: &str) -> HpoResult<Self> {
+        if s.len() < 4 {
+            return Err(HpoError::ParseIntError);
+        }
         Ok(HpoTermId {
             inner: s[3..].parse::<u32>()?,
         })
@@ -106,3 +109,26 @@ impl PartialEq<str> for HpoTermId {
         self == &HpoTermId::new(other)
     }
 }
+
+impl PartialEq<&str> for HpoTermId {
+    fn eq(&self, other: &&str) -> bool {
+        self == &HpoTermId::new(other)
+    }
+}
+
+// pub(crate) struct Iter<T> {
+//     iter: T
+// }
+
+// impl<T: Iterator<Item = HpoTermId>> Iter<T> {
+//     pub(crate) fn new(iter: T) -> Self {
+//         Self {iter}
+//     }
+// }
+
+// impl<T: Iterator<Item = HpoTermId>> Iterator for Iter<T> {
+//     type Item = HpoTermId;
+//     fn next(&mut self) -> Option<Self::Item> {
+//         self.iter.next()
+//     }
+// }

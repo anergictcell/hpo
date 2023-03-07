@@ -1,4 +1,6 @@
 use hpo::Ontology;
+use std::fs::File;
+use std::io::Write;
 
 fn main() {
     let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
@@ -18,6 +20,16 @@ fn main() {
             ],
         )
         .unwrap();
+
+    let mut args = std::env::args();
+    if args.len() == 2 {
+        let filename = args.nth(1).unwrap();
+        let mut fh = File::create(filename).unwrap();
+        match fh.write_all(&sub.as_bytes()) {
+            Ok(_) => println!("Saved output"),
+            Err(err) => println!("Error: {}", err),
+        };
+    }
 
     println!("{}", &sub.as_mermaid());
 }

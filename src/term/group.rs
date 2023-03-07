@@ -2,6 +2,7 @@ use crate::annotations::AnnotationId;
 use std::collections::HashSet;
 use std::ops::{Add, BitAnd, BitOr};
 
+use crate::term;
 use crate::{HpoTerm, HpoTermId, Ontology};
 
 /// A set of [`HpoTermId`] representing a group of HPO terms
@@ -79,8 +80,8 @@ impl HpoGroup {
     }
 
     /// Returns an Iterator of the [`HpoTermId`]s inside the group
-    pub fn iter(&self) -> HpoTermIds {
-        HpoTermIds::new(self.ids.iter())
+    pub fn iter(&self) -> Iter {
+        self.into_iter()
     }
 
     /// Returns the [`HpoTermId`] at the given index
@@ -101,6 +102,11 @@ impl HpoGroup {
             res.append(&mut id.to_be_bytes().to_vec());
         }
         res
+    }
+
+    /// Returns an iterator of [`HpoTerm`]
+    pub fn terms<'a>(&'a self, ontology: &'a Ontology) -> term::Iter<'a> {
+        term::Iter::new(self.iter(), ontology)
     }
 }
 
@@ -134,16 +140,6 @@ impl From<Vec<u32>> for HpoGroup {
     }
 }
 
-impl<'a> IntoIterator for &'a HpoGroup {
-    type Item = HpoTermId;
-
-    type IntoIter = HpoTermIds<'a>;
-
-    fn into_iter(self) -> HpoTermIds<'a> {
-        HpoTermIds::new(self.ids.iter())
-    }
-}
-
 impl FromIterator<HpoTermId> for HpoGroup {
     fn from_iter<T: IntoIterator<Item = HpoTermId>>(iter: T) -> Self {
         let mut group = HpoGroup::new();
@@ -161,6 +157,17 @@ impl<'a> FromIterator<HpoTerm<'a>> for HpoGroup {
             group.insert(term.id());
         }
         group
+    }
+}
+
+impl<'a> IntoIterator for &'a HpoGroup {
+    type Item = HpoTermId;
+
+    type IntoIter = Iter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            iter: self.ids.iter(),
+        }
     }
 }
 
@@ -263,57 +270,56 @@ impl BitAnd<&HpoGroup> for HpoGroup {
     }
 }
 
-/// Iterate [`HpoTerm`]s
-///
-/// This struct creates [`HpoTerm`]s from an owned [`HpoGroup`]
-///
-/// It is used in situations where we cannot reference the [`HpoGroup`]
-/// because it is short-lived and must own it instead
-pub struct GroupCombine<'a> {
-    inner: HpoGroup,
-    ontology: &'a Ontology,
-    idx: usize,
+/// ['HpoTermId`] iterator
+pub struct Iter<'a> {
+    iter: std::slice::Iter<'a, HpoTermId>,
 }
 
-impl<'a> GroupCombine<'a> {
-    /// Constructs a new [`GroupCombine`] from an [`HpoGroup`] and a reference
-    /// to the [`Ontology`]
-    pub fn new(inner: HpoGroup, ontology: &'a Ontology) -> Self {
-        Self {
-            inner,
-            idx: 0,
-            ontology,
-        }
-    }
-}
-
-impl<'a> Iterator for GroupCombine<'a> {
-    type Item = HpoTerm<'a>;
-    fn next(&mut self) -> Option<Self::Item> {
-        let index = self.idx;
-        self.idx += 1;
-        match self.inner.get(index) {
-            Some(term_id) => self.ontology.hpo(*term_id),
-            None => None,
-        }
-    }
-}
-
-/// An iterator over [`HpoTermId`]s
-pub struct HpoTermIds<'a> {
-    inner: std::slice::Iter<'a, HpoTermId>,
-}
-
-impl<'a> HpoTermIds<'a> {
-    fn new(inner: std::slice::Iter<'a, HpoTermId>) -> Self {
-        Self { inner }
-    }
-}
-
-impl<'a> Iterator for HpoTermIds<'a> {
+impl Iterator for Iter<'_> {
     type Item = HpoTermId;
-    fn next(&mut self) -> Option<HpoTermId> {
-        self.inner.next().copied()
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().copied()
+    }
+}
+
+/// [`HpoTerm`] iterator for an owned [`HpoGroup`]
+///
+/// This iterator is needed for some cases where an `HpoGroup` is created
+/// by a method and does not live long enough to be used with [`Iter`].
+pub struct Combined<'a> {
+    group: HpoGroup,
+    ontology: &'a Ontology,
+}
+
+impl<'a> Combined<'a> {
+    /// Constructs a new [`Combined`] from an [`HpoGroup`] and a reference
+    /// to the [`Ontology`]
+    pub fn new(group: HpoGroup, ontology: &'a Ontology) -> Self {
+        Self { group, ontology }
+    }
+
+    pub fn iter(&self) -> term::Iter<'_> {
+        self.into_iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.group.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.group.is_empty()
+    }
+}
+
+impl<'a> IntoIterator for &'a Combined<'a> {
+    /// iterates [`HpoTerm`]s
+    type Item = HpoTerm<'a>;
+
+    /// [`HpoTerm`] Iterator
+    type IntoIter = term::Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        term::Iter::new(self.group.iter(), self.ontology)
     }
 }
 

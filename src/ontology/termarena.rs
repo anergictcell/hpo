@@ -68,15 +68,14 @@
 //!
 
 #![allow(clippy::slow_vector_initialization)]
+use crate::term::internal::HpoTermInternal;
+use crate::HpoTermId;
 use log::trace;
 use log::warn;
 
-use crate::term::internal::HpoTermInternal;
-use crate::HpoTermId;
-
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
-pub(crate) struct Arena {
+pub(super) struct Arena {
     terms: Vec<HpoTermInternal>,
     ids: Vec<usize>,
 }
@@ -184,5 +183,21 @@ impl Arena {
     /// Returns all [`HpoTermId`]s
     pub fn keys(&mut self) -> Vec<HpoTermId> {
         self.terms[1..].iter().map(|term| *term.id()).collect()
+    }
+
+    pub(super) fn iter(&self) -> Iter {
+        Iter(self.terms[1..].iter().map(|term| *term.id()))
+    }
+}
+
+/// Iterates the Arena and yields [`HpoTermId`]s
+pub(super) struct Iter<'a>(
+    std::iter::Map<std::slice::Iter<'a, HpoTermInternal>, fn(&HpoTermInternal) -> HpoTermId>,
+);
+
+impl Iterator for Iter<'_> {
+    type Item = HpoTermId;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
     }
 }

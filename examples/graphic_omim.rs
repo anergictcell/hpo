@@ -1,19 +1,17 @@
 use hpo::annotations::OmimDiseaseId;
-use hpo::similarity::GraphIc;
-use hpo::term::HpoTerms;
+use hpo::similarity::Builtins;
 use hpo::term::InformationContentKind;
-use hpo::HpoTerm;
 use hpo::Ontology;
 
 fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
-    let ic = GraphIc::new(InformationContentKind::Omim);
+    let ic = Builtins::GraphIc(InformationContentKind::Omim);
 
     let disease = ontology.omim_disease(&omimid).unwrap();
     println!("Using Disease [{}] {}", disease.id(), disease.name());
-    let terms: Vec<HpoTerm> = HpoTerms::new(disease.hpo_terms(), ontology).collect();
+    let terms = disease.to_hpo_set(ontology);
     for term1 in &terms {
         for term2 in &terms {
-            let overlap = term1.similarity_score(term2, &ic);
+            let overlap = term1.similarity_score(&term2, &ic);
             println!(
                 "{}\t{}\t{}",
                 term1.id(),

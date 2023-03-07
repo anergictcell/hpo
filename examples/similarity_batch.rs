@@ -2,9 +2,7 @@ use hpo::annotations::OmimDiseaseId;
 use hpo::similarity::{
     Distance, GraphIc, InformationCoefficient, Jc, Lin, Relevance, Resnik, Similarity,
 };
-use hpo::term::HpoTerms;
 use hpo::term::InformationContentKind;
-use hpo::HpoTerm;
 use hpo::Ontology;
 
 /// We have to do this weird string reformatting, so that we can
@@ -37,26 +35,26 @@ fn scores_for_disease(omimid: OmimDiseaseId, ontology: &Ontology) {
     let dist_o = Distance::new();
 
     let disease = ontology.omim_disease(&omimid).unwrap();
-    let terms: Vec<HpoTerm> = HpoTerms::new(disease.hpo_terms(), ontology).collect();
+    let terms = disease.to_hpo_set(ontology);
     for term1 in &terms {
         for term2 in &terms {
             println!(
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                 term1.id(),
                 term2.id(),
-                round(resnik_o.calculate(term1, term2), 4),
-                round(resnik_g.calculate(term1, term2), 4),
-                round(lin_o.calculate(term1, term2), 4),
-                round(lin_g.calculate(term1, term2), 4),
-                round(jc_o.calculate(term1, term2), 4),
-                round(jc_g.calculate(term1, term2), 4),
-                round(rel_o.calculate(term1, term2), 4),
-                round(rel_g.calculate(term1, term2), 4),
-                round(ic_o.calculate(term1, term2), 4),
-                round(ic_g.calculate(term1, term2), 4),
-                round(graphic_o.calculate(term1, term2), 4),
-                round(graphic_g.calculate(term1, term2), 4),
-                round(dist_o.calculate(term1, term2), 4),
+                round(resnik_o.calculate(&term1, &term2), 4),
+                round(resnik_g.calculate(&term1, &term2), 4),
+                round(lin_o.calculate(&term1, &term2), 4),
+                round(lin_g.calculate(&term1, &term2), 4),
+                round(jc_o.calculate(&term1, &term2), 4),
+                round(jc_g.calculate(&term1, &term2), 4),
+                round(rel_o.calculate(&term1, &term2), 4),
+                round(rel_g.calculate(&term1, &term2), 4),
+                round(ic_o.calculate(&term1, &term2), 4),
+                round(ic_g.calculate(&term1, &term2), 4),
+                round(graphic_o.calculate(&term1, &term2), 4),
+                round(graphic_g.calculate(&term1, &term2), 4),
+                round(dist_o.calculate(&term1, &term2), 4),
             );
         }
     }

@@ -70,8 +70,7 @@
 #![allow(clippy::slow_vector_initialization)]
 use crate::term::internal::HpoTermInternal;
 use crate::HpoTermId;
-use log::trace;
-use log::warn;
+use tracing::{trace, warn};
 
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 

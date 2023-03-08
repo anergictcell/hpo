@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 use std::hash::Hash;
 
-use log::error;
+use tracing::error;
 
 use crate::annotations::AnnotationId;
 use crate::set::HpoSet;

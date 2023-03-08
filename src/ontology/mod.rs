@@ -19,6 +19,7 @@ use core::fmt::Debug;
 mod comparison;
 mod termarena;
 use comparison::OntologyComparison;
+use tracing::debug;
 use termarena::Arena;
 
 #[cfg_attr(doc, aquamarine::aquamarine)]

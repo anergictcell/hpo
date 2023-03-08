@@ -51,7 +51,7 @@ pub(crate) mod phenotype_hpoa {
     use std::io::BufReader;
     use std::path::Path;
 
-    use log::error;
+    use tracing::error;
 
     use crate::Ontology;
 

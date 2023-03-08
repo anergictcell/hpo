@@ -62,7 +62,7 @@
 //! assert!(enrichments.first().unwrap().enrichment() > enrichments.last().unwrap().enrichment());
 //! ```
 
-use log::debug;
+use tracing::debug;
 use statrs::distribution::{DiscreteCDF, Hypergeometric};
 
 use crate::annotations::{GeneId, OmimDiseaseId};

@@ -1,4 +1,4 @@
-use log::{error, trace, warn};
+use tracing::{error, trace, warn};
 
 use crate::{parser::Path, HpoError, HpoResult};
 use std::fs;

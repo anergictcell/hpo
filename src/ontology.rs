@@ -308,6 +308,7 @@ pub struct Ontology {
     hpo_terms: Arena,
     genes: HashMap<GeneId, Gene>,
     omim_diseases: HashMap<OmimDiseaseId, OmimDisease>,
+    hpo_version: (u16, u8, u8),
 }
 
 impl Debug for Ontology {
@@ -469,41 +470,18 @@ impl Ontology {
     /// assert_eq!(root_term.name(), "All");
     /// ```
     pub fn from_bytes(bytes: &[u8]) -> HpoResult<Self> {
-        let mut ont = Ontology::default();
-
-        let mut section_start = 0;
-        let mut section_end: usize;
-
-        // Terms
-        let mut section_len = u32_from_bytes(&bytes[section_start..]) as usize;
-        section_end = 4 + section_len;
-        ont.add_terms_from_bytes(&bytes[4..section_end]);
-        section_start += section_len + 4;
-
-        // Term - Parents
-        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
-        section_end += 4 + section_len;
-        ont.add_parent_from_bytes(&bytes[section_start + 4..section_end]);
-        ont.create_cache();
-        section_start += section_len + 4;
-
-        // Genes
-        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
-        section_end += 4 + section_len;
-        ont.add_genes_from_bytes(&bytes[section_start + 4..section_end])?;
-        section_start += section_len + 4;
-
-        // Omim Diseases
-        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
-        section_end += 4 + section_len;
-        ont.add_omim_disease_from_bytes(&bytes[section_start + 4..section_end])?;
-        section_start += section_len + 4;
-
-        if section_start == bytes.len() {
-            ont.calculate_information_content()?;
-            Ok(ont)
+        if bytes.len() < 5 {
+            return Err(HpoError::ParseBinaryError)
+        }
+        if bytes[0..3] == [0x48, 0x50, 0x4f] {
+            match bytes[3] {
+                2u8 => {
+                    Self::from_bytes_v2(&bytes[4..])
+                },
+                _ => Err(HpoError::NotImplemented)
+            }
         } else {
-            Err(HpoError::ParseBinaryError)
+            Self::from_bytes_v1(bytes)
         }
     }
 
@@ -725,6 +703,15 @@ impl Ontology {
         &self,
     ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
         self.omim_diseases.values()
+    }
+
+    pub fn hpo_version(&self) -> String {
+        format!(
+            "{:0>2}-{:0>2}-{:0>2}",
+            self.hpo_version.0,
+            self.hpo_version.1,
+            self.hpo_version.2,
+        )
     }
 
     /// Compares `self` to another `Ontology` to identify added/removed terms, genes and diseases
@@ -1219,6 +1206,102 @@ impl Ontology {
         id
     }
 
+    fn from_bytes_v1(bytes: &[u8]) -> HpoResult<Self> {
+        debug!("Parsing from bytes v1");
+        let mut ont = Ontology::default();
+
+        let mut section_start = 0;
+        let mut section_end: usize;
+
+        // Terms
+        let mut section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end = 4 + section_len;
+        ont.add_terms_from_bytes(&bytes[4..section_end]);
+        section_start += section_len + 4;
+
+        // Term - Parents
+        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end += 4 + section_len;
+        ont.add_parent_from_bytes(&bytes[section_start + 4..section_end]);
+        ont.create_cache();
+        section_start += section_len + 4;
+
+        // Genes
+        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end += 4 + section_len;
+        ont.add_genes_from_bytes(&bytes[section_start + 4..section_end])?;
+        section_start += section_len + 4;
+
+        // Omim Diseases
+        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end += 4 + section_len;
+        ont.add_omim_disease_from_bytes(&bytes[section_start + 4..section_end])?;
+        section_start += section_len + 4;
+
+        if section_start == bytes.len() {
+            ont.calculate_information_content()?;
+            Ok(ont)
+        } else {
+            Err(HpoError::ParseBinaryError)
+        }
+    }
+
+    fn from_bytes_v2(bytes: &[u8]) -> HpoResult<Self> {
+        debug!("Parsing from bytes v2");
+        let mut ont = Ontology::default();
+
+        // We need 8 bytes for:
+        // - 4 bytes for the HPO-version
+        // - 4 bytes for section-len
+        if bytes.len() < 8 {
+            return Err(HpoError::ParseBinaryError)
+        }
+
+        ont.hpo_version_from_bytes(&bytes[0..4]);
+
+        let mut section_start = 4;
+        let mut section_end: usize;
+
+        // Terms
+        let mut section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end = section_start + 4 + section_len;
+        ont.add_terms_from_bytes(&bytes[section_start + 4..section_end]);
+        section_start += section_len + 4;
+
+        // Term - Parents
+        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end += 4 + section_len;
+        ont.add_parent_from_bytes(&bytes[section_start + 4..section_end]);
+        ont.create_cache();
+        section_start += section_len + 4;
+
+        // Genes
+        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end += 4 + section_len;
+        ont.add_genes_from_bytes(&bytes[section_start + 4..section_end])?;
+        section_start += section_len + 4;
+
+        // Omim Diseases
+        section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+        section_end += 4 + section_len;
+        ont.add_omim_disease_from_bytes(&bytes[section_start + 4..section_end])?;
+        section_start += section_len + 4;
+
+        if section_start == bytes.len() {
+            ont.calculate_information_content()?;
+            Ok(ont)
+        } else {
+            Err(HpoError::ParseBinaryError)
+        }
+    }
+
+    fn hpo_version_from_bytes(&mut self, bytes: &[u8]) {
+        let year = u16::from_be_bytes([bytes[0], bytes[1]]);
+        let month = u8::from_be_bytes([bytes[2]]);
+        let day = u8::from_be_bytes([bytes[3]]);
+        self.hpo_version = (year, month, day);
+    }
+
     /// Adds an [`HpoTerm`] to the ontology
     ///
     /// This method is part of the Ontology-building, based on the binary
@@ -1514,5 +1597,44 @@ mod test {
         assert_eq!(ont.get_unchecked(3u32.into()).parents().len(), 2);
         assert_eq!(ont.get_unchecked(1u32.into()).children().len(), 1);
         assert_eq!(ont.get_unchecked(2u32.into()).children().len(), 1);
+    }
+
+    #[test]
+    fn parse_hpo_version() {
+        let mut ont = Ontology::default();
+
+        // 7*256 + 231 == 2023
+        let v = [7u8, 231u8, 1u8, 31u8];
+        ont.hpo_version_from_bytes(&v);
+
+        assert_eq!(ont.hpo_version, (2023, 1, 31));
+        assert_eq!(ont.hpo_version(), "2023-01-31");
+    }
+
+    #[test]
+    fn check_v2_parsing() {
+        let ont = Ontology::from_binary("tests/example_v2.hpo").unwrap();
+
+        assert_eq!(ont.hpo_version, (2023, 1, 31));
+        assert_eq!(ont.hpo_version(), "2023-01-31");
+    }
+
+    #[test]
+    fn compare_v1_v2() {
+        let ont1 = Ontology::from_binary("tests/example.hpo").unwrap();
+        let ont2 = Ontology::from_binary("tests/example_v2.hpo").unwrap();
+
+        let diff = ont1.compare(&ont2);
+        assert_eq!(diff.added_hpo_terms().len(), 0);
+        assert_eq!(diff.removed_hpo_terms().len(), 0);
+        assert_eq!(diff.changed_hpo_terms().len(), 0);
+
+        assert_eq!(diff.added_genes().len(), 0);
+        assert_eq!(diff.removed_genes().len(), 0);
+        assert_eq!(diff.changed_genes().len(), 0);
+
+        assert_eq!(diff.added_omim_diseases().len(), 0);
+        assert_eq!(diff.removed_omim_diseases().len(), 0);
+        assert_eq!(diff.changed_omim_diseases().len(), 0);
     }
 }

@@ -252,9 +252,7 @@ impl TryFrom<&[u8]> for Gene {
             return Err(HpoError::ParseBinaryError);
         }
 
-        let name = if let Ok(s) = String::from_utf8(bytes[9..9 + name_len].to_vec()) {
-            s
-        } else {
+        let Ok(name) = String::from_utf8(bytes[9..9 + name_len].to_vec()) else {
             error!("Unable to parse the name of the Gene");
             return Err(HpoError::ParseBinaryError);
         };

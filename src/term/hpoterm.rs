@@ -31,6 +31,8 @@ pub struct HpoTerm<'a> {
     genes: &'a Genes,
     omim_diseases: &'a OmimDiseases,
     information_content: &'a InformationContent,
+    obsolete: bool,
+    replaced_by: Option<HpoTermId>,
     ontology: &'a Ontology,
 }
 
@@ -71,6 +73,8 @@ impl<'a> HpoTerm<'a> {
             genes: term.genes(),
             omim_diseases: term.omim_diseases(),
             information_content: term.information_content(),
+            obsolete: term.obsolete(),
+            replaced_by: term.replacement(),
             ontology,
         }
     }
@@ -890,6 +894,15 @@ impl<'a> HpoTerm<'a> {
                 Some(self.distance_to_ancestor(&parent)? + other.distance_to_ancestor(&parent)?)
             })
             .min()
+    }
+
+    pub fn obsolete(&self) -> bool {
+        self.obsolete
+    }
+
+    pub fn replaced_by(&self) -> Option<HpoTerm<'a>> {
+        self.replaced_by
+            .and_then(|term_id| self.ontology.hpo(term_id))
     }
 }
 

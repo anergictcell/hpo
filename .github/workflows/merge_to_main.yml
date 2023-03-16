@@ -19,7 +19,7 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Format and Clippy
-      run: cargo fmt --check && cargo clipyy
+      run: cargo fmt --check && cargo clippy
     - name: Run tests
       run: cargo test --verbose
     - name: Check that docs build

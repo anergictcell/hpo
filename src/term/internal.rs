@@ -1,15 +1,17 @@
 use crate::annotations::AnnotationId;
+use crate::parser::binary::term::{from_bytes_v1, from_bytes_v2};
+use crate::parser::binary::{BinaryVersion, Bytes};
 use std::hash::Hash;
 
 use crate::annotations::{GeneId, Genes};
 use crate::annotations::{OmimDiseaseId, OmimDiseases};
 use crate::term::{HpoGroup, HpoTermId, InformationContent};
-use crate::DEFAULT_NUM_OMIM;
 use crate::DEFAULT_NUM_PARENTS;
 use crate::{HpoError, DEFAULT_NUM_GENES};
 use crate::{HpoResult, DEFAULT_NUM_ALL_PARENTS};
+use crate::{HpoTerm, DEFAULT_NUM_OMIM};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct HpoTermInternal {
     id: HpoTermId,
     name: String,
@@ -19,9 +21,7 @@ pub(crate) struct HpoTermInternal {
     genes: Genes,
     omim_diseases: OmimDiseases,
     ic: InformationContent,
-    #[allow(dead_code)]
     obsolete: bool,
-    #[allow(dead_code)]
     replacement: Option<HpoTermId>,
 }
 
@@ -133,22 +133,18 @@ impl HpoTermInternal {
         &mut self.ic
     }
 
-    #[allow(dead_code)]
     pub fn obsolete(&self) -> bool {
         self.obsolete
     }
 
-    #[allow(dead_code)]
     pub fn obsolete_mut(&mut self) -> &mut bool {
         &mut self.obsolete
     }
 
-    #[allow(dead_code)]
     pub fn replacement(&self) -> Option<HpoTermId> {
         self.replacement
     }
 
-    #[allow(dead_code)]
     pub fn replacement_mut(&mut self) -> &mut Option<HpoTermId> {
         &mut self.replacement
     }
@@ -163,6 +159,8 @@ impl HpoTermInternal {
     /// | 4 | 4 | The Term ID as big-endian `u32` |
     /// | 8 | 1 | The length of the Term Name (converted to a u8 vector) as a `u8` |
     /// | 9 | n | The Term name as u8 vector. If the name has more than 255 bytes, it is trimmed to 255 |
+    /// | 9 + n | 1 | Flag to indicate if term is obsolete
+    /// | 10 + n | 4 | Term ID of a replacement term as big-endian `u32` or `0` if `None` |
     ///
     /// # Panics
     ///
@@ -171,10 +169,12 @@ impl HpoTermInternal {
         // 4 bytes for total length
         // 4 bytes for TermID (big-endian)
         // 1 byte for Name length (u8) -> Name cannot be longer than 255 bytes
+        // 1 byte for obsolete flag
+        // 4 byte for replacement term
         // name in u8 encoded
         let name = self.name().as_bytes();
         let name_length = std::cmp::min(name.len(), 255);
-        let size = name_length + 4 + 4 + 1;
+        let size = name_length + 4 + 4 + 1 + 1 + 4;
 
         let mut res = Vec::with_capacity(size);
 
@@ -191,6 +191,23 @@ impl HpoTermInternal {
         for c in name.iter().take(name_length) {
             res.push(*c);
         }
+
+        // 1 byte for various flags, currently only obsolete flag
+        if self.obsolete {
+            res.push(1u8);
+        } else {
+            res.push(0u8);
+        }
+
+        // 4 bytes for replace term (or 0 if `None`)
+        res.append(
+            &mut self
+                .replacement
+                .unwrap_or(0u32.into())
+                .to_be_bytes()
+                .to_vec(),
+        );
+
         res
     }
 
@@ -227,70 +244,32 @@ impl PartialEq for HpoTermInternal {
 
 impl Eq for HpoTermInternal {}
 
-impl TryFrom<&[u8]> for HpoTermInternal {
+impl TryFrom<Bytes<'_>> for HpoTermInternal {
     type Error = HpoError;
     /// Crates an `HpoTermInternal` from raw bytes
     ///
     /// See [`HpoTermInternal::as_bytes`] for description of the byte layout
-    fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        if bytes.len() < 4 + 4 + 1 {
-            return Err(HpoError::ParseBinaryError);
+    fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
+        match bytes.version() {
+            BinaryVersion::V1 => from_bytes_v1(bytes),
+            BinaryVersion::V2 => from_bytes_v2(bytes),
         }
-        let total_len = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-
-        let id = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
-        let name_len = bytes[8] as usize;
-
-        if bytes.len() < 4 + 4 + 1 + name_len {
-            return Err(HpoError::ParseBinaryError);
-        }
-
-        let name = match String::from_utf8(bytes[9..total_len as usize].to_vec()) {
-            Ok(s) => s,
-            Err(_) => return Err(HpoError::ParseBinaryError),
-        };
-        Ok(HpoTermInternal::new(name, id.into()))
     }
 }
 
-/// Builder to crate multiple [`HpoTermInternal`] from raw bytes
-pub(crate) struct BinaryTermBuilder<'a> {
-    bytes: &'a [u8],
-    idx: usize,
-}
-
-impl<'a> BinaryTermBuilder<'a> {
-    /// Crates a new [`BinaryTermBuilder`]
-    pub fn new(bytes: &'a [u8]) -> Self {
-        BinaryTermBuilder { bytes, idx: 0 }
-    }
-}
-
-impl Iterator for BinaryTermBuilder<'_> {
-    type Item = HpoTermInternal;
-    fn next(&mut self) -> Option<Self::Item> {
-        let bytes = &self.bytes[self.idx..];
-
-        if bytes.is_empty() {
-            return None;
-        }
-
-        let term_len = u32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
-
-        assert!(
-            (bytes.len() >= term_len),
-            "Invalid bytes left over in BinaryTermBuilder"
-        );
-
-        self.idx += term_len;
-        let term = &bytes[..term_len];
-        Some(HpoTermInternal::try_from(term).unwrap())
+impl<'a> From<&HpoTerm<'a>> for HpoTermInternal {
+    fn from(term: &HpoTerm) -> Self {
+        let mut internal = Self::new(term.name().to_string(), term.id());
+        *internal.obsolete_mut() = term.obsolete();
+        *internal.replacement_mut() = term.replaced_by().map(|repl| repl.id());
+        internal
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::parser::binary::BinaryTermBuilder;
 
     #[test]
     fn to_bytes() {
@@ -299,7 +278,7 @@ mod test {
         let bytes: Vec<u8> = term.as_bytes();
 
         let term_len = u32::from_be_bytes(bytes[0..4].try_into().unwrap()) as usize;
-        assert_eq!(term_len, 4 + 4 + 1 + 6);
+        assert_eq!(term_len, 4 + 4 + 1 + 6 + 5);
         let term_id = u32::from_be_bytes(bytes[4..8].try_into().unwrap());
         assert_eq!(term_id, 123);
         let name_len = bytes[8] as usize;
@@ -312,7 +291,7 @@ mod test {
     fn from_bytes() {
         let term = HpoTermInternal::new(String::from("Foobar"), 123u32.into());
         let bytes: Vec<u8> = term.as_bytes();
-        let term2 = HpoTermInternal::try_from(&bytes[..]).unwrap();
+        let term2 = HpoTermInternal::try_from(Bytes::new(&bytes[..], BinaryVersion::V2)).unwrap();
         assert_eq!(term2.name(), term.name());
         assert_eq!(term2.id(), term.id());
     }
@@ -330,13 +309,15 @@ mod test {
 
         for (name, id) in test_terms {
             let t = HpoTermInternal::new(String::from(name), id.into());
+            println!("Building: {:?}", t);
             v.append(&mut t.as_bytes());
         }
 
-        let mut term_iter = BinaryTermBuilder::new(&v);
+        let mut term_iter = BinaryTermBuilder::new(Bytes::new(&v, BinaryVersion::V2));
 
         for (name, id) in test_terms {
             let term = term_iter.next().unwrap();
+            println!("Checking: {:?} [{}-{}]", term, name, id);
             assert_eq!(term.name(), name);
             assert_eq!(term.id().as_u32(), id);
         }

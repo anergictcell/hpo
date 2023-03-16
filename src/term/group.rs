@@ -270,7 +270,7 @@ impl BitAnd<&HpoGroup> for HpoGroup {
     }
 }
 
-/// ['HpoTermId`] iterator
+/// [`HpoTermId`] iterator
 pub struct Iter<'a> {
     iter: std::slice::Iter<'a, HpoTermId>,
 }

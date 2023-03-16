@@ -10,16 +10,18 @@ use crate::{HpoTerm, HpoTermId, Ontology};
 ///
 /// This can be used when a new HPO masterdata release is available
 /// to check what is changed between the previous and new one.
-pub struct OntologyComparison<'a> {
+pub struct Comparison<'a> {
     lhs: &'a Ontology,
     rhs: &'a Ontology,
 }
 
-impl<'a> Display for OntologyComparison<'a> {
+impl<'a> Display for Comparison<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Terms\t{}\t{}\nGenes\t{}\t{}\nOmim Diseases\t{}\t{}",
+            "Version\t{}\t{}\nTerms\t{}\t{}\nGenes\t{}\t{}\nOmim Diseases\t{}\t{}",
+            self.lhs.hpo_version(),
+            self.rhs.hpo_version(),
             self.lhs.len(),
             self.rhs.len(),
             self.lhs.genes().count(),
@@ -30,7 +32,7 @@ impl<'a> Display for OntologyComparison<'a> {
     }
 }
 
-impl<'a> OntologyComparison<'a> {
+impl<'a> Comparison<'a> {
     /// Constructs a new [`OntologyComparison`] from two [`Ontology`]
     /// The first argument, `lhs`, is considered the `old` or `base` Ontology,
     /// while the second argument, `rhs` is considered the `new` or `changed` one.
@@ -150,6 +152,8 @@ pub struct HpoTermDelta {
     changed_name: (String, String),
     added_parents: Vec<HpoTermId>,
     removed_parents: Vec<HpoTermId>,
+    obsolete: (bool, bool),
+    replacement: (Option<HpoTermId>, Option<HpoTermId>),
 }
 
 impl HpoTermDelta {
@@ -166,9 +170,17 @@ impl HpoTermDelta {
             lhs_parents.difference(&rhs_parents).copied().collect();
         let added_parents: Vec<HpoTermId> = rhs_parents.difference(&lhs_parents).copied().collect();
 
+        let obsolete = (lhs.obsolete(), rhs.obsolete());
+        let replacement = (
+            lhs.replaced_by().map(|t| t.id()),
+            rhs.replaced_by().map(|t| t.id()),
+        );
+
         if changed_name.0 != changed_name.1
             || !removed_parents.is_empty()
             || !added_parents.is_empty()
+            || obsolete.0 != obsolete.1
+            || replacement.0 != replacement.1
         {
             let term_id = lhs.id();
             Some(Self {
@@ -176,6 +188,8 @@ impl HpoTermDelta {
                 changed_name,
                 added_parents,
                 removed_parents,
+                obsolete,
+                replacement,
             })
         } else {
             None
@@ -210,10 +224,26 @@ impl HpoTermDelta {
     ///
     /// Returns `None` if the name is unchanged
     pub fn changed_name(&self) -> Option<&(String, String)> {
-        if self.changed_name.0 != self.changed_name.1 {
-            Some(&self.changed_name)
-        } else {
+        if self.changed_name.0 == self.changed_name.1 {
             None
+        } else {
+            Some(&self.changed_name)
+        }
+    }
+
+    pub fn changed_obsolete(&self) -> Option<(bool, bool)> {
+        if self.obsolete.0 == self.obsolete.1 {
+            None
+        } else {
+            Some(self.obsolete)
+        }
+    }
+
+    pub fn changed_replacement(&self) -> Option<(Option<HpoTermId>, Option<HpoTermId>)> {
+        if self.replacement.0 == self.replacement.1 {
+            None
+        } else {
+            Some(self.replacement)
         }
     }
 
@@ -314,10 +344,10 @@ impl<'a> AnnotationDelta {
     ///
     /// Returns `None` if the name is unchanged
     pub fn changed_name(&self) -> Option<&(String, String)> {
-        if self.names.0 != self.names.1 {
-            Some(&self.names)
-        } else {
+        if self.names.0 == self.names.1 {
             None
+        } else {
+            Some(&self.names)
         }
     }
 

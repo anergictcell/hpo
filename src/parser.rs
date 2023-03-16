@@ -4,6 +4,7 @@ use std::path::Path;
 
 use crate::{HpoResult, Ontology};
 
+pub(crate) mod binary;
 /// Module to parse `hp.obo` file
 pub(crate) mod hp_obo;
 
@@ -74,16 +75,12 @@ pub(crate) mod phenotype_hpoa {
             return None;
         }
 
-        let omim_id = if let Some((_, id)) = cols[0].split_once(':') {
-            id
-        } else {
+        let Some((_, omim_id)) = cols[0].split_once(':') else {
             error!("cannot parse OMIM ID from {}", cols[0]);
             return None;
         };
 
-        let hpo_id = if let Ok(id) = HpoTermId::try_from(cols[3]) {
-            id
-        } else {
+        let Ok(hpo_id) = HpoTermId::try_from(cols[3]) else {
             error!("invalid HPO ID: {}", cols[3]);
             return None;
         };

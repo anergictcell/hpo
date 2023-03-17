@@ -185,7 +185,9 @@ impl HpoTermInternal {
         res.append(&mut self.id.to_be_bytes().to_vec());
 
         // 1 byte for Length of Term Name (can't be longer than 255 bytes)
-        res.push(name_length as u8); // casting is safe, since name_length is < 256
+        // casting is safe, since name_length is < 256
+        #[allow(clippy::cast_possible_truncation)]
+        res.push(name_length as u8);
 
         // Term name (up to 255 bytes)
         for c in name.iter().take(name_length) {

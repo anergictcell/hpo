@@ -9,7 +9,7 @@ use crate::{f32_from_usize, HpoResult};
 /// Resnik P: Using information content to evaluate semantic similarity in a taxonomy.
 /// Proceedings of the 14th International Joint Conference on Artificial Intelligence:
 /// August 20-25. 1995, Morgan Kaufmann, San Francisco CA: Montreal, Canada
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct InformationContent {
     gene: f32,
     omim: f32,

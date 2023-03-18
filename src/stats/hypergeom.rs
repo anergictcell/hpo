@@ -62,8 +62,8 @@
 //! assert!(enrichments.first().unwrap().enrichment() > enrichments.last().unwrap().enrichment());
 //! ```
 
-use log::debug;
 use statrs::distribution::{DiscreteCDF, Hypergeometric};
+use tracing::debug;
 
 use crate::annotations::{GeneId, OmimDiseaseId};
 use crate::stats::{f64_from_u64, Enrichment, SampleSet};

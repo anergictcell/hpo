@@ -1,6 +1,9 @@
+#![deny(clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::module_name_repetitions)]
 // #![warn(missing_docs)]
-// #![warn(missing_doc_code_examples)]
 #![doc = include_str!("../README.md")]
+
 use core::fmt::Debug;
 use std::num::ParseIntError;
 use thiserror::Error;

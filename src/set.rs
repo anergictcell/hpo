@@ -5,6 +5,7 @@ use crate::similarity::GroupSimilarity;
 use crate::similarity::Similarity;
 use crate::similarity::SimilarityCombiner;
 use crate::term::HpoGroup;
+use crate::HpoTermId;
 
 use crate::term::{InformationContent, Iter};
 use crate::HpoResult;
@@ -58,6 +59,7 @@ use crate::Ontology;
 ///
 /// assert_eq!(similarity, 0.8177036);
 /// ```
+#[must_use]
 pub struct HpoSet<'a> {
     ontology: &'a Ontology,
     group: HpoGroup,
@@ -119,7 +121,8 @@ impl<'a> HpoSet<'a> {
                 self.group.iter().all(|term2_id| {
                     !self
                         .ontology
-                        .get_unchecked(term2_id)
+                        .get(term2_id)
+                        .expect("HpoTermId must be in Ontology")
                         .all_parents()
                         .contains(term1_id)
                 })
@@ -176,11 +179,206 @@ impl<'a> HpoSet<'a> {
         unimplemented!()
     }
 
-    /// Returns a new set where all obsolete terms are replaced
+    /// Removes all obsolete terms in-place
     ///
-    /// This is not yet implemented
-    pub fn replace_obsolete(&mut self, _ontology: &Ontology) {
-        unimplemented!()
+    /// # Panics
+    ///
+    /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// The example Ontology does not contain obsolete terms,
+    /// so this example does not show an actual effect.
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
+    /// # let mut hpos = HpoGroup::new();
+    /// # hpos.insert(707u32.into());
+    /// # hpos.insert(12639u32.into());
+    /// # hpos.insert(12638u32.into());
+    /// # hpos.insert(818u32.into());
+    /// # hpos.insert(2715u32.into());
+    /// # HpoSet::new(ontology, hpos)
+    /// # }
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut set: HpoSet = method_that_returns_an_hposet(&ontology);
+    /// assert_eq!(set.len(), 5);
+    ///
+    /// set.remove_obsolete();
+    /// assert_eq!(set.len(), 5);
+    /// ```
+    pub fn remove_obsolete(&mut self) {
+        let group: HpoGroup = self
+            .group
+            .iter()
+            .filter(|term_id| {
+                !self
+                    .ontology
+                    .get(*term_id)
+                    .expect("HpoTermId must be in Ontology")
+                    .obsolete()
+            })
+            .collect();
+        self.group = group;
+    }
+
+    /// Returns a new set without obsolete terms
+    ///
+    /// # Panics
+    ///
+    /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// The example Ontology does not contain obsolete terms,
+    /// so this example does not show an actual effect.
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
+    /// # let mut hpos = HpoGroup::new();
+    /// # hpos.insert(707u32.into());
+    /// # hpos.insert(12639u32.into());
+    /// # hpos.insert(12638u32.into());
+    /// # hpos.insert(818u32.into());
+    /// # hpos.insert(2715u32.into());
+    /// # HpoSet::new(ontology, hpos)
+    /// # }
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let set: HpoSet = method_that_returns_an_hposet(&ontology);
+    /// assert_eq!(set.len(), 5);
+    ///
+    /// let new_set = set.without_obsolete();
+    /// assert_eq!(new_set.len(), 5);
+    /// ```
+    pub fn without_obsolete(&self) -> Self {
+        let group: HpoGroup = self
+            .group
+            .iter()
+            .filter(|term_id| {
+                !self
+                    .ontology
+                    .get(*term_id)
+                    .expect("HpoTermId must be in Ontology")
+                    .obsolete()
+            })
+            .collect();
+        Self {
+            ontology: self.ontology,
+            group,
+        }
+    }
+
+    /// Returns a new set where obsolete terms are replaced
+    ///
+    /// All terms with a `replaced_by` attribute are replaced accordingly.
+    ///
+    /// See [`HpoTerm::replaced_by`] for more information
+    ///
+    /// # Panics
+    ///
+    /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// The example Ontology does not contain replacement terms,
+    /// so this example does not show an actual effect.
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
+    /// # let mut hpos = HpoGroup::new();
+    /// # hpos.insert(707u32.into());
+    /// # hpos.insert(12639u32.into());
+    /// # hpos.insert(12638u32.into());
+    /// # hpos.insert(818u32.into());
+    /// # hpos.insert(2715u32.into());
+    /// # HpoSet::new(ontology, hpos)
+    /// # }
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let set: HpoSet = method_that_returns_an_hposet(&ontology);
+    /// assert_eq!(set.len(), 5);
+    ///
+    /// let new_set = set.with_replaced_obsolete();
+    /// assert_eq!(new_set.len(), 5);
+    /// ```
+    pub fn with_replaced_obsolete(&self) -> Self {
+        let group: HpoGroup = self
+            .group
+            .iter()
+            .map(|term_id| {
+                self.ontology
+                    .get(term_id)
+                    .expect("HpoTermId must be in Ontology")
+                    .replacement()
+                    .unwrap_or(term_id)
+            })
+            .collect();
+        Self {
+            ontology: self.ontology,
+            group,
+        }
+    }
+
+    /// Replaces obsolete terms in-place
+    ///
+    /// All terms with a `replaced_by` attribute are replaced accordingly.
+    ///
+    /// See [`HpoTerm::replaced_by`] for more information
+    ///
+    /// # Panics
+    ///
+    /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// The example Ontology does not contain replacement terms,
+    /// so this example does not show an actual effect.
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
+    /// # let mut hpos = HpoGroup::new();
+    /// # hpos.insert(707u32.into());
+    /// # hpos.insert(12639u32.into());
+    /// # hpos.insert(12638u32.into());
+    /// # hpos.insert(818u32.into());
+    /// # hpos.insert(2715u32.into());
+    /// # HpoSet::new(ontology, hpos)
+    /// # }
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut set: HpoSet = method_that_returns_an_hposet(&ontology);
+    /// assert_eq!(set.len(), 5);
+    ///
+    /// set.replace_obsolete();
+    /// assert_eq!(set.len(), 5);
+    /// ```
+    pub fn replace_obsolete(&mut self) {
+        let group: HpoGroup = self
+            .group
+            .iter()
+            .map(|term_id| {
+                self.ontology
+                    .get(term_id)
+                    .expect("HpoTermId must be in Ontology")
+                    .replacement()
+                    .unwrap_or(term_id)
+            })
+            .collect();
+        self.group = group;
     }
 
     /// Returns all [`crate::annotations::GeneId`]s that are associated to the set
@@ -206,8 +404,13 @@ impl<'a> HpoSet<'a> {
     /// ```
     pub fn gene_ids(&self) -> Genes {
         self.group
-            .into_iter()
-            .map(|term_id| self.ontology.get_unchecked(term_id).genes())
+            .iter()
+            .map(|term_id| {
+                self.ontology
+                    .get(term_id)
+                    .expect("HpoTermId must be in Ontology")
+                    .genes()
+            })
             .fold(Genes::default(), |acc, element| &acc | element)
     }
 
@@ -234,8 +437,13 @@ impl<'a> HpoSet<'a> {
     /// ```
     pub fn omim_disease_ids(&self) -> OmimDiseases {
         self.group
-            .into_iter()
-            .map(|term_id| self.ontology.get_unchecked(term_id).omim_diseases())
+            .iter()
+            .map(|term_id| {
+                self.ontology
+                    .get(term_id)
+                    .expect("HpoTermId must be in Ontology")
+                    .omim_diseases()
+            })
             .fold(OmimDiseases::default(), |acc, element| &acc | element)
     }
 
@@ -293,6 +501,7 @@ impl<'a> HpoSet<'a> {
         Some(HpoTerm::try_new(self.ontology, *term).unwrap())
     }
 
+    /// Calculates the similarity to another [`HpoSet`]
     ///
     /// # Examples
     ///
@@ -340,8 +549,57 @@ impl<'a> HpoSet<'a> {
     }
 
     /// Returns an Iterator of [`HpoTerm`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::term::InformationContentKind;
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// use hpo::similarity::{Builtins, StandardCombiner};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// // create one set
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    ///
+    /// let set = HpoSet::new(&ontology, hpos);
+    ///
+    /// let mut iter = set.iter();
+    /// assert!(iter.next().is_some());
+    /// assert!(iter.next().is_some());
+    /// assert!(iter.next().is_none());
+    /// ```
     pub fn iter(&self) -> Iter<'_> {
         self.into_iter()
+    }
+
+    /// Returns true if the set contains a term with the [`HpoTermId`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::term::InformationContentKind;
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    /// use hpo::similarity::{Builtins, StandardCombiner};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// // create one set
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(707u32.into());
+    /// hpos.insert(12639u32.into());
+    ///
+    /// let set = HpoSet::new(&ontology, hpos);
+    ///
+    /// assert!(set.contains(&707u32.into()));
+    /// assert!(!set.contains(&66666u32.into()));
+    /// ```
+    pub fn contains(&self, id: &HpoTermId) -> bool {
+        self.group.contains(id)
     }
 }
 
@@ -356,6 +614,7 @@ impl<'a> IntoIterator for &'a HpoSet<'a> {
 #[cfg(test)]
 mod test {
     use crate::similarity::{Builtins, StandardCombiner};
+    use crate::term::internal::HpoTermInternal;
     use crate::term::HpoGroup;
     use crate::term::InformationContentKind;
     use crate::{HpoSet, Ontology};
@@ -376,7 +635,7 @@ mod test {
 
         // create another set
         let mut hpos_2 = HpoGroup::new();
-        hpos_2.insert(100547u32.into());
+        hpos_2.insert(100_547u32.into());
         hpos_2.insert(12638u32.into());
         hpos_2.insert(864u32.into());
         hpos_2.insert(25454u32.into());
@@ -389,6 +648,83 @@ mod test {
             StandardCombiner::default(),
         );
 
-        assert_eq!(similarity, 0.8177036);
+        assert!((similarity - 0.817_703_6).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_obsolete() {
+        let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let mut obsolete_term = HpoTermInternal::new("Obsolete: Foo".to_string(), 666u32.into());
+        *obsolete_term.obsolete_mut() = true;
+
+        ontology.add_term(obsolete_term);
+
+        let mut hpos = HpoGroup::new();
+        hpos.insert(707u32.into());
+        hpos.insert(12639u32.into());
+        hpos.insert(12638u32.into());
+        hpos.insert(666u32.into());
+        hpos.insert(2715u32.into());
+        let mut set = HpoSet::new(&ontology, hpos);
+        assert_eq!(set.len(), 5);
+
+        let set2 = set.without_obsolete();
+        assert_eq!(set.len(), 5);
+        assert_eq!(set2.len(), 4);
+
+        set.remove_obsolete();
+        assert_eq!(set.len(), 4);
+    }
+
+    #[test]
+    fn test_with_replaced_obsolete() {
+        let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let mut obsolete_term = HpoTermInternal::new("Obsolete: Foo".to_string(), 666u32.into());
+        *obsolete_term.replacement_mut() = Some(25454u32.into());
+        ontology.add_term(obsolete_term.clone());
+
+        let mut hpos = HpoGroup::new();
+        hpos.insert(707u32.into());
+        hpos.insert(12639u32.into());
+        hpos.insert(12638u32.into());
+        hpos.insert(666u32.into());
+        hpos.insert(2715u32.into());
+        let set = HpoSet::new(&ontology, hpos);
+        assert_eq!(set.len(), 5);
+
+        let set2 = set.with_replaced_obsolete();
+        assert_eq!(set.len(), 5);
+        assert_eq!(set2.len(), 5);
+
+        assert!(set.contains(&666u32.into()));
+        assert!(!set2.contains(&666u32.into()));
+
+        assert!(!set.contains(&25454u32.into()));
+        assert!(set2.contains(&25454u32.into()));
+    }
+
+    #[test]
+    fn test_replace_obsolete() {
+        let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let mut obsolete_term = HpoTermInternal::new("Obsolete: Foo".to_string(), 666u32.into());
+        *obsolete_term.replacement_mut() = Some(25454u32.into());
+        ontology.add_term(obsolete_term.clone());
+
+        let mut hpos = HpoGroup::new();
+        hpos.insert(707u32.into());
+        hpos.insert(12639u32.into());
+        hpos.insert(12638u32.into());
+        hpos.insert(666u32.into());
+        hpos.insert(2715u32.into());
+        let mut set = HpoSet::new(&ontology, hpos);
+        assert_eq!(set.len(), 5);
+
+        set.replace_obsolete();
+        assert_eq!(set.len(), 5);
+        assert!(!set.contains(&666u32.into()));
+        assert!(set.contains(&25454u32.into()));
     }
 }

@@ -1,4 +1,4 @@
-use log::{error, trace, warn};
+use tracing::{error, trace, warn};
 
 use crate::{parser::Path, HpoError, HpoResult};
 use std::fs;
@@ -25,14 +25,12 @@ pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology
     // stores tuples of Term - Parent
     let mut connections: Connections = Vec::new();
 
-    let file_content = match fs::read_to_string(&filename) {
-        Ok(content) => content,
-        Err(_) => {
-            return Err(HpoError::CannotOpenFile(
-                filename.as_ref().display().to_string(),
-            ))
-        }
+    let Ok(file_content) = fs::read_to_string(&filename) else {
+        return Err(HpoError::CannotOpenFile(
+            filename.as_ref().display().to_string(),
+        ))
     };
+
     for term in file_content.split("\n\n") {
         if let Some(term) = term.strip_prefix("[Term]\n") {
             if let Some(raw_term) = term_from_obo(term) {
@@ -41,6 +39,12 @@ pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology
             } else {
                 warn!("Unable to parse: {}", term);
             }
+        } else if term.starts_with("format-version: 1.2") {
+            trace!("Parsing the header");
+            ontology.set_hpo_version(version_from_obo(term).unwrap_or_else(|| {
+                warn!("No HPO Ontology version detected");
+                (0u16, 0u8, 0u8)
+            }));
         } else {
             trace!("Ignoring: {}", term);
         }
@@ -54,18 +58,47 @@ pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology
     Ok(())
 }
 
+fn version_from_obo(header: &str) -> Option<(u16, u8, u8)> {
+    header.lines().find_map(|line| {
+        line.strip_prefix("data-version: hp/releases/")
+            .and_then(|version| {
+                if version.len() == 10 {
+                    Some((
+                        version[0..4].parse().unwrap_or(0u16),
+                        version[5..7].parse().unwrap_or(0u8),
+                        version[8..10].parse().unwrap_or(0u8),
+                    ))
+                } else {
+                    None
+                }
+            })
+    })
+}
+
 fn term_from_obo(term: &str) -> Option<HpoTermInternal> {
     let mut id: Option<&str> = None;
     let mut name: Option<&str> = None;
+    let mut obsolete: Option<&str> = None;
+    let mut replaced_by: Option<&str> = None;
     for line in term.lines() {
         match parse_line(line) {
             ("id", value) => id = Some(value),
             ("name", value) => name = Some(value),
+            ("is_obsolete", value) => obsolete = Some(value),
+            ("replaced_by", value) => replaced_by = Some(value),
             _ => (),
         }
-        if let (Some(id), Some(name)) = (id, name) {
-            return Some(HpoTermInternal::try_new(id, name).unwrap());
+    }
+    if let (Some(id), Some(name)) = (id, name) {
+        let mut term = HpoTermInternal::try_new(id, name).unwrap();
+        if obsolete == Some("true") {
+            *term.obsolete_mut() = true;
         }
+        if let Some(replacement) = replaced_by {
+            *term.replacement_mut() =
+                Some(HpoTermId::try_from(replacement).expect("Invalid replacement"));
+        }
+        return Some(term);
     }
     None
 }
@@ -109,5 +142,7 @@ mod test {
         assert_eq!(ont.hpo(217u32.into()).unwrap().parents().count(), 0);
 
         assert_eq!(ont.hpo(217u32.into()).unwrap().children().count(), 2);
+
+        assert_eq!(ont.hpo_version(), "2022-10-05");
     }
 }

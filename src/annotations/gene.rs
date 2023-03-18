@@ -5,7 +5,7 @@ use std::convert::TryFrom;
 use std::fmt::Display;
 use std::hash::Hash;
 
-use log::error;
+use tracing::error;
 
 use crate::annotations::AnnotationId;
 use crate::set::HpoSet;
@@ -171,7 +171,9 @@ impl Gene {
         res.append(&mut self.id.to_be_bytes().to_vec());
 
         // 1 byte for Length of Gene Name (can't be longer than 255 bytes)
-        res.push(name_length as u8); // casting is safe, since name_length is < 256
+        // casting is safe, since name_length is < 256
+        #[allow(clippy::cast_possible_truncation)]
+        res.push(name_length as u8);
 
         // Gene name/symbol (up to 255 bytes)
         for c in name.iter().take(255) {
@@ -252,9 +254,7 @@ impl TryFrom<&[u8]> for Gene {
             return Err(HpoError::ParseBinaryError);
         }
 
-        let name = if let Ok(s) = String::from_utf8(bytes[9..9 + name_len].to_vec()) {
-            s
-        } else {
+        let Ok(name) = String::from_utf8(bytes[9..9 + name_len].to_vec()) else {
             error!("Unable to parse the name of the Gene");
             return Err(HpoError::ParseBinaryError);
         };

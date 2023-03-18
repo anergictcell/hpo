@@ -31,6 +31,8 @@ pub struct HpoTerm<'a> {
     genes: &'a Genes,
     omim_diseases: &'a OmimDiseases,
     information_content: &'a InformationContent,
+    obsolete: bool,
+    replaced_by: Option<HpoTermId>,
     ontology: &'a Ontology,
 }
 
@@ -71,6 +73,8 @@ impl<'a> HpoTerm<'a> {
             genes: term.genes(),
             omim_diseases: term.omim_diseases(),
             information_content: term.information_content(),
+            obsolete: term.obsolete(),
+            replaced_by: term.replacement(),
             ontology,
         }
     }
@@ -890,6 +894,32 @@ impl<'a> HpoTerm<'a> {
                 Some(self.distance_to_ancestor(&parent)? + other.distance_to_ancestor(&parent)?)
             })
             .min()
+    }
+
+    /// Returns `true` if the term is flagged as obsolete
+    pub fn obsolete(&self) -> bool {
+        self.obsolete
+    }
+
+    /// Returns the replacement term, if it exists
+    ///
+    /// Returns `None` otherwise
+    ///
+    /// If a term has multiple `replaced_by` annotations only one annotation
+    /// is selected as replacement. Usually the last one, if parsing from an `obo` file.
+    pub fn replaced_by(&self) -> Option<HpoTerm<'a>> {
+        self.replaced_by
+            .and_then(|term_id| self.ontology.hpo(term_id))
+    }
+
+    /// Returns the [`HpoTermId`] of an replacement term, if it exists
+    ///
+    /// Returns `None` otherwise
+    ///
+    /// If a term has multiple `replaced_by` annotations only one annotation
+    /// is selected as replacement. Usually the last one, if parsing from an `obo` file.
+    pub fn replacement_id(&self) -> Option<HpoTermId> {
+        self.replaced_by
     }
 }
 

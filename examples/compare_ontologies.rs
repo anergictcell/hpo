@@ -1,4 +1,4 @@
-use hpo::Ontology;
+use hpo::{HpoTermId, Ontology};
 use std::path::Path;
 
 fn main() {
@@ -49,7 +49,9 @@ fn main() {
         println!("Removed\t{}\t{}", disease.id(), disease.name());
     }
 
-    println!("#Term Delta\tID\tOld Name:New Name\tAdded Parents\tRemoved Parents");
+    println!(
+        "#Term Delta\tID\tOld Name:New Name\tAdded Parents\tRemoved Parents\tObsolete\tReplacement"
+    );
     for term in diffs.changed_hpo_terms() {
         print!("Delta\t{}", term.id());
         if let Some(names) = term.changed_name() {
@@ -81,6 +83,8 @@ fn main() {
         } else {
             print!("\t.");
         }
+        print_obsolete_diff(term.changed_obsolete());
+        print_replacement_diff(term.changed_replacement());
         println!();
     }
 
@@ -152,5 +156,35 @@ fn main() {
             print!("\t.");
         }
         println!();
+    }
+}
+
+fn print_obsolete_diff(obsoletes: Option<(bool, bool)>) {
+    if let Some(obsolete) = obsoletes {
+        print!(
+            "\t{}:{}",
+            if obsolete.0 { "obsolete" } else { "in-use" },
+            if obsolete.1 { "obsolete" } else { "in-use" }
+        );
+    } else {
+        print!("\t.");
+    }
+}
+
+fn print_replacement_diff(replacements: Option<(Option<HpoTermId>, Option<HpoTermId>)>) {
+    if let Some(replacements) = replacements {
+        print!(
+            "\t{}:{}",
+            replacements
+                .0
+                .map(|id| id.to_string())
+                .unwrap_or("-".to_string()),
+            replacements
+                .1
+                .map(|id| id.to_string())
+                .unwrap_or("-".to_string())
+        );
+    } else {
+        print!("\t.");
     }
 }

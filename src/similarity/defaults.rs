@@ -7,6 +7,8 @@ use crate::similarity::{usize_to_f32, Similarity};
 use crate::term::InformationContentKind;
 use crate::HpoTerm;
 
+// Clippy thinks the `PLoS` is a struct or should have backticks for some reason
+#[allow(clippy::doc_markdown)]
 /// Graph based Information coefficient similarity
 ///
 /// For a detailed description see [Deng Y, et. al., PLoS One, (2015)](https://pubmed.ncbi.nlm.nih.gov/25664462/)

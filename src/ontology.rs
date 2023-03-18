@@ -1563,7 +1563,7 @@ mod test {
         assert_eq!(ont.len(), 4);
 
         // The fake term has the same HpoTermId as one of of the Test ontology
-        let mut fake_term = HpoTermInternal::new(String::from(""), 3u32.into());
+        let mut fake_term = HpoTermInternal::new(String::new(), 3u32.into());
         fake_term.add_parent(1u32.into());
         fake_term.add_parent(2u32.into());
 

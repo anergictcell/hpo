@@ -297,6 +297,19 @@ pub struct Mutation {
 }
 
 impl Mutation {
+    /// Constructs a new struct to calculate the Mutation based similarity scores
+    /// between two terms
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::similarity::Mutation;
+    /// use hpo::term::InformationContentKind;
+    ///
+    /// // use Omim-based InformationContent for similarity calculation
+    /// let jc = Mutation::new(InformationContentKind::Omim);
+    /// ```
+    ///
     pub fn new(kind: InformationContentKind) -> Self {
         Self { kind }
     }

@@ -49,6 +49,7 @@ impl<T> Enrichment<T> {
         &self.annotation
     }
 
+    /// Returns the number of items in the enrichment set
     pub fn count(&self) -> u64 {
         self.count
     }

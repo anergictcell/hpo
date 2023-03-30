@@ -1,3 +1,4 @@
+//! This module contains the [`HpoGroup`] struct and the corresponding [`HpoTermId`] iterators [`Iter`] and [`Combined`]
 use crate::annotations::AnnotationId;
 use std::collections::HashSet;
 use std::ops::{Add, BitAnd, BitOr};
@@ -298,14 +299,17 @@ impl<'a> Combined<'a> {
         Self { group, ontology }
     }
 
+    /// Returns an Iterator of [`HpoTermId`]
     pub fn iter(&self) -> term::Iter<'_> {
         self.into_iter()
     }
 
+    /// Returns the number of [`HpoTermId`] in the Iterator
     pub fn len(&self) -> usize {
         self.group.len()
     }
 
+    /// Returns true if the Iterator does not contain any [`HpoTermId`]
     pub fn is_empty(&self) -> bool {
         self.group.is_empty()
     }

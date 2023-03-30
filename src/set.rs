@@ -487,10 +487,6 @@ impl<'a> HpoSet<'a> {
         Ok(ic)
     }
 
-    pub fn common_ancestor_ids(&self) -> HpoGroup {
-        unimplemented!()
-    }
-
     /// Returns the [`HpoTerm`] at the given index
     ///
     /// # Panics

@@ -25,5 +25,13 @@ simple_logger = "4.0.0"
 criterion = "0.4"
 
 [[bench]]
-name = "my_benchmark"
+name = "similarity"
+harness = false
+
+[[bench]]
+name = "ontology"
+harness = false
+
+[[bench]]
+name = "ancestors"
 harness = false

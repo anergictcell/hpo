@@ -9,18 +9,21 @@ fn ancestors(ontology: &Ontology, times: usize) -> usize {
         HpoTermId::try_from("HP:0000001").unwrap(),
         HpoTermId::try_from("HP:0000001").unwrap(),
     );
-    ontology.into_iter().skip(800).take(times).for_each(|term1| {
-        for term2 in ontology.into_iter().skip(500).take(times) {
-            let overlap = term1.common_ancestor_ids(&term2).len();
-            if overlap > count {
-                count = overlap;
-                terms = (term1.id(), term2.id());
+    ontology
+        .into_iter()
+        .skip(800)
+        .take(times)
+        .for_each(|term1| {
+            for term2 in ontology.into_iter().skip(500).take(times) {
+                let overlap = term1.common_ancestor_ids(&term2).len();
+                if overlap > count {
+                    count = overlap;
+                    terms = (term1.id(), term2.id());
+                }
             }
-        }
-    });
+        });
     count
 }
-
 
 fn ancestors_benchmark(c: &mut Criterion) {
     let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
@@ -29,7 +32,6 @@ fn ancestors_benchmark(c: &mut Criterion) {
         b.iter(|| ancestors(black_box(&ontology), black_box(500)))
     });
 }
-
 
 criterion_group!(common_ancestors, ancestors_benchmark);
 criterion_main!(common_ancestors);

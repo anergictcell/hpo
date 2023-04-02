@@ -53,6 +53,5 @@ fn graphic_benchmark(c: &mut Criterion) {
     });
 }
 
-
 criterion_group!(similarity, graphic_benchmark);
 criterion_main!(similarity);

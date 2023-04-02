@@ -15,7 +15,7 @@ use crate::{HpoTerm, HpoTermId, Ontology};
 /// This group is used e.g. for having a set of parent or child HPO Terms
 #[derive(Debug, Default, Clone)]
 pub struct HpoGroup {
-    ids: SmallVec<[HpoTermId; 30]>,
+    ids: SmallVec<[HpoTermId; crate::DEFAULT_NUM_ALL_PARENTS]>,
 }
 
 impl HpoGroup {

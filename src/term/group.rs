@@ -3,6 +3,8 @@ use crate::annotations::AnnotationId;
 use std::collections::HashSet;
 use std::ops::{Add, BitAnd, BitOr};
 
+use smallvec::SmallVec;
+
 use crate::term;
 use crate::{HpoTerm, HpoTermId, Ontology};
 
@@ -13,7 +15,7 @@ use crate::{HpoTerm, HpoTermId, Ontology};
 /// This group is used e.g. for having a set of parent or child HPO Terms
 #[derive(Debug, Default, Clone)]
 pub struct HpoGroup {
-    ids: Vec<HpoTermId>,
+    ids: SmallVec<[HpoTermId; 30]>,
 }
 
 impl HpoGroup {
@@ -25,7 +27,7 @@ impl HpoGroup {
     /// Constructs a new, empty [`HpoGroup`] with the given capacity
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
-            ids: Vec::with_capacity(capacity),
+            ids: SmallVec::with_capacity(capacity),
         }
     }
 
@@ -363,7 +365,7 @@ mod tests {
 
         let result = group1.bitor(&group2);
         let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into(), 3u32.into(), 4u32.into()];
-        assert_eq!(result.ids, expected);
+        assert_eq!(result.ids.into_vec(), expected);
     }
 
     #[test]
@@ -387,7 +389,7 @@ mod tests {
             4u32.into(),
             5u32.into(),
         ];
-        assert_eq!(result.ids, expected);
+        assert_eq!(result.ids.into_vec(), expected);
     }
 
     #[test]
@@ -405,6 +407,6 @@ mod tests {
 
         let result = &group1 & &group2;
         let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into()];
-        assert_eq!(result.ids, expected);
+        assert_eq!(result.ids.into_vec(), expected);
     }
 }

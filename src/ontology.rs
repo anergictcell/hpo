@@ -809,7 +809,10 @@ impl Ontology {
 
         let mut ont = Self::default();
         for &term in &terms {
-            ont.add_term(term.clone());
+            let mut copied_term = HpoTermInternal::new(term.name().to_string(), *term.id());
+            *copied_term.obsolete_mut() = term.obsolete();
+            *copied_term.replacement_mut() = term.replacement();
+            ont.add_term(copied_term);
         }
         for term in &terms {
             for parent in term.parents() {

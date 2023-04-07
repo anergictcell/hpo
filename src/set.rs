@@ -1,4 +1,6 @@
 //! An `HpoSet` can represent e.g. the clinical information of a patient or the symptoms of a disease
+use std::collections::HashMap;
+
 use crate::annotations::Genes;
 use crate::annotations::OmimDiseases;
 use crate::similarity::GroupSimilarity;
@@ -510,6 +512,45 @@ impl<'a> HpoSet<'a> {
                     .omim_diseases()
             })
             .fold(OmimDiseases::default(), |acc, element| &acc | element)
+    }
+
+    /// Returns the counts of all categories in the set
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet, HpoTermId};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(12285u32.into());  // Abnormal hypothalamus physiology
+    /// hpos.insert(12639u32.into());  // Abnormal nervous system morphology
+    /// hpos.insert(12638u32.into());  // Abnormal nervous system physiology
+    /// hpos.insert(12648u32.into());  // Decreased inflammatory response
+    /// hpos.insert(3581u32.into());  // Adult onset
+    /// hpos.insert(7u32.into());  // Autosomal recessive inheritance
+    ///
+    /// let set: HpoSet = HpoSet::new(&ontology, hpos);
+    /// let cats = set.categories();
+    ///
+    /// assert_eq!(cats.get(&HpoTermId::from_u32(5)).unwrap(), &1);
+    /// assert_eq!(cats.get(&HpoTermId::from_u32(707)).unwrap(), &3);
+    /// assert_eq!(cats.get(&HpoTermId::from_u32(818)).unwrap(), &1);
+    /// assert_eq!(cats.get(&HpoTermId::from_u32(2715)).unwrap(), &1);
+    /// assert_eq!(cats.get(&HpoTermId::from_u32(12823)).unwrap(), &1);
+    /// ```
+    pub fn categories(&self) -> HashMap<HpoTermId, usize> {
+        let mut res: HashMap<HpoTermId, usize> = HashMap::new();
+        for term in self {
+            for category in term.categories() {
+                res.entry(category)
+                    .and_modify(|count| *count += 1)
+                    .or_insert(1);
+            }
+        }
+        res
     }
 
     /// Calculates and returns the aggregated [`InformationContent`] of the set

@@ -172,11 +172,76 @@ impl<'a> HpoSet<'a> {
         self.group.is_empty()
     }
 
+    /// Removes all modifier terms in-place
+    ///
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// # use hpo::term::HpoGroup;
+    /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
+    /// # let mut hpos = HpoGroup::new();
+    /// # hpos.insert(707u32.into());
+    /// # hpos.insert(12639u32.into());
+    /// # hpos.insert(12638u32.into());
+    /// # hpos.insert(3581u32.into());
+    /// # hpos.insert(7u32.into());
+    /// # HpoSet::new(ontology, hpos)
+    /// # }
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut set: HpoSet = method_that_returns_an_hposet(&ontology);
+    /// assert_eq!(set.len(), 5);
+    ///
+    /// set.remove_modifier();
+    /// assert_eq!(set.len(), 3);
+    /// ```
+    pub fn remove_modifier(&mut self) {
+        let group: HpoGroup = self.iter().filter(|term| !term.is_modifier()).collect();
+        self.group = group;
+    }
+
     /// Returns a new set without modifier terms
     ///
-    /// This is not yet implemented
-    pub fn remove_modifier(&mut self) {
-        unimplemented!()
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// # use hpo::term::HpoGroup;
+    /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
+    /// # let mut hpos = HpoGroup::new();
+    /// # hpos.insert(707u32.into());
+    /// # hpos.insert(12639u32.into());
+    /// # hpos.insert(12638u32.into());
+    /// # hpos.insert(3581u32.into());
+    /// # hpos.insert(7u32.into());
+    /// # HpoSet::new(ontology, hpos)
+    /// # }
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let set_1: HpoSet = method_that_returns_an_hposet(&ontology);
+    /// assert_eq!(set_1.len(), 5);
+    ///
+    /// let set_2 = set_1.without_modifier();
+    /// assert_eq!(set_2.len(), 3);
+    ///
+    /// for term in set_1.iter() {
+    ///     if !set_2.contains(&term.id()) {
+    ///         println!("Modifier: {} | {}", term.id(), term.name());
+    ///     }
+    /// }
+    /// // "HP:0000007 | Autosomal recessive inheritance"
+    /// // "HP:0003581 | Adult onset"
+    /// ```
+    pub fn without_modifier(&self) -> Self {
+        let group: HpoGroup = self.iter().filter(|term| !term.is_modifier()).collect();
+        Self {
+            ontology: self.ontology,
+            group,
+        }
     }
 
     /// Removes all obsolete terms in-place

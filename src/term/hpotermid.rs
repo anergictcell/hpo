@@ -29,6 +29,20 @@ impl HpoTermId {
             .try_into()
             .expect("hpo can only run on systems with at least 32 bit architecture")
     }
+
+    /// Creates a new `HpoTermId` from a `u32` integer
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use hpo::HpoTermId;
+    ///
+    /// let a = HpoTermId::from_u32(118);
+    /// assert_eq!(a.to_usize(), 118usize);
+    /// ```
+    pub const fn from_u32(inner: u32) -> Self {
+        HpoTermId { inner }
+    }
 }
 
 impl AnnotationId for HpoTermId {

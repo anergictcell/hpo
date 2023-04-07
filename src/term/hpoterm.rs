@@ -921,6 +921,62 @@ impl<'a> HpoTerm<'a> {
     pub fn replacement_id(&self) -> Option<HpoTermId> {
         self.replaced_by
     }
+
+    /// Returns `true` if the term is a descendent of a modifier root term
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mendelian_inheritance = ontology.hpo(34345u32.into()).unwrap();
+    /// let adult_onset = ontology.hpo(3581u32.into()).unwrap();
+    /// let abnormal_forebrain_morphology = ontology.hpo(100547u32.into()).unwrap();
+    ///
+    /// assert!(mendelian_inheritance.is_modifier());
+    /// assert!(adult_onset.is_modifier());
+    /// assert!(!abnormal_forebrain_morphology.is_modifier());
+    /// ```
+    pub fn is_modifier(&self) -> bool {
+        self.ontology
+            .modifier()
+            .iter()
+            .any(|modifier_root| self.all_parent_ids().contains(&modifier_root))
+    }
+
+    /// Returns the category of the term, or `None` if uncategorized
+    ///
+    /// Categories are defined in [`Ontology::set_default_categories()`]
+    ///
+    /// The default implementation ensures that each term is categorized
+    /// in exactly one category, but this can be modified on the Ontology level.
+    /// If a term might be part of multiple categories, one is (semi-)randomly
+    /// selected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology, HpoTermId};
+    ///
+    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mendelian_inheritance = ontology.hpo(HpoTermId::from_u32(34345)).unwrap();
+    /// let adult_onset = ontology.hpo(HpoTermId::from_u32(3581)).unwrap();
+    /// let abnormal_hypothalamus_physiology = ontology.hpo(HpoTermId::from_u32(12285)).unwrap();
+    ///
+    /// assert_eq!(mendelian_inheritance.categories(), vec![HpoTermId::from_u32(5)]);
+    /// assert_eq!(adult_onset.categories(), vec![HpoTermId::from_u32(12823)]);
+    /// assert_eq!(abnormal_hypothalamus_physiology.categories(), vec![HpoTermId::from_u32(707), HpoTermId::from_u32(818)]);
+    /// ```
+    pub fn categories(&self) -> Vec<HpoTermId> {
+        self.ontology
+            .categories()
+            .iter()
+            .filter(|cat| self.all_parent_ids().contains(cat))
+            .collect()
+    }
 }
 
 impl PartialEq for HpoTerm<'_> {

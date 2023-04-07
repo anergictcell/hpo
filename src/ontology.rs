@@ -310,6 +310,8 @@ pub struct Ontology {
     genes: HashMap<GeneId, Gene>,
     omim_diseases: HashMap<OmimDiseaseId, OmimDisease>,
     hpo_version: (u16, u8, u8),
+    categories: HpoGroup,
+    modifier: HpoGroup,
 }
 
 impl Debug for Ontology {
@@ -366,6 +368,8 @@ impl Ontology {
         let disease = path.join(crate::DISEASE_FILENAME);
         parser::load_from_standard_files(&obo, &gene, &disease, &mut ont)?;
         ont.calculate_information_content()?;
+        ont.set_default_categories()?;
+        ont.set_default_modifier()?;
         Ok(ont)
     }
 
@@ -509,6 +513,8 @@ impl Ontology {
 
         if section_start == bytes.len() {
             ont.calculate_information_content()?;
+            ont.set_default_categories()?;
+            ont.set_default_modifier()?;
             Ok(ont)
         } else {
             Err(HpoError::ParseBinaryError)
@@ -886,6 +892,118 @@ impl Ontology {
             }
         }
         code
+    }
+
+    /// Returns a reference to the categories of the Ontology
+    ///
+    /// Categories are top-level `HpoTermId`s used for
+    /// categorizing individual `HpoTerm`s.
+    ///
+    /// See [`Ontology::set_default_categories()`] for more information
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    ///
+    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// assert_eq!(ontology.categories().len(), 6);
+    /// ```
+    pub fn categories(&self) -> &HpoGroup {
+        &self.categories
+    }
+
+    /// Returns a mutable reference to the categories vector
+    ///
+    /// This is a vector that should contain top-level `HpoTermId`s used for
+    /// categorizing individual `HpoTerm`s.
+    ///
+    /// See [`Ontology::set_default_categories()`]
+    pub fn categories_mut(&mut self) -> &mut HpoGroup {
+        &mut self.categories
+    }
+
+    /// Sets the default categories for the Ontology
+    ///
+    /// By default, each direct child of [`Phenotypic abnormality`](crate::PHENOTYPE_ID)
+    /// is considered one category, e.g.:
+    ///
+    /// - `HP:0000152 | Abnormality of head or neck`
+    /// - `HP:0001507 | Growth abnormality`
+    /// - ...
+    ///
+    /// In additon to all other direct children of `HP:0000001 | All`, e.g.:
+    ///
+    /// - `HP:0000005 | Mode of inheritance`
+    /// - `HP:0012823 | Clinical modifier`
+    /// - ...
+    ///
+    /// # Errors
+    ///
+    /// This method requires that the main-category terms:
+    ///
+    /// - `HP:0000001 | All`
+    /// - `HP:0000118 | Phenotypic abnormality`
+    ///
+    /// are present in the Ontology.
+    pub fn set_default_categories(&mut self) -> HpoResult<()> {
+        let root = self.hpo(1u32.into()).ok_or(HpoError::DoesNotExist)?;
+        let phenotypes = self
+            .hpo(crate::PHENOTYPE_ID)
+            .ok_or(HpoError::DoesNotExist)?;
+        self.categories = root
+            .children_ids()
+            .iter()
+            .filter(|id| id != &crate::PHENOTYPE_ID)
+            .chain(phenotypes.children_ids())
+            .collect();
+        Ok(())
+    }
+
+    /// Returns a reference to the modifier root terms of the Ontology
+    ///
+    /// See [`Ontology::set_default_modifier()`] for more information
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    ///
+    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// assert_eq!(ontology.modifier().len(), 2);
+    /// ```
+    pub fn modifier(&self) -> &HpoGroup {
+        &self.modifier
+    }
+
+    /// Returns a mutable reference to the modifier vector
+    ///
+    /// This is a vector that should contain top-level `HpoTermId`s that are
+    /// representing modifier terms.
+    ///
+    /// See [`Ontology::set_default_modifier()`]
+    pub fn modifier_mut(&mut self) -> &mut HpoGroup {
+        &mut self.modifier
+    }
+
+    /// Sets the default modifier categories for the Ontology
+    ///
+    /// The default is very opinionated and declares everything a modifier
+    /// that is not part of the [`Phenotypic abnormality`](crate::PHENOTYPE_ID)
+    /// category.
+    ///
+    /// # Errors
+    ///
+    /// This method requires that the root term `HP:0000001 | All` is present.
+    pub fn set_default_modifier(&mut self) -> HpoResult<()> {
+        self.modifier = self
+            .hpo(1u32.into())
+            .ok_or(HpoError::DoesNotExist)?
+            .children_ids()
+            .iter()
+            .filter(|id| id != &crate::PHENOTYPE_ID)
+            .collect();
+        Ok(())
     }
 }
 

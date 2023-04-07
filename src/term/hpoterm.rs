@@ -943,7 +943,7 @@ impl<'a> HpoTerm<'a> {
         self.ontology
             .modifier()
             .iter()
-            .any(|modifier_root| self.all_parent_ids().contains(&modifier_root))
+            .any(|modifier_root| (self.all_parent_ids() | self.id()).contains(&modifier_root))
     }
 
     /// Returns the category of the term, or `None` if uncategorized
@@ -960,7 +960,7 @@ impl<'a> HpoTerm<'a> {
     /// ```
     /// use hpo::{HpoTerm, Ontology, HpoTermId};
     ///
-    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mendelian_inheritance = ontology.hpo(HpoTermId::from_u32(34345)).unwrap();
     /// let adult_onset = ontology.hpo(HpoTermId::from_u32(3581)).unwrap();
@@ -974,7 +974,7 @@ impl<'a> HpoTerm<'a> {
         self.ontology
             .categories()
             .iter()
-            .filter(|cat| self.all_parent_ids().contains(cat))
+            .filter(|cat| (self.all_parent_ids() | self.id()).contains(cat))
             .collect()
     }
 }
@@ -986,3 +986,63 @@ impl PartialEq for HpoTerm<'_> {
 }
 
 impl Eq for HpoTerm<'_> {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::Ontology;
+
+    #[test]
+    fn test_categories() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let mendelian_inheritance = ontology.hpo(HpoTermId::from_u32(34345)).unwrap();
+        let adult_onset = ontology.hpo(HpoTermId::from_u32(3581)).unwrap();
+        let abnormal_hypothalamus_physiology = ontology.hpo(HpoTermId::from_u32(12285)).unwrap();
+
+        assert_eq!(
+            mendelian_inheritance.categories(),
+            vec![HpoTermId::from_u32(5)]
+        );
+        assert_eq!(adult_onset.categories(), vec![HpoTermId::from_u32(12823)]);
+        assert_eq!(
+            abnormal_hypothalamus_physiology.categories(),
+            vec![HpoTermId::from_u32(707), HpoTermId::from_u32(818)]
+        );
+    }
+
+    #[test]
+    fn test_categories_is_self() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let inheritance = ontology.hpo(HpoTermId::from_u32(5)).unwrap();
+        assert_eq!(inheritance.categories(), vec![HpoTermId::from_u32(5)]);
+
+        let nervous_system = ontology.hpo(HpoTermId::from_u32(707)).unwrap();
+        assert_eq!(nervous_system.categories(), vec![HpoTermId::from_u32(707)]);
+    }
+
+    #[test]
+    fn test_modifier() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let mendelian_inheritance = ontology.hpo(34345u32.into()).unwrap();
+        let adult_onset = ontology.hpo(3581u32.into()).unwrap();
+        let abnormal_forebrain_morphology = ontology.hpo(100_547u32.into()).unwrap();
+
+        assert!(mendelian_inheritance.is_modifier());
+        assert!(adult_onset.is_modifier());
+        assert!(!abnormal_forebrain_morphology.is_modifier());
+    }
+
+    #[test]
+    fn test_modifier_is_self() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let inheritance = ontology.hpo(HpoTermId::from_u32(5)).unwrap();
+        let nervous_system = ontology.hpo(HpoTermId::from_u32(707)).unwrap();
+
+        assert!(inheritance.is_modifier());
+        assert!(!nervous_system.is_modifier());
+    }
+}

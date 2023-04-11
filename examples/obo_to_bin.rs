@@ -3,11 +3,12 @@ use std::{fs::File, io::Write};
 use hpo::Ontology;
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/").unwrap();
-    println!("Ontology with {} terms", ontology.len());
     let mut args = std::env::args();
-    if args.len() == 2 {
-        let filename = args.nth(1).unwrap();
+    if args.len() == 3 {
+        let folder = args.nth(1).unwrap();
+        let ontology = Ontology::from_standard(&folder).unwrap();
+        println!("Ontology with {} terms", ontology.len());
+        let filename = args.next().unwrap();
         let mut fh = File::create(filename).unwrap();
         match fh.write_all(&ontology.as_bytes()) {
             Ok(_) => println!("Saved output"),

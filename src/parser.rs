@@ -25,7 +25,8 @@ pub(crate) mod phenotype_to_genes {
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();
-            if line.starts_with('#') {
+            // TODO: Check for the header outside of the `lines` iterator
+            if line.starts_with('#') || line.starts_with("hpo_id") {
                 continue;
             }
             let cols: Vec<&str> = line.trim().split('\t').collect();
@@ -63,6 +64,8 @@ pub(crate) mod phenotype_hpoa {
     }
 
     fn parse_line(line: &str) -> Option<Omim<'_>> {
+        // TODO (nice to have): Add check to skip `database_id` header row
+        // It is not strictly needed, because we're discarding non-OMIM rows
         if line.starts_with('#') {
             return None;
         }

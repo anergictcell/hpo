@@ -213,7 +213,9 @@ impl BitOr<HpoTermId> for &HpoGroup {
     type Output = HpoGroup;
 
     fn bitor(self, rhs: HpoTermId) -> HpoGroup {
-        let mut group = self.clone();
+        #[allow(clippy::suspicious_arithmetic_impl)]
+        let mut group = HpoGroup::with_capacity(self.len() + 1);
+        group.ids.extend(&self.ids);
         group.insert(rhs);
         group
     }
@@ -222,7 +224,8 @@ impl BitOr<HpoTermId> for &HpoGroup {
 impl Add<HpoTermId> for &HpoGroup {
     type Output = HpoGroup;
     fn add(self, rhs: HpoTermId) -> Self::Output {
-        let mut group = self.clone();
+        let mut group = HpoGroup::with_capacity(self.len() + 1);
+        group.ids.extend(&self.ids);
         group.insert(rhs);
         group
     }
@@ -340,12 +343,12 @@ mod tests {
 
         let mut ids = Vec::new();
         for id in &group {
-            ids.push(id)
+            ids.push(id);
         }
         assert_eq!(ids.len(), 3);
 
         for id in &group {
-            ids.push(id)
+            ids.push(id);
         }
         assert_eq!(ids.len(), 6);
     }
@@ -361,8 +364,11 @@ mod tests {
         group2.insert(2u32.into());
         group2.insert(4u32.into());
 
-        let result = group1.bitor(&group2);
         let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into(), 3u32.into(), 4u32.into()];
+
+        let result = (&group1).bitor(&group2);
+        assert_eq!(result.ids, expected);
+        let result = group2.bitor(&group1);
         assert_eq!(result.ids, expected);
     }
 
@@ -379,7 +385,6 @@ mod tests {
         group2.insert(4u32.into());
         group2.insert(5u32.into());
 
-        let result = group1.bitor(&group2);
         let expected: Vec<HpoTermId> = vec![
             1u32.into(),
             2u32.into(),
@@ -387,7 +392,45 @@ mod tests {
             4u32.into(),
             5u32.into(),
         ];
+        let result = (&group1).bitor(&group2);
         assert_eq!(result.ids, expected);
+        let result = (&group2).bitor(&group1);
+        assert_eq!(result.ids, expected);
+    }
+
+    #[test]
+    fn test_bitor_set3() {
+        let mut group1 = HpoGroup::new();
+        group1.insert(2u32.into());
+        group1.insert(3u32.into());
+
+        let mut group2 = HpoGroup::new();
+        group1.insert(1u32.into());
+        group2.insert(2u32.into());
+        group2.insert(4u32.into());
+
+        let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into(), 3u32.into(), 4u32.into()];
+        let result = (&group1).bitor(&group2);
+        assert_eq!(result.ids, expected);
+        let result = (&group2).bitor(&group1);
+        assert_eq!(result.ids, expected);
+    }
+
+    #[test]
+    fn test_bitor_set4() {
+        let mut group1 = HpoGroup::new();
+        group1.insert(1u32.into());
+        group1.insert(2u32.into());
+
+        let mut group2 = HpoGroup::new();
+        group2.insert(3u32.into());
+        group2.insert(4u32.into());
+
+        let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into(), 3u32.into(), 4u32.into()];
+        let result_1 = (&group1).bitor(&group2);
+        assert_eq!(result_1.ids, expected);
+        let result_2 = group2.bitor(&group1);
+        assert_eq!(result_2.ids, expected);
     }
 
     #[test]

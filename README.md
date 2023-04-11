@@ -174,7 +174,7 @@ The below benchmarks were run non scientificially and your mileage may vary. I u
 | Benchmark | `PyHPO` | `hpo` (single-threaded) | `hpo` (multi-threaded) |
 | --------- | ----- | --- | --- |
 | Read and Parse Ontology | 6.4 s | 0.3 s | 0.3 s |
-| Similarity of 17,245 x 1,000 terms | 98.5 s | 6.2 s | 1.7 s |
+| Similarity of 17,245 x 1,000 terms | 98.5 s | 4.5 s | 1.3 s |
 | Similarity of GBA1 to all Diseases | 380 s | 27.3 s | 6.1 s |
 | Disease enrichment in all Genes | 11.8 s | 0.6 s | 0.3 s |
 | Common ancestors of 17,245 x 10,000 terms | 200.6 s | 12.1 | 2.8 |

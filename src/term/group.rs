@@ -478,4 +478,24 @@ mod tests {
         let expected: Vec<HpoTermId> = vec![1u32.into(), 2u32.into()];
         assert_eq!(result.ids, expected);
     }
+
+    #[test]
+    fn test_bitand_2() {
+        let mut group1 = HpoGroup::new();
+        group1.insert(1u32.into());
+        group1.insert(2u32.into());
+        group1.insert(3u32.into());
+        group1.insert(7u32.into());
+        group1.insert(8u32.into());
+
+        let mut group2 = HpoGroup::new();
+        group2.insert(2u32.into());
+        group2.insert(4u32.into());
+        group2.insert(5u32.into());
+        group2.insert(7u32.into());
+
+        let result = &group1 & &group2;
+        let expected: Vec<HpoTermId> = vec![2u32.into(), 7u32.into()];
+        assert_eq!(result.ids, expected);
+    }
 }

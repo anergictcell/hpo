@@ -175,21 +175,49 @@ impl<'a> IntoIterator for &'a HpoGroup {
 impl BitOr for &HpoGroup {
     type Output = HpoGroup;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn bitor(self, rhs: &HpoGroup) -> HpoGroup {
+        // The code looks really ugly here, but this is done
+        // for some huge performance gains
+        // We assert that both HpoGroups are sorted ascendingly
+        // so we can iterate them in parallel and always fetch
+        // the smaller value until both are depleted
         let mut group = HpoGroup::with_capacity(self.len() + rhs.len());
-        let (large, small) = if self.len() > rhs.len() {
-            (self, rhs)
-        } else {
-            (rhs, self)
-        };
+        let mut lhs = self.iter();
+        let mut rhs = rhs.iter();
 
-        for id in &large.ids {
-            group.insert_unchecked(*id);
+        let mut left = lhs.next();
+        let mut right = rhs.next();
+
+        // This will loop until both iterators are depleted
+        loop {
+            match (left, right) {
+                (Some(l), Some(r)) => match l.cmp(&r) {
+                    std::cmp::Ordering::Less => {
+                        group.insert_unchecked(l);
+                        left = lhs.next();
+                    }
+                    std::cmp::Ordering::Greater => {
+                        group.insert_unchecked(r);
+                        right = rhs.next();
+                    }
+                    std::cmp::Ordering::Equal => {
+                        group.insert_unchecked(l);
+                        left = lhs.next();
+                        right = rhs.next();
+                    }
+                },
+                (Some(l), None) => {
+                    group.insert_unchecked(l);
+                    left = lhs.next();
+                }
+                (None, Some(r)) => {
+                    group.insert_unchecked(r);
+                    right = rhs.next();
+                }
+                _ => return group,
+            }
         }
-        for id in &small.ids {
-            group.insert(*id);
-        }
-        group
     }
 }
 
@@ -212,8 +240,8 @@ impl BitOr<&HpoGroup> for HpoGroup {
 impl BitOr<HpoTermId> for &HpoGroup {
     type Output = HpoGroup;
 
+    #[allow(clippy::suspicious_arithmetic_impl)]
     fn bitor(self, rhs: HpoTermId) -> HpoGroup {
-        #[allow(clippy::suspicious_arithmetic_impl)]
         let mut group = HpoGroup::with_capacity(self.len() + 1);
         group.ids.extend(&self.ids);
         group.insert(rhs);

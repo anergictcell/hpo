@@ -3,6 +3,8 @@
 //! # Examples
 //!
 //! ```rust
+//! use hpo::Ontology;
+//!
 //! let old_ontology = Ontology::default();
 //! let new_ontology = Ontology::default();
 //!

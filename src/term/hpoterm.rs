@@ -828,7 +828,7 @@ impl<'a> HpoTerm<'a> {
         other.child_of(self)
     }
 
-    /// Returns the shortest path to traverse from `self` ot `other`, if `other` is a parent of `self`
+    /// Returns the shortest path to traverse from `self` to `other`, if `other` is a parent of `self`
     ///
     /// # Examples
     ///
@@ -896,8 +896,79 @@ impl<'a> HpoTerm<'a> {
             .min()
     }
 
+    /// Returns the shortest path to traverse from `self` to `other`
+    ///
+    /// This method is not optimized for performance
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology, HpoTermId};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let term1 = ontology.hpo(25454u32.into()).unwrap();
+    /// let term3 = ontology.hpo(12639u32.into()).unwrap();
+    ///
+    /// assert_eq!(
+    ///     term1.path_to_term(&term3).unwrap(),
+    ///     vec![
+    ///         HpoTermId::try_from("HP:0001939").unwrap(),
+    ///         HpoTermId::try_from("HP:0000118").unwrap(),
+    ///         HpoTermId::try_from("HP:0000707").unwrap(),
+    ///         HpoTermId::try_from("HP:0012639").unwrap()
+    ///     ]
+    /// );
+    /// ```
+    pub fn path_to_term(&self, other: &HpoTerm) -> Option<Vec<HpoTermId>> {
+        if other.parent_of(self) {
+            return self.path_to_ancestor(other);
+        }
+        if self.parent_of(other) {
+            return other.path_to_ancestor(self).map(|terms| {
+                terms
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .chain(std::iter::once(&other.id()))
+                    .copied()
+                    .collect()
+            });
+        }
+
+        self.all_common_ancestors(other)
+            .iter()
+            .map(|ancestor| {
+                (
+                    ancestor,
+                    self.distance_to_ancestor(&ancestor)
+                        .expect("self must have a path to its ancestor")
+                        + other
+                            .distance_to_ancestor(&ancestor)
+                            .expect("other must have a path to its ancestor"),
+                )
+            })
+            .min_by_key(|tuple| tuple.1)
+            .map(|min| {
+                self.path_to_ancestor(&min.0)
+                    .expect("self must have a path to its ancestor")
+                    .iter()
+                    .chain(
+                        other
+                            .path_to_ancestor(&min.0)
+                            .expect("other must have a path to its ancestor")
+                            .iter()
+                            .rev()
+                            .skip(1),
+                    )
+                    .chain(std::iter::once(&other.id()))
+                    .copied()
+                    .collect()
+            })
+    }
+
     /// Returns `true` if the term is flagged as obsolete
-    pub fn obsolete(&self) -> bool {
+    pub fn is_obsolete(&self) -> bool {
         self.obsolete
     }
 
@@ -988,7 +1059,7 @@ impl PartialEq for HpoTerm<'_> {
 impl Eq for HpoTerm<'_> {}
 
 #[cfg(test)]
-mod test {
+mod test_categories {
     use super::*;
     use crate::Ontology;
 
@@ -1044,5 +1115,73 @@ mod test {
 
         assert!(inheritance.is_modifier());
         assert!(!nervous_system.is_modifier());
+    }
+}
+
+#[cfg(test)]
+mod test_path_to_term {
+    use super::*;
+
+    #[test]
+    fn normal() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(25454u32.into()).unwrap();
+        let term2 = ontology.hpo(12639u32.into()).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![
+                HpoTermId::try_from("HP:0001939").unwrap(),
+                HpoTermId::try_from("HP:0000118").unwrap(),
+                HpoTermId::try_from("HP:0000707").unwrap(),
+                HpoTermId::try_from("HP:0012639").unwrap()
+            ]
+        );
+
+        assert_eq!(
+            term2.path_to_term(&term1).unwrap(),
+            vec![
+                HpoTermId::try_from("HP:0000707").unwrap(),
+                HpoTermId::try_from("HP:0000118").unwrap(),
+                HpoTermId::try_from("HP:0001939").unwrap(),
+                HpoTermId::try_from("HP:0025454").unwrap(),
+            ]
+        );
+    }
+
+    #[test]
+    fn same_term() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(12639u32.into()).unwrap();
+        let term2 = ontology.hpo(12639u32.into()).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![HpoTermId::try_from("HP:0012639").unwrap()]
+        );
+    }
+
+    #[test]
+    fn parent_term() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(12639u32.into()).unwrap();
+        let term2 = ontology.hpo(707u32.into()).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![HpoTermId::try_from("HP:0000707").unwrap()]
+        );
+    }
+
+    #[test]
+    fn child_term() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(707u32.into()).unwrap();
+        let term2 = ontology.hpo(12639u32.into()).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![HpoTermId::try_from("HP:0012639").unwrap()]
+        );
     }
 }

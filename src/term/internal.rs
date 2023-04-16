@@ -262,7 +262,7 @@ impl TryFrom<Bytes<'_>> for HpoTermInternal {
 impl<'a> From<&HpoTerm<'a>> for HpoTermInternal {
     fn from(term: &HpoTerm) -> Self {
         let mut internal = Self::new(term.name().to_string(), term.id());
-        *internal.obsolete_mut() = term.obsolete();
+        *internal.obsolete_mut() = term.is_obsolete();
         *internal.replacement_mut() = term.replaced_by().map(|repl| repl.id());
         internal
     }

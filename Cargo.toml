@@ -34,3 +34,6 @@ harness = false
 [[bench]]
 name = "ancestors"
 harness = false
+
+[profile.release]
+lto = true

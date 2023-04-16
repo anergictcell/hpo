@@ -4,7 +4,7 @@ use hpo::Ontology;
 
 fn main() {
     let mut args = std::env::args();
-    if args.len() != 2 {
+    if args.len() < 2 {
         panic!("Usage: ./bench_read_ontology /path/to/ontology");
     }
     let path_arg = args.nth(1).unwrap();

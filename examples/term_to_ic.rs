@@ -1,7 +1,9 @@
+//! Prints every term and its associated InformationContent
+
 use hpo::Ontology;
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
     for term in ontology.hpos() {
         println!(
@@ -26,7 +28,7 @@ with open("term2ic.py.txt", "w") as fh:
 */
 
 /*
-Diff'ing:
+Diff'ing (only use the first 3 decimal digits to ignore rounding errors:
 
 diff \
 <(awk '{print $1, substr($2,1,5), substr($3,1,5)}' example_data/term2ic.rs.txt) \

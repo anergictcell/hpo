@@ -14,8 +14,8 @@
 //! use hpo::term::InformationContentKind;
 //!
 //! let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-//! let term1 = ontology.hpo(12638u32.into()).unwrap();
-//! let term2 = ontology.hpo(100547u32.into()).unwrap();
+//! let term1 = ontology.hpo(12638u32).unwrap();
+//! let term2 = ontology.hpo(100547u32).unwrap();
 //!
 //! let ic = Builtins::GraphIc(InformationContentKind::Omim);
 //!
@@ -41,9 +41,9 @@
 //! }
 //!
 //! let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-//! let term1 = ontology.hpo(12638u32.into()).unwrap();
+//! let term1 = ontology.hpo(12638u32).unwrap();
 //! // ==> "Abnormal nervous system physiology"
-//! let term2 = ontology.hpo(100547u32.into()).unwrap();
+//! let term2 = ontology.hpo(100547u32).unwrap();
 //! // ==> "Abnormal forebrain morphology"
 //!
 //! let ic = Foo{};
@@ -84,9 +84,9 @@ pub use defaults::{
 /// }
 ///
 /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-/// let term1 = ontology.hpo(12638u32.into()).unwrap();
+/// let term1 = ontology.hpo(12638u32).unwrap();
 /// // ==> "Abnormal nervous system physiology"
-/// let term2 = ontology.hpo(100547u32.into()).unwrap();
+/// let term2 = ontology.hpo(100547u32).unwrap();
 /// // ==> "Abnormal forebrain morphology"
 ///
 /// let ic = Foo{};
@@ -273,21 +273,21 @@ impl SimilarityCombiner for StandardCombiner {
 /// fn set1(ontology: &Ontology) -> HpoSet {
 /// // ...
 /// # let mut hpos = HpoGroup::new();
-/// # hpos.insert(707u32.into());
-/// # hpos.insert(12639u32.into());
-/// # hpos.insert(12638u32.into());
-/// # hpos.insert(818u32.into());
-/// # hpos.insert(2715u32.into());
+/// # hpos.insert(707u32);
+/// # hpos.insert(12639u32);
+/// # hpos.insert(12638u32);
+/// # hpos.insert(818u32);
+/// # hpos.insert(2715u32);
 /// # HpoSet::new(ontology, hpos)
 /// }
 ///
 /// fn set2(ontology: &Ontology) -> HpoSet {
 /// // ...
 /// # let mut hpos = HpoGroup::new();
-/// # hpos.insert(100547u32.into());
-/// # hpos.insert(12638u32.into());
-/// # hpos.insert(864u32.into());
-/// # hpos.insert(25454u32.into());
+/// # hpos.insert(100547u32);
+/// # hpos.insert(12638u32);
+/// # hpos.insert(864u32);
+/// # hpos.insert(25454u32);
 /// # HpoSet::new(ontology, hpos)
 /// }
 ///
@@ -315,21 +315,21 @@ impl SimilarityCombiner for StandardCombiner {
 /// fn set1(ontology: &Ontology) -> HpoSet {
 /// // ...
 /// # let mut hpos = HpoGroup::new();
-/// # hpos.insert(707u32.into());
-/// # hpos.insert(12639u32.into());
-/// # hpos.insert(12638u32.into());
-/// # hpos.insert(818u32.into());
-/// # hpos.insert(2715u32.into());
+/// # hpos.insert(707u32);
+/// # hpos.insert(12639u32);
+/// # hpos.insert(12638u32);
+/// # hpos.insert(818u32);
+/// # hpos.insert(2715u32);
 /// # HpoSet::new(ontology, hpos)
 /// }
 ///
 /// fn set2(ontology: &Ontology) -> HpoSet {
 /// // ...
 /// # let mut hpos = HpoGroup::new();
-/// # hpos.insert(100547u32.into());
-/// # hpos.insert(12638u32.into());
-/// # hpos.insert(864u32.into());
-/// # hpos.insert(25454u32.into());
+/// # hpos.insert(100547u32);
+/// # hpos.insert(12638u32);
+/// # hpos.insert(864u32);
+/// # hpos.insert(25454u32);
 /// # HpoSet::new(ontology, hpos)
 /// }
 ///
@@ -411,21 +411,21 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
 /// fn set1(ontology: &Ontology) -> HpoSet {
 /// // ...
 /// # let mut hpos = HpoGroup::new();
-/// # hpos.insert(707u32.into());
-/// # hpos.insert(12639u32.into());
-/// # hpos.insert(12638u32.into());
-/// # hpos.insert(818u32.into());
-/// # hpos.insert(2715u32.into());
+/// # hpos.insert(707u32);
+/// # hpos.insert(12639u32);
+/// # hpos.insert(12638u32);
+/// # hpos.insert(818u32);
+/// # hpos.insert(2715u32);
 /// # HpoSet::new(ontology, hpos)
 /// }
 ///
 /// fn set2(ontology: &Ontology) -> HpoSet {
 /// // ...
 /// # let mut hpos = HpoGroup::new();
-/// # hpos.insert(100547u32.into());
-/// # hpos.insert(12638u32.into());
-/// # hpos.insert(864u32.into());
-/// # hpos.insert(25454u32.into());
+/// # hpos.insert(100547u32);
+/// # hpos.insert(12638u32);
+/// # hpos.insert(864u32);
+/// # hpos.insert(25454u32);
 /// # HpoSet::new(ontology, hpos)
 /// }
 ///

@@ -109,12 +109,12 @@ impl HpoTermInternal {
         }
     }
 
-    pub fn add_parent(&mut self, parent_id: HpoTermId) {
-        self.parents.insert(parent_id);
+    pub fn add_parent<I: Into<HpoTermId>>(&mut self, parent_id: I) {
+        self.parents.insert(parent_id.into());
     }
 
-    pub fn add_child(&mut self, child_id: HpoTermId) {
-        self.children.insert(child_id);
+    pub fn add_child<I: Into<HpoTermId>>(&mut self, child_id: I) {
+        self.children.insert(child_id.into());
     }
 
     pub fn add_gene(&mut self, gene_id: GeneId) -> bool {

@@ -34,20 +34,20 @@ use crate::Ontology;
 ///
 /// // create one set
 /// let mut hpos = HpoGroup::new();
-/// hpos.insert(707u32.into());
-/// hpos.insert(12639u32.into());
-/// hpos.insert(12638u32.into());
-/// hpos.insert(818u32.into());
-/// hpos.insert(2715u32.into());
+/// hpos.insert(707u32);
+/// hpos.insert(12639u32);
+/// hpos.insert(12638u32);
+/// hpos.insert(818u32);
+/// hpos.insert(2715u32);
 /// let set = HpoSet::new(&ontology, hpos);
 /// assert_eq!(set.len(), 5);
 ///
 /// // create another set
 /// let mut hpos_2 = HpoGroup::new();
-/// hpos_2.insert(100547u32.into());
-/// hpos_2.insert(12638u32.into());
-/// hpos_2.insert(864u32.into());
-/// hpos_2.insert(25454u32.into());
+/// hpos_2.insert(100547u32);
+/// hpos_2.insert(12638u32);
+/// hpos_2.insert(864u32);
+/// hpos_2.insert(25454u32);
 /// let set_2 = HpoSet::new(&ontology, hpos_2);
 /// assert_eq!(set_2.len(), 4);
 ///
@@ -77,11 +77,11 @@ impl<'a> HpoSet<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(707u32.into());
-    /// hpos.insert(12639u32.into());
-    /// hpos.insert(12638u32.into());
-    /// hpos.insert(818u32.into());
-    /// hpos.insert(2715u32.into());
+    /// hpos.insert(707u32);
+    /// hpos.insert(12639u32);
+    /// hpos.insert(12638u32);
+    /// hpos.insert(818u32);
+    /// hpos.insert(2715u32);
     /// let set = HpoSet::new(&ontology, hpos);
     /// assert_eq!(set.len(), 5);
     /// ```
@@ -103,11 +103,11 @@ impl<'a> HpoSet<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(707u32.into());
-    /// hpos.insert(12639u32.into());
-    /// hpos.insert(12638u32.into());
-    /// hpos.insert(818u32.into());
-    /// hpos.insert(2715u32.into());
+    /// hpos.insert(707u32);
+    /// hpos.insert(12639u32);
+    /// hpos.insert(12638u32);
+    /// hpos.insert(818u32);
+    /// hpos.insert(2715u32);
     /// let mut set = HpoSet::new(&ontology, hpos);
     /// assert_eq!(set.len(), 5);
     /// let children = set.child_nodes();
@@ -142,11 +142,11 @@ impl<'a> HpoSet<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(707u32.into());
-    /// hpos.insert(12639u32.into());
-    /// hpos.insert(12638u32.into());
-    /// hpos.insert(818u32.into());
-    /// hpos.insert(2715u32.into());
+    /// hpos.insert(707u32);
+    /// hpos.insert(12639u32);
+    /// hpos.insert(12638u32);
+    /// hpos.insert(818u32);
+    /// hpos.insert(2715u32);
     /// let set = HpoSet::new(&ontology, hpos);
     /// assert_eq!(set.len(), 5);
     /// ```
@@ -195,11 +195,11 @@ impl<'a> HpoSet<'a> {
     /// use hpo::term::HpoGroup;
     /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
     /// # let mut hpos = HpoGroup::new();
-    /// # hpos.insert(707u32.into());
-    /// # hpos.insert(12639u32.into());
-    /// # hpos.insert(12638u32.into());
-    /// # hpos.insert(818u32.into());
-    /// # hpos.insert(2715u32.into());
+    /// # hpos.insert(707u32);
+    /// # hpos.insert(12639u32);
+    /// # hpos.insert(12638u32);
+    /// # hpos.insert(818u32);
+    /// # hpos.insert(2715u32);
     /// # HpoSet::new(ontology, hpos)
     /// # }
     ///
@@ -242,11 +242,11 @@ impl<'a> HpoSet<'a> {
     /// use hpo::term::HpoGroup;
     /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
     /// # let mut hpos = HpoGroup::new();
-    /// # hpos.insert(707u32.into());
-    /// # hpos.insert(12639u32.into());
-    /// # hpos.insert(12638u32.into());
-    /// # hpos.insert(818u32.into());
-    /// # hpos.insert(2715u32.into());
+    /// # hpos.insert(707u32);
+    /// # hpos.insert(12639u32);
+    /// # hpos.insert(12638u32);
+    /// # hpos.insert(818u32);
+    /// # hpos.insert(2715u32);
     /// # HpoSet::new(ontology, hpos)
     /// # }
     ///
@@ -296,11 +296,11 @@ impl<'a> HpoSet<'a> {
     /// use hpo::term::HpoGroup;
     /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
     /// # let mut hpos = HpoGroup::new();
-    /// # hpos.insert(707u32.into());
-    /// # hpos.insert(12639u32.into());
-    /// # hpos.insert(12638u32.into());
-    /// # hpos.insert(818u32.into());
-    /// # hpos.insert(2715u32.into());
+    /// # hpos.insert(707u32);
+    /// # hpos.insert(12639u32);
+    /// # hpos.insert(12638u32);
+    /// # hpos.insert(818u32);
+    /// # hpos.insert(2715u32);
     /// # HpoSet::new(ontology, hpos)
     /// # }
     ///
@@ -350,11 +350,11 @@ impl<'a> HpoSet<'a> {
     /// use hpo::term::HpoGroup;
     /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
     /// # let mut hpos = HpoGroup::new();
-    /// # hpos.insert(707u32.into());
-    /// # hpos.insert(12639u32.into());
-    /// # hpos.insert(12638u32.into());
-    /// # hpos.insert(818u32.into());
-    /// # hpos.insert(2715u32.into());
+    /// # hpos.insert(707u32);
+    /// # hpos.insert(12639u32);
+    /// # hpos.insert(12638u32);
+    /// # hpos.insert(818u32);
+    /// # hpos.insert(2715u32);
     /// # HpoSet::new(ontology, hpos)
     /// # }
     ///
@@ -396,8 +396,8 @@ impl<'a> HpoSet<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(12639u32.into());
-    /// hpos.insert(818u32.into());
+    /// hpos.insert(12639u32);
+    /// hpos.insert(818u32);
     /// let set = HpoSet::new(&ontology, hpos);
     /// // `ABCD1 (HGNC:215)` is linked to `HP:0012639`
     /// assert!(set.gene_ids().contains(&215u32.into()));
@@ -429,8 +429,8 @@ impl<'a> HpoSet<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(12639u32.into());
-    /// hpos.insert(818u32.into());
+    /// hpos.insert(12639u32);
+    /// hpos.insert(818u32);
     /// let set = HpoSet::new(&ontology, hpos);
     /// // `Microphthalmia, syndromic 6 (OMIM:607932)` is linked to `HP:0012639`
     /// assert!(set.omim_disease_ids().contains(&607932u32.into()));
@@ -469,11 +469,11 @@ impl<'a> HpoSet<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(707u32.into());
-    /// hpos.insert(12639u32.into());
-    /// hpos.insert(12638u32.into());
-    /// hpos.insert(818u32.into());
-    /// hpos.insert(2715u32.into());
+    /// hpos.insert(707u32);
+    /// hpos.insert(12639u32);
+    /// hpos.insert(12638u32);
+    /// hpos.insert(818u32);
+    /// hpos.insert(2715u32);
     /// let set = HpoSet::new(&ontology, hpos);
     /// assert_eq!(set.information_content().unwrap().gene(), 0.14216587);
     /// ```
@@ -511,19 +511,19 @@ impl<'a> HpoSet<'a> {
     ///
     /// // create one set
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(707u32.into());
-    /// hpos.insert(12639u32.into());
-    /// hpos.insert(12638u32.into());
-    /// hpos.insert(818u32.into());
-    /// hpos.insert(2715u32.into());
+    /// hpos.insert(707u32);
+    /// hpos.insert(12639u32);
+    /// hpos.insert(12638u32);
+    /// hpos.insert(818u32);
+    /// hpos.insert(2715u32);
     /// let set = HpoSet::new(&ontology, hpos);
     ///
     /// // create another set
     /// let mut hpos_2 = HpoGroup::new();
-    /// hpos_2.insert(100547u32.into());
-    /// hpos_2.insert(12638u32.into());
-    /// hpos_2.insert(864u32.into());
-    /// hpos_2.insert(25454u32.into());
+    /// hpos_2.insert(100547u32);
+    /// hpos_2.insert(12638u32);
+    /// hpos_2.insert(864u32);
+    /// hpos_2.insert(25454u32);
     /// let set_2 = HpoSet::new(&ontology, hpos_2);
     ///
     /// let similarity = set.similarity(
@@ -558,8 +558,8 @@ impl<'a> HpoSet<'a> {
     ///
     /// // create one set
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(707u32.into());
-    /// hpos.insert(12639u32.into());
+    /// hpos.insert(707u32);
+    /// hpos.insert(12639u32);
     ///
     /// let set = HpoSet::new(&ontology, hpos);
     ///
@@ -586,8 +586,8 @@ impl<'a> HpoSet<'a> {
     ///
     /// // create one set
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(707u32.into());
-    /// hpos.insert(12639u32.into());
+    /// hpos.insert(707u32);
+    /// hpos.insert(12639u32);
     ///
     /// let set = HpoSet::new(&ontology, hpos);
     ///
@@ -621,20 +621,20 @@ mod test {
 
         // create one set
         let mut hpos = HpoGroup::new();
-        hpos.insert(707u32.into());
-        hpos.insert(12639u32.into());
-        hpos.insert(12638u32.into());
-        hpos.insert(818u32.into());
-        hpos.insert(2715u32.into());
+        hpos.insert(707u32);
+        hpos.insert(12639u32);
+        hpos.insert(12638u32);
+        hpos.insert(818u32);
+        hpos.insert(2715u32);
         let set = HpoSet::new(&ontology, hpos);
         assert_eq!(set.len(), 5);
 
         // create another set
         let mut hpos_2 = HpoGroup::new();
-        hpos_2.insert(100_547u32.into());
-        hpos_2.insert(12638u32.into());
-        hpos_2.insert(864u32.into());
-        hpos_2.insert(25454u32.into());
+        hpos_2.insert(100_547u32);
+        hpos_2.insert(12638u32);
+        hpos_2.insert(864u32);
+        hpos_2.insert(25454u32);
         let set_2 = HpoSet::new(&ontology, hpos_2);
         assert_eq!(set_2.len(), 4);
 
@@ -657,11 +657,11 @@ mod test {
         ontology.add_term(obsolete_term);
 
         let mut hpos = HpoGroup::new();
-        hpos.insert(707u32.into());
-        hpos.insert(12639u32.into());
-        hpos.insert(12638u32.into());
-        hpos.insert(666u32.into());
-        hpos.insert(2715u32.into());
+        hpos.insert(707u32);
+        hpos.insert(12639u32);
+        hpos.insert(12638u32);
+        hpos.insert(666u32);
+        hpos.insert(2715u32);
         let mut set = HpoSet::new(&ontology, hpos);
         assert_eq!(set.len(), 5);
 
@@ -682,11 +682,11 @@ mod test {
         ontology.add_term(obsolete_term.clone());
 
         let mut hpos = HpoGroup::new();
-        hpos.insert(707u32.into());
-        hpos.insert(12639u32.into());
-        hpos.insert(12638u32.into());
-        hpos.insert(666u32.into());
-        hpos.insert(2715u32.into());
+        hpos.insert(707u32);
+        hpos.insert(12639u32);
+        hpos.insert(12638u32);
+        hpos.insert(666u32);
+        hpos.insert(2715u32);
         let set = HpoSet::new(&ontology, hpos);
         assert_eq!(set.len(), 5);
 
@@ -710,11 +710,11 @@ mod test {
         ontology.add_term(obsolete_term.clone());
 
         let mut hpos = HpoGroup::new();
-        hpos.insert(707u32.into());
-        hpos.insert(12639u32.into());
-        hpos.insert(12638u32.into());
-        hpos.insert(666u32.into());
-        hpos.insert(2715u32.into());
+        hpos.insert(707u32);
+        hpos.insert(12639u32);
+        hpos.insert(12638u32);
+        hpos.insert(666u32);
+        hpos.insert(2715u32);
         let mut set = HpoSet::new(&ontology, hpos);
         assert_eq!(set.len(), 5);
 

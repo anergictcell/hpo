@@ -71,8 +71,7 @@ fn example() {
     let term = ontology.hpo(hpo_id);
 
     // get a single HPO term using `u32` part of HPO ID
-    let hpo_id = HpoTermId::from(123u32);
-    let term = ontology.hpo(hpo_id);
+    let term = ontology.hpo(123u32);
 
     // get a single Omim disease
     let disease_id = OmimDiseaseId::from(12345u32);
@@ -95,7 +94,7 @@ use hpo::Ontology;
 fn example() {
     let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
 
-    let term = ontology.hpo(123u32.into()).unwrap();
+    let term = ontology.hpo(123u32).unwrap();
 
     assert_eq!("Abnormality of the nervous system", term.name());
     assert_eq!("HP:000123".to_string(), term.id().to_string());
@@ -110,7 +109,7 @@ fn example() {
         println!("{}", p.name())
     }
 
-    let term2 = ontology.hpo(1u32.into()).unwrap();
+    let term2 = ontology.hpo(1u32).unwrap();
 
     assert!(term2.parent_of(&term));
     assert!(term.child_of(&term2));
@@ -125,8 +124,8 @@ use hpo::term::InformationContentKind;
 
 fn example() {
     let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
-    let term1 = ontology.hpo(123u32.into()).unwrap();
-    let term2 = ontology.hpo(1u32.into()).unwrap();
+    let term1 = ontology.hpo(123u32).unwrap();
+    let term2 = ontology.hpo(1u32).unwrap();
 
     let ic = GraphIc::new(InformationContentKind::Omim);
     let similarity = term1.similarity_score(&term2, &ic);
@@ -146,11 +145,11 @@ fn example() {
     let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
 
     let mut hpos = HpoGroup::new();
-    hpos.insert(2943u32.into());
-    hpos.insert(8458u32.into());
-    hpos.insert(100884u32.into());
-    hpos.insert(2944u32.into());
-    hpos.insert(2751u32.into());
+    hpos.insert(2943u32);
+    hpos.insert(8458u32);
+    hpos.insert(100884u32);
+    hpos.insert(2944u32);
+    hpos.insert(2751u32);
     let patient_ci = HpoSet::new(&ontology, hpos);
 
     let mut enrichments = gene_enrichment(&ontology, &patient_ci);

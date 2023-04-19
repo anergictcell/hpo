@@ -15,11 +15,11 @@
 //! fn clinial_info_set(ontology: &Ontology) -> HpoSet {
 //! // ...
 //! # let mut hpos = HpoGroup::new();
-//! # hpos.insert(707u32.into());
-//! # hpos.insert(12639u32.into());
-//! # hpos.insert(12638u32.into());
-//! # hpos.insert(818u32.into());
-//! # hpos.insert(2715u32.into());
+//! # hpos.insert(707u32);
+//! # hpos.insert(12639u32);
+//! # hpos.insert(12638u32);
+//! # hpos.insert(818u32);
+//! # hpos.insert(2715u32);
 //! # HpoSet::new(ontology, hpos)
 //! }
 //!

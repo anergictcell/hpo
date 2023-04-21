@@ -1,29 +1,24 @@
+//! Compare two different ontologies
+//!
+//! This is helpful for checking correctness of the parser modules
+//! or to see changes after a new HPO release
+
+use hpo::comparison::Comparison;
 use hpo::{HpoTermId, Ontology};
-use std::path::Path;
+use std::{path::Path, process};
 
-fn main() {
-    let mut args = std::env::args();
+fn ontology(path_arg: &str) -> Ontology {
+    let path = Path::new(path_arg);
 
-    if args.len() != 3 {
-        panic!("Usage: ./compare_ontologies /path/to/old/ontology /path/to/new/ontology");
+    match path.is_file() {
+        true => Ontology::from_binary(path).unwrap(),
+        false => Ontology::from_standard(&path.to_string_lossy()).unwrap(),
     }
-    let arg_old = args.nth(1).unwrap();
-    let arg_new = args.next().unwrap();
+}
 
-    let path_old = Path::new(&arg_old);
-    let path_new = Path::new(&arg_new);
-
-    let lhs = match path_old.is_file() {
-        true => Ontology::from_binary(path_old).unwrap(),
-        false => Ontology::from_standard(&path_old.to_string_lossy()).unwrap(),
-    };
-
-    let rhs = match path_new.is_file() {
-        true => Ontology::from_binary(path_new).unwrap(),
-        false => Ontology::from_standard(&path_new.to_string_lossy()).unwrap(),
-    };
-
-    let diffs = lhs.compare(&rhs);
+/// Prints some basic stats about the differences
+/// between two Ontologies
+fn overview(diffs: &Comparison) {
     println!("#Numbers\n{}", diffs);
     println!("#Change\tID\tName");
     for term in diffs.added_hpo_terms() {
@@ -48,7 +43,10 @@ fn main() {
     for disease in diffs.removed_omim_diseases() {
         println!("Removed\t{}\t{}", disease.id(), disease.name());
     }
+}
 
+/// Prints info about Term-specific changes
+fn changed_terms(diffs: &Comparison) {
     println!(
         "#Term Delta\tID\tOld Name:New Name\tAdded Parents\tRemoved Parents\tObsolete\tReplacement"
     );
@@ -87,7 +85,10 @@ fn main() {
         print_replacement_diff(term.changed_replacement());
         println!();
     }
+}
 
+/// Prints info about Gene-specific changes
+fn changed_genes(diffs: &Comparison) {
     println!("#Gene Delta\tID\tOld Name:New Name\tAdded Parents\tRemoved Parents");
     for term in diffs.changed_genes() {
         print!("Delta\t{}", term.id());
@@ -122,7 +123,10 @@ fn main() {
         }
         println!();
     }
+}
 
+/// Prints info about Gene-specific changes
+fn changed_diseases(diffs: &Comparison) {
     println!("#Disease Delta\tID\tOld Name:New Name\tAdded Parents\tRemoved Parents");
     for term in diffs.changed_omim_diseases() {
         print!("Delta\t{}", term.id());
@@ -187,4 +191,27 @@ fn print_replacement_diff(replacements: Option<(Option<HpoTermId>, Option<HpoTer
     } else {
         print!("\t.");
     }
+}
+
+fn main() {
+    let mut args = std::env::args();
+
+    if args.len() != 3 {
+        println!("Compare two Ontologies to each other and print the differences\n\n");
+        println!("Usage:\ncompare_ontologies </PATH/TO/ONTOLOGY> </PATH/TO/OTHER-ONTOLOGY>");
+        println!("e.g.:\ncompare_ontologies tests/ontology.hpo tests/ontology_v2.hpo:\n");
+        process::exit(1)
+    }
+    let arg_old = args.nth(1).unwrap();
+    let arg_new = args.next().unwrap();
+
+    let lhs = ontology(&arg_old);
+    let rhs = ontology(&arg_new);
+
+    let diffs = lhs.compare(&rhs);
+
+    overview(&diffs);
+    changed_terms(&diffs);
+    changed_genes(&diffs);
+    changed_diseases(&diffs);
 }

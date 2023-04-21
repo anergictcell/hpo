@@ -1,7 +1,9 @@
+//! Prints every term and its parents
+
 use hpo::Ontology;
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
     let mut parents: Vec<String> = Vec::new();
     for term in ontology.hpos() {

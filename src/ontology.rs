@@ -1,8 +1,11 @@
+use core::fmt::Debug;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
 use std::ops::BitOr;
 use std::path::Path;
+
+use tracing::debug;
 
 use crate::annotations::AnnotationId;
 use crate::annotations::{Gene, GeneId};
@@ -15,13 +18,10 @@ use crate::u32_from_bytes;
 use crate::HpoResult;
 use crate::{HpoError, HpoTermId};
 
-use core::fmt::Debug;
-
-mod comparison;
+pub mod comparison;
 mod termarena;
 use comparison::Comparison;
 use termarena::Arena;
-use tracing::debug;
 
 #[cfg_attr(doc, aquamarine::aquamarine)]
 /// `Ontology` is the main interface of the `hpo` crate and contains all data

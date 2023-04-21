@@ -17,6 +17,7 @@ pub mod similarity;
 pub mod stats;
 pub mod term;
 
+pub use ontology::comparison;
 pub use ontology::Ontology;
 pub use set::HpoSet;
 pub use term::{HpoTerm, HpoTermId};

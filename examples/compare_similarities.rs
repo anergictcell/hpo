@@ -11,13 +11,22 @@
 //! compare_similarities graphic mutation 100
 //!
 
-use std::io::{self, Write};
+use std::{
+    io::{self, Write},
+    process,
+};
 
 use rayon::prelude::*;
 
 use hpo::{similarity::Builtins, term::InformationContentKind, Ontology};
 fn main() {
     let mut args = std::env::args();
+    if args.len() < 3 {
+        println!("Compare two different similarity algorithms\n\n");
+        println!("Usage\ncompare_similarities <ALGORITHM> <ALGORITHM> [<NUMBER_OF_TERMS>]");
+        println!("e.g.:\ncompare_similarities graphic resnik 100\n");
+        process::exit(1)
+    }
     let sim1_name = args.nth(1).expect("no algorithm 1 specified");
     let sim2_name = args.next().expect("no algorithm 2 specified");
     let n_comparisons = args
@@ -40,7 +49,7 @@ fn main() {
                 let score1 = term1.similarity_score(&term2, &sim1);
                 let score2 = term1.similarity_score(&term2, &sim2);
                 inner_score.push(format!(
-                    "{}\t{}\t{:.4}\t{:.4}",
+                    "{}\t{}\t{:.4}\t{:.4}\n",
                     term1.id(),
                     term2.id(),
                     score1,

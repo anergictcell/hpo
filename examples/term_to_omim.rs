@@ -1,7 +1,9 @@
+//! Prints every term and its associated Omim Disease
+
 use hpo::Ontology;
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
     let mut omim_diseases: Vec<String> = Vec::new();
     for term in ontology.hpos() {

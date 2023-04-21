@@ -5,31 +5,43 @@ This library is a Rust implementation of [PyHPO](https://pypi.org/project/pyhpo/
 ## What is this?
 
 HPO, the [Human Phenotype Ontology](https://hpo.jax.org/app/) is a standard vocabulary of phenotypic abnormalities in human diseases. It is an Ontology, so all terms are connected to each other, similar to a directed graph.  
-This library provides convenient APIs to work with the ontology. The main goals are to compare terms (or sets of terms) to each other and run statistics for enrichment analysis.
 
-For example, the terms `"Migraine without aura"` and `"Migraine with aura"` are more similar to each other than `"Migraine"` and `"Seizure"`. To add more complexity, patients usually have more than one phenotypical abnormality. So in order to compare two patients to each other, we must cross-compare all individual terms. Eventually we might want to cluster hundreds or thousands of patients based on phenotypical similarity to predict diseases based on phenotypes and run statistical analyses.
+This library provides convenient APIs to work with the ontology. The main goals are to compare terms - or sets of terms - to each other and run statistics for enrichment analysis.
 
-The [PyHPO](https://pypi.org/project/pyhpo/) Python library provides functionality for these comparisons, providing several different similarity and grouping algorithms. However, since its written in Python it is very slow. Unfortunately the design of PyHPO does not allow multithreading or parallel processing, which makes scaling rather difficult.
-
-I want to overcome these limitations here with a Rust library.
-
-There is some info about the plans for the implementation in the [Technical Design document](https://github.com/anergictcell/hpo/blob/main/TechnicalDesign.md)
-
-
-If you find this project interesting and want to contribute, please get in touch, I could definitely need some help.
+### Features
+- Calculate the similarity of HPO terms
+- Calculate the similarity of multiple sets of HPO terms (e.g. a patient's clinical information)
+- Enrichment analysis of genes and diseases in sets of HPO terms
+- Compare different HPO versions
+- Graph based analysis of the ontology
+- Completely written in Rust, so it's **🚀blazingly fast🚀**<sup>TM</sup> ([Benchmarks](#benchmarks))
 
 ## What is the current state?
 
-At the moment, this library provides most of the functionality of `PyHPO` and it does so much much faster (**Blazingly fast**). For example, to calculate the `GraphIC` similarity for 400 x 400 terms, `PyHPO` runs for about 40 seconds on my MacBook Air M1. This Rust based `hpo` library finishes in less than 1 second. I can run a pairwise comparison of all 17,059 terms to each other in 13 seconds. `PyHPO` would need several hours for the same task.
-`hpo` also allows multithreading, e.g. using rayon.
+The library is pretty much feature-complete, at least for my use-cases. If you have any feature-requests, please open an Issue or get in touch. I'm very much interested in getting feedback and new ideas what to improve.
 
-You can check out some examples, including benchmarks, in the `examples` folder. I sometimes also include the corresponding Python code. As with all benchmarks, your mileage may vary, depending on your computer. But the overall trend stays the same.
+The API is mostly stable, but I might refactor some parts a bit for easier use and performance gain.
 
-## API
+If you find this project interesting and want to contribute, please get in touch, I could definitely need some help.
 
-The API is quite similar to the `PyHPO` functionality, but has several adoptions for more idiomatic Rust code and performance improvements.
-Some examples are below, more examples can be found in the `examples` subfolder.
-Most parts of the public API are documented inline and on [`docs.rs`](https://docs.rs/hpo/latest/hpo/)
+## Documentation
+The public API is fully documented on [`docs.rs`](https://docs.rs/hpo/latest/hpo/)
+
+The main structs used in `hpo` are:
+- The [`Ontology`](https://docs.rs/hpo/latest/hpo/struct.Ontology.html) is the main struct and entrypoint in `hpo`.
+- [`HpoTerm`](https://docs.rs/hpo/latest/hpo/term/struct.HpoTerm.html) represents a single HPO term and contains plenty of functionality around them.
+- [`HpoSet`](https://docs.rs/hpo/latest/hpo/struct.HpoSet.html) is a collection of `HpoTerm`s, like a patient's clinical information.
+- [`Gene`](https://docs.rs/hpo/latest/hpo/annotations/struct.Gene.html) represents a single gene, including information about associated `HpoTerm`s.
+- [`OmimDisease`](https://docs.rs/hpo/latest/hpo/annotations/struct.OmimDisease.html) represents a single OMIM-diseases, including information about associated `HpoTerm`s.
+
+The most relevant modules are:
+- [`annotations`](https://docs.rs/hpo/latest/hpo/annotations/index.html) contains the `Gene` and `OmimDisease` structs, and some related important types.
+- [`similarity`](https://docs.rs/hpo/latest/hpo/similarity/index.html) contains structs and helper functions for similarity comparisons for `HpoTerm` and `HpoSet`.
+- [`stats`](https://docs.rs/hpo/latest/hpo/stats/index.html) contains functions to calculate the hypergeometric enrichment score of genes or diseases.
+
+
+## Examples
+Some (more or less random) examples are included in the [`examples` folder](https://github.com/anergictcell/hpo/tree/main/examples).
 
 ### Ontology
 ```rust
@@ -153,3 +165,21 @@ fn example() {
     }
 }
 ```
+
+## Benchmarks
+As the saying goes: "Make it work, make it good, make it fast". The *work* and *good* parts are realized in [PyHPO](https://pypi.org/project/pyhpo/). And even though I tried my best to make it *fast*, I was still hungry for more. So I started developing the `hpo` Rust library in December 2022. Even without micro-benchmarking and tuning performance as much as I did for `PyHPO`, `hpo` is indeed much much faster already now.
+
+The below benchmarks were run non scientificially and your mileage may vary. I used a MacBook Air M1, `rustc 1.68.0`, `Python 3.9` and `/usr/bin/time` for timing.
+
+| Benchmark | `PyHPO` | `hpo` (single-threaded) | `hpo` (multi-threaded) |
+| --------- | ----- | --- | --- |
+| Read and Parse Ontology | 6.4 s | 0.25 s | 0.25 s |
+| Similarity of 17,245 x 1,000 terms | 98.5 s | 3.9 s | 1.0 s |
+| Similarity of GBA1 to all Diseases | 380 s | 18.2 s | 3.9 s |
+| Disease enrichment in all Genes | 11.8 s | 0.5 s | 0.3 s |
+| Common ancestors of 17,245 x 10,000 terms | 225.2 s | 11.1 | 2.5 |
+
+
+
+## Technical design
+There is some info about the plans for the implementation in the [Technical Design document](https://github.com/anergictcell/hpo/blob/main/TechnicalDesign.md)

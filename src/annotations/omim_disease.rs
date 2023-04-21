@@ -96,7 +96,7 @@ impl OmimDisease {
     }
 
     /// Connect another [HPO term](`crate::HpoTerm`) to the disease
-    pub fn add_term(&mut self, term_id: HpoTermId) -> bool {
+    pub fn add_term<I: Into<HpoTermId>>(&mut self, term_id: I) -> bool {
         self.hpos.insert(term_id)
     }
 
@@ -324,8 +324,8 @@ mod test {
     #[test]
     fn disease_to_binary() {
         let mut disease = OmimDisease::new(123u32.into(), "FooBar");
-        disease.add_term(66u32.into());
-        disease.add_term(77u32.into());
+        disease.add_term(66u32);
+        disease.add_term(77u32);
 
         let bin = disease.as_bytes();
 
@@ -335,8 +335,8 @@ mod test {
     #[test]
     fn disease_to_and_from_binary() {
         let mut disease = OmimDisease::new(123u32.into(), "FooBar");
-        disease.add_term(66u32.into());
-        disease.add_term(77u32.into());
+        disease.add_term(66u32);
+        disease.add_term(77u32);
 
         let bin = disease.as_bytes();
 
@@ -353,8 +353,8 @@ mod test {
     #[test]
     fn disease_with_non_utf8_name() {
         let mut disease = OmimDisease::new(123u32.into(), "Foo😀Bar");
-        disease.add_term(66u32.into());
-        disease.add_term(77u32.into());
+        disease.add_term(66u32);
+        disease.add_term(77u32);
 
         let bin = disease.as_bytes();
 
@@ -375,8 +375,8 @@ mod test {
     fn disease_with_long_name() {
         let name = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
         let mut disease = OmimDisease::new(123u32.into(), name);
-        disease.add_term(66u32.into());
-        disease.add_term(77u32.into());
+        disease.add_term(66u32);
+        disease.add_term(77u32);
 
         let bin = disease.as_bytes();
 
@@ -393,8 +393,8 @@ mod test {
     #[test]
     fn disease_with_wrong_length() {
         let mut disease = OmimDisease::new(123u32.into(), "foobar");
-        disease.add_term(66u32.into());
-        disease.add_term(77u32.into());
+        disease.add_term(66u32);
+        disease.add_term(77u32);
 
         let mut bin = disease.as_bytes();
 

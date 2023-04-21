@@ -46,7 +46,7 @@ use termarena::Arena;
 /// assert_eq!(root_term.name(), "All");
 ///
 /// // simplified way to get an `HpoTerm` by using the `u32` `HpoTermId`
-/// let term = ontology.hpo(118u32.into()).unwrap();
+/// let term = ontology.hpo(118u32).unwrap();
 /// assert_eq!(term.name(), "Phenotypic abnormality");
 ///
 /// // get all genes of the ontology
@@ -337,8 +337,8 @@ impl Ontology {
     /// This method can fail for various reasons:
     ///
     /// - obo file not present or available: [`HpoError::CannotOpenFile`]
-    /// - [`Ontology::add_gene`] failed (TODO)
-    /// - [`Ontology::add_omim_disease`] failed (TODO)
+    /// - [`Ontology::add_gene`] failed
+    /// - [`Ontology::add_omim_disease`] failed
     ///
     /// # Examples
     ///
@@ -623,12 +623,12 @@ impl Ontology {
     /// ```
     /// use hpo::Ontology;
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// let term = ontology.hpo(11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// assert_eq!(term.name(), "Abnormal cellular physiology");
-    /// assert!(ontology.hpo(66666u32.into()).is_none());
+    /// assert!(ontology.hpo(66666u32).is_none());
     /// ```
-    pub fn hpo(&self, term_id: HpoTermId) -> Option<HpoTerm> {
-        HpoTerm::try_new(self, term_id).ok()
+    pub fn hpo<I: Into<HpoTermId>>(&self, term_id: I) -> Option<HpoTerm> {
+        HpoTerm::try_new(self, term_id.into()).ok()
     }
 
     /// Returns an Iterator of all [`HpoTerm`]s from the Ontology
@@ -784,8 +784,8 @@ impl Ontology {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     /// let ontology_2 = ontology.sub_ontology(
-    ///     ontology.hpo(118u32.into()).unwrap(),
-    ///     vec![ontology.hpo(11017u32.into()).unwrap()]
+    ///     ontology.hpo(118u32).unwrap(),
+    ///     vec![ontology.hpo(11017u32).unwrap()]
     /// ).unwrap();
     ///
     /// assert_eq!(ontology_2.len(), 3);
@@ -904,12 +904,12 @@ impl Ontology {
     /// use hpo::Ontology;
     ///
     /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("FooBar".into(), 1u32.into());
+    /// ontology.insert_term("FooBar".into(), 1u32);
     ///
     /// assert_eq!(ontology.len(), 1);
     /// ```
-    pub fn insert_term(&mut self, name: String, id: HpoTermId) {
-        let term = HpoTermInternal::new(name, id);
+    pub fn insert_term<I: Into<HpoTermId>>(&mut self, name: String, id: I) {
+        let term = HpoTermInternal::new(name, id.into());
         self.hpo_terms.insert(term);
     }
 
@@ -929,14 +929,18 @@ impl Ontology {
     /// use hpo::Ontology;
     ///
     /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Foo".into(), 1u32.into());
-    /// ontology.insert_term("Bar".into(), 2u32.into());
+    /// ontology.insert_term("Foo".into(), 1u32);
+    /// ontology.insert_term("Bar".into(), 2u32);
     ///
-    /// ontology.add_parent(1u32.into(), 2u32.into());
+    /// ontology.add_parent(1u32, 2u32);
     ///
-    /// assert!(ontology.hpo(2u32.into()).unwrap().parent_ids().contains(&1u32.into()));
+    /// assert!(ontology.hpo(2u32).unwrap().parent_ids().contains(&1u32.into()));
     /// ```
-    pub fn add_parent(&mut self, parent_id: HpoTermId, child_id: HpoTermId) {
+    pub fn add_parent<I: Into<HpoTermId> + Copy, J: Into<HpoTermId> + Copy>(
+        &mut self,
+        parent_id: I,
+        child_id: J,
+    ) {
         let parent = self.get_unchecked_mut(parent_id);
         parent.add_child(child_id);
 
@@ -958,18 +962,18 @@ impl Ontology {
     /// use hpo::Ontology;
     ///
     /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Root".into(), 1u32.into());
-    /// ontology.insert_term("Foo".into(), 2u32.into());
-    /// ontology.insert_term("Bar".into(), 3u32.into());
+    /// ontology.insert_term("Root".into(), 1u32);
+    /// ontology.insert_term("Foo".into(), 2u32);
+    /// ontology.insert_term("Bar".into(), 3u32);
     ///
-    /// ontology.add_parent(1u32.into(), 2u32.into());
-    /// ontology.add_parent(2u32.into(), 3u32.into());
+    /// ontology.add_parent(1u32, 2u32);
+    /// ontology.add_parent(2u32, 3u32);
     ///
     /// // At this point #3 does not have info about grandparents
-    /// assert!(!ontology.hpo(3u32.into()).unwrap().all_parent_ids().contains(&1u32.into()));
+    /// assert!(!ontology.hpo(3u32).unwrap().all_parent_ids().contains(&1u32.into()));
     ///
     /// ontology.create_cache();
-    /// assert!(ontology.hpo(3u32.into()).unwrap().all_parent_ids().contains(&1u32.into()));
+    /// assert!(ontology.hpo(3u32).unwrap().all_parent_ids().contains(&1u32.into()));
     /// ```
     pub fn create_cache(&mut self) {
         let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
@@ -1088,16 +1092,21 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::GeneId;
     ///
     /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Term-Foo".into(), 1u32.into());
+    /// ontology.insert_term("Term-Foo".into(), 1u32);
     /// ontology.add_gene("Foo", "5");
-    /// ontology.link_gene_term(1u32.into(), 5u32.into()).unwrap();
+    /// ontology.link_gene_term(1u32, GeneId::from(5u32)).unwrap();
     ///
-    /// let term = ontology.hpo(1u32.into()).unwrap();
+    /// let term = ontology.hpo(1u32).unwrap();
     /// assert_eq!(term.genes().next().unwrap().name(), "Foo");
     /// ```
-    pub fn link_gene_term(&mut self, term_id: HpoTermId, gene_id: GeneId) -> HpoResult<()> {
+    pub fn link_gene_term<I: Into<HpoTermId>>(
+        &mut self,
+        term_id: I,
+        gene_id: GeneId,
+    ) -> HpoResult<()> {
         let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
 
         if term.add_gene(gene_id) {
@@ -1127,18 +1136,19 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::OmimDiseaseId;
     ///
     /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Term-Foo".into(), 1u32.into());
+    /// ontology.insert_term("Term-Foo".into(), 1u32);
     /// ontology.add_omim_disease("Foo", "5");
-    /// ontology.link_omim_disease_term(1u32.into(), 5u32.into()).unwrap();
+    /// ontology.link_omim_disease_term(1u32, OmimDiseaseId::from(5u32)).unwrap();
     ///
-    /// let term = ontology.hpo(1u32.into()).unwrap();
+    /// let term = ontology.hpo(1u32).unwrap();
     /// assert_eq!(term.omim_diseases().next().unwrap().name(), "Foo");
     /// ```
-    pub fn link_omim_disease_term(
+    pub fn link_omim_disease_term<I: Into<HpoTermId>>(
         &mut self,
-        term_id: HpoTermId,
+        term_id: I,
         omim_disease_id: OmimDiseaseId,
     ) -> HpoResult<()> {
         let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
@@ -1168,7 +1178,7 @@ impl Ontology {
     ///
     /// let mut gene = ontology.gene_mut(&57505u32.into()).unwrap();
     /// assert_eq!(gene.hpo_terms().len(), 10);
-    /// gene.add_term(1u32.into());
+    /// gene.add_term(1u32);
     /// assert_eq!(gene.hpo_terms().len(), 11);
     /// ```
     pub fn gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
@@ -1188,7 +1198,7 @@ impl Ontology {
     ///
     /// let mut disease = ontology.omim_disease_mut(&601495u32.into()).unwrap();
     /// assert_eq!(disease.hpo_terms().len(), 1);
-    /// disease.add_term(1u32.into());
+    /// disease.add_term(1u32);
     /// assert_eq!(disease.hpo_terms().len(), 2);
     /// ```
     pub fn omim_disease_mut(
@@ -1431,8 +1441,8 @@ impl Ontology {
     /// Returns the `HpoTermInternal` with the given `HpoTermId`
     ///
     /// Returns `None` if no such term is present
-    pub(crate) fn get(&self, term_id: HpoTermId) -> Option<&HpoTermInternal> {
-        self.hpo_terms.get(term_id)
+    pub(crate) fn get<I: Into<HpoTermId>>(&self, term_id: I) -> Option<&HpoTermInternal> {
+        self.hpo_terms.get(term_id.into())
     }
 
     /// Returns the `HpoTermInternal` with the given `HpoTermId`
@@ -1443,15 +1453,15 @@ impl Ontology {
     /// # Panics
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
-    pub(crate) fn get_unchecked(&self, term_id: HpoTermId) -> &HpoTermInternal {
-        self.hpo_terms.get_unchecked(term_id)
+    pub(crate) fn get_unchecked<I: Into<HpoTermId>>(&self, term_id: I) -> &HpoTermInternal {
+        self.hpo_terms.get_unchecked(term_id.into())
     }
 
     /// Returns a mutable reference to the `HpoTermInternal` with the given `HpoTermId`
     ///
     /// Returns `None` if no such term is present
-    fn get_mut(&mut self, term_id: HpoTermId) -> Option<&mut HpoTermInternal> {
-        self.hpo_terms.get_mut(term_id)
+    fn get_mut<I: Into<HpoTermId>>(&mut self, term_id: I) -> Option<&mut HpoTermInternal> {
+        self.hpo_terms.get_mut(term_id.into())
     }
 
     /// Returns a mutable reference to the `HpoTermInternal` with the given `HpoTermId`
@@ -1462,8 +1472,8 @@ impl Ontology {
     /// # Panics
     ///
     /// This method will panic if the `term_id` is not present in the Ontology
-    fn get_unchecked_mut(&mut self, term_id: HpoTermId) -> &mut HpoTermInternal {
-        self.hpo_terms.get_unchecked_mut(term_id)
+    fn get_unchecked_mut<I: Into<HpoTermId>>(&mut self, term_id: I) -> &mut HpoTermInternal {
+        self.hpo_terms.get_unchecked_mut(term_id.into())
     }
 
     /// Calculates the gene-specific Information Content for every term
@@ -1567,16 +1577,16 @@ mod test {
 
         // The fake term has the same HpoTermId as one of of the Test ontology
         let mut fake_term = HpoTermInternal::new(String::new(), 3u32.into());
-        fake_term.add_parent(1u32.into());
-        fake_term.add_parent(2u32.into());
+        fake_term.add_parent(1u32);
+        fake_term.add_parent(2u32);
 
         let bytes = fake_term.parents_as_byte();
 
         ont.add_parent_from_bytes(&bytes[..]);
 
-        assert_eq!(ont.get_unchecked(3u32.into()).parents().len(), 2);
-        assert_eq!(ont.get_unchecked(1u32.into()).children().len(), 1);
-        assert_eq!(ont.get_unchecked(2u32.into()).children().len(), 1);
+        assert_eq!(ont.get_unchecked(3u32).parents().len(), 2);
+        assert_eq!(ont.get_unchecked(1u32).children().len(), 1);
+        assert_eq!(ont.get_unchecked(2u32).children().len(), 1);
     }
 
     #[test]

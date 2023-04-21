@@ -1,7 +1,6 @@
-use std::{process, env::Args};
+use std::{env::Args, process};
 
-use hpo::{annotations::OmimDiseaseId, term::HpoGroup, HpoSet, Ontology, HpoTermId, HpoResult};
-
+use hpo::{annotations::OmimDiseaseId, term::HpoGroup, HpoResult, HpoSet, HpoTermId, Ontology};
 
 /// Tries to parse an HpoTermId from a string `HP:0007768` or a `u32`
 fn id_from_freetext(value: &str) -> HpoResult<HpoTermId> {
@@ -11,7 +10,6 @@ fn id_from_freetext(value: &str) -> HpoResult<HpoTermId> {
         HpoTermId::try_from(value)
     }
 }
-
 
 /// Prints genes that are enriched in the hposet
 fn gene_enrichments(ontology: &Ontology, hposet: &HpoSet, output_len: usize) {
@@ -33,7 +31,6 @@ fn gene_enrichments(ontology: &Ontology, hposet: &HpoSet, output_len: usize) {
     }
 }
 
-
 /// Prints diseases that are enriched in the hposet
 fn disease_enrichments(ontology: &Ontology, hposet: &HpoSet, output_len: usize) {
     let mut disease_enrichments = hpo::stats::hypergeom::disease_enrichment(ontology, hposet);
@@ -53,7 +50,6 @@ fn disease_enrichments(ontology: &Ontology, hposet: &HpoSet, output_len: usize) 
         );
     }
 }
-
 
 /// Parses an HpoSet from a gene symbol, disease ID or a list of HpoTermIds
 fn hposet<'a>(args: &mut Args, ontology: &'a Ontology) -> HpoSet<'a> {
@@ -90,7 +86,10 @@ fn main() {
 
     let hpo_set = hposet(&mut args, &ontology);
 
-    let output_len = args.next().map(|arg| arg.parse::<usize>().unwrap_or(10)).unwrap_or(10);
+    let output_len = args
+        .next()
+        .map(|arg| arg.parse::<usize>().unwrap_or(10))
+        .unwrap_or(10);
 
     gene_enrichments(&ontology, &hpo_set, output_len);
     disease_enrichments(&ontology, &hpo_set, output_len);

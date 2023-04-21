@@ -7,7 +7,11 @@ fn main() {
     if args.len() == 3 {
         let folder = args.nth(1).unwrap();
         let ontology = Ontology::from_standard(&folder).unwrap();
-        println!("Ontology [{}] with {} terms", ontology.hpo_version(), ontology.len());
+        println!(
+            "Ontology [{}] with {} terms",
+            ontology.hpo_version(),
+            ontology.len()
+        );
 
         let filename = args.next().unwrap();
         let mut fh = File::create(filename).expect("Cannot create file");

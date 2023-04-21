@@ -18,7 +18,6 @@ fn read_ontology(path_arg: &str) -> Ontology {
     }
 }
 
-
 /// Returns the pair of HpoTerms that contain the most common ancestors
 fn multi_threaded_ancestors(ontology: &Ontology) -> (usize, HpoTermId, HpoTermId) {
     ontology
@@ -62,7 +61,6 @@ fn multi_threaded_ancestors(ontology: &Ontology) -> (usize, HpoTermId, HpoTermId
             },
         )
 }
-
 
 /// Returns the pair of HpoTerms that contain the most common ancestors
 fn single_treaded_ancestors(ontology: &Ontology) -> (usize, HpoTermId, HpoTermId) {

@@ -634,7 +634,7 @@ impl Ontology {
     /// assert!(ontology.hpo(66666u32).is_none());
     /// ```
     pub fn hpo<I: Into<HpoTermId>>(&self, term_id: I) -> Option<HpoTerm> {
-        HpoTerm::try_new(self, term_id.into()).ok()
+        HpoTerm::try_new(self, term_id).ok()
     }
 
     /// Returns an Iterator of all [`HpoTerm`]s from the Ontology
@@ -947,7 +947,7 @@ impl Ontology {
     ///
     /// are present in the Ontology.
     pub fn set_default_categories(&mut self) -> HpoResult<()> {
-        let root = self.hpo(1u32.into()).ok_or(HpoError::DoesNotExist)?;
+        let root = self.hpo(1u32).ok_or(HpoError::DoesNotExist)?;
         let phenotypes = self
             .hpo(crate::PHENOTYPE_ID)
             .ok_or(HpoError::DoesNotExist)?;
@@ -997,7 +997,7 @@ impl Ontology {
     /// This method requires that the root term `HP:0000001 | All` is present.
     pub fn set_default_modifier(&mut self) -> HpoResult<()> {
         self.modifier = self
-            .hpo(1u32.into())
+            .hpo(1u32)
             .ok_or(HpoError::DoesNotExist)?
             .children_ids()
             .iter()

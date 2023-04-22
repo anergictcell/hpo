@@ -907,8 +907,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = ontology.hpo(25454u32.into()).unwrap();
-    /// let term3 = ontology.hpo(12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(25454u32).unwrap();
+    /// let term3 = ontology.hpo(12639u32).unwrap();
     ///
     /// assert_eq!(
     ///     term1.path_to_term(&term3).unwrap(),
@@ -1002,9 +1002,9 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let mendelian_inheritance = ontology.hpo(34345u32.into()).unwrap();
-    /// let adult_onset = ontology.hpo(3581u32.into()).unwrap();
-    /// let abnormal_forebrain_morphology = ontology.hpo(100547u32.into()).unwrap();
+    /// let mendelian_inheritance = ontology.hpo(34345u32).unwrap();
+    /// let adult_onset = ontology.hpo(3581u32).unwrap();
+    /// let abnormal_forebrain_morphology = ontology.hpo(100547u32).unwrap();
     ///
     /// assert!(mendelian_inheritance.is_modifier());
     /// assert!(adult_onset.is_modifier());
@@ -1097,9 +1097,9 @@ mod test_categories {
     fn test_modifier() {
         let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 
-        let mendelian_inheritance = ontology.hpo(34345u32.into()).unwrap();
-        let adult_onset = ontology.hpo(3581u32.into()).unwrap();
-        let abnormal_forebrain_morphology = ontology.hpo(100_547u32.into()).unwrap();
+        let mendelian_inheritance = ontology.hpo(34345u32).unwrap();
+        let adult_onset = ontology.hpo(3581u32).unwrap();
+        let abnormal_forebrain_morphology = ontology.hpo(100_547u32).unwrap();
 
         assert!(mendelian_inheritance.is_modifier());
         assert!(adult_onset.is_modifier());
@@ -1110,8 +1110,8 @@ mod test_categories {
     fn test_modifier_is_self() {
         let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 
-        let inheritance = ontology.hpo(HpoTermId::from_u32(5)).unwrap();
-        let nervous_system = ontology.hpo(HpoTermId::from_u32(707)).unwrap();
+        let inheritance = ontology.hpo(5u32).unwrap();
+        let nervous_system = ontology.hpo(707u32).unwrap();
 
         assert!(inheritance.is_modifier());
         assert!(!nervous_system.is_modifier());
@@ -1125,8 +1125,8 @@ mod test_path_to_term {
     #[test]
     fn normal() {
         let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-        let term1 = ontology.hpo(25454u32.into()).unwrap();
-        let term2 = ontology.hpo(12639u32.into()).unwrap();
+        let term1 = ontology.hpo(25454u32).unwrap();
+        let term2 = ontology.hpo(12639u32).unwrap();
 
         assert_eq!(
             term1.path_to_term(&term2).unwrap(),
@@ -1152,8 +1152,8 @@ mod test_path_to_term {
     #[test]
     fn same_term() {
         let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-        let term1 = ontology.hpo(12639u32.into()).unwrap();
-        let term2 = ontology.hpo(12639u32.into()).unwrap();
+        let term1 = ontology.hpo(12639u32).unwrap();
+        let term2 = ontology.hpo(12639u32).unwrap();
 
         assert_eq!(
             term1.path_to_term(&term2).unwrap(),
@@ -1164,8 +1164,8 @@ mod test_path_to_term {
     #[test]
     fn parent_term() {
         let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-        let term1 = ontology.hpo(12639u32.into()).unwrap();
-        let term2 = ontology.hpo(707u32.into()).unwrap();
+        let term1 = ontology.hpo(12639u32).unwrap();
+        let term2 = ontology.hpo(707u32).unwrap();
 
         assert_eq!(
             term1.path_to_term(&term2).unwrap(),
@@ -1176,8 +1176,8 @@ mod test_path_to_term {
     #[test]
     fn child_term() {
         let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-        let term1 = ontology.hpo(707u32.into()).unwrap();
-        let term2 = ontology.hpo(12639u32.into()).unwrap();
+        let term1 = ontology.hpo(707u32).unwrap();
+        let term2 = ontology.hpo(12639u32).unwrap();
 
         assert_eq!(
             term1.path_to_term(&term2).unwrap(),

@@ -184,11 +184,11 @@ impl<'a> HpoSet<'a> {
     /// # use hpo::term::HpoGroup;
     /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
     /// # let mut hpos = HpoGroup::new();
-    /// # hpos.insert(707u32.into());
-    /// # hpos.insert(12639u32.into());
-    /// # hpos.insert(12638u32.into());
-    /// # hpos.insert(3581u32.into());
-    /// # hpos.insert(7u32.into());
+    /// # hpos.insert(707u32);
+    /// # hpos.insert(12639u32);
+    /// # hpos.insert(12638u32);
+    /// # hpos.insert(3581u32);
+    /// # hpos.insert(7u32);
     /// # HpoSet::new(ontology, hpos)
     /// # }
     ///
@@ -214,11 +214,11 @@ impl<'a> HpoSet<'a> {
     /// # use hpo::term::HpoGroup;
     /// # fn method_that_returns_an_hposet<'a>(ontology: &'a Ontology) -> HpoSet<'a> {
     /// # let mut hpos = HpoGroup::new();
-    /// # hpos.insert(707u32.into());
-    /// # hpos.insert(12639u32.into());
-    /// # hpos.insert(12638u32.into());
-    /// # hpos.insert(3581u32.into());
-    /// # hpos.insert(7u32.into());
+    /// # hpos.insert(707u32);
+    /// # hpos.insert(12639u32);
+    /// # hpos.insert(12638u32);
+    /// # hpos.insert(3581u32);
+    /// # hpos.insert(7u32);
     /// # HpoSet::new(ontology, hpos)
     /// # }
     ///
@@ -525,12 +525,12 @@ impl<'a> HpoSet<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let mut hpos = HpoGroup::new();
-    /// hpos.insert(12285u32.into());  // Abnormal hypothalamus physiology
-    /// hpos.insert(12639u32.into());  // Abnormal nervous system morphology
-    /// hpos.insert(12638u32.into());  // Abnormal nervous system physiology
-    /// hpos.insert(12648u32.into());  // Decreased inflammatory response
-    /// hpos.insert(3581u32.into());  // Adult onset
-    /// hpos.insert(7u32.into());  // Autosomal recessive inheritance
+    /// hpos.insert(12285u32);  // Abnormal hypothalamus physiology
+    /// hpos.insert(12639u32);  // Abnormal nervous system morphology
+    /// hpos.insert(12638u32);  // Abnormal nervous system physiology
+    /// hpos.insert(12648u32);  // Decreased inflammatory response
+    /// hpos.insert(3581u32);  // Adult onset
+    /// hpos.insert(7u32);  // Autosomal recessive inheritance
     ///
     /// let set: HpoSet = HpoSet::new(&ontology, hpos);
     /// let cats = set.categories();

@@ -32,6 +32,9 @@ const OBO_FILENAME: &str = "hp.obo";
 const GENE_FILENAME: &str = "phenotype_to_genes.txt";
 const DISEASE_FILENAME: &str = "phenotype.hpoa";
 
+/// The `HpoTermId` of `HP:0000118 | Phenotypic abnormality`
+pub const PHENOTYPE_ID: HpoTermId = HpoTermId::from_u32(118);
+
 #[derive(Error, Debug)]
 /// Main Error type for this crate
 pub enum HpoError {

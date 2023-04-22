@@ -193,7 +193,7 @@ impl HpoTermDelta {
             lhs_parents.difference(&rhs_parents).copied().collect();
         let added_parents: Vec<HpoTermId> = rhs_parents.difference(&lhs_parents).copied().collect();
 
-        let obsolete = (lhs.obsolete(), rhs.obsolete());
+        let obsolete = (lhs.is_obsolete(), rhs.is_obsolete());
         let replacement = (
             lhs.replaced_by().map(|t| t.id()),
             rhs.replaced_by().map(|t| t.id()),

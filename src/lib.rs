@@ -17,12 +17,13 @@ pub mod similarity;
 pub mod stats;
 pub mod term;
 
+pub use ontology::comparison;
 pub use ontology::Ontology;
 pub use set::HpoSet;
 pub use term::{HpoTerm, HpoTermId};
 
 const DEFAULT_NUM_PARENTS: usize = 10;
-const DEFAULT_NUM_ALL_PARENTS: usize = 50;
+const DEFAULT_NUM_ALL_PARENTS: usize = 30;
 const DEFAULT_NUM_GENES: usize = 50;
 const DEFAULT_NUM_OMIM: usize = 20;
 const MAX_HPO_ID_INTEGER: usize = 10_000_000;
@@ -30,6 +31,9 @@ const MAX_HPO_ID_INTEGER: usize = 10_000_000;
 const OBO_FILENAME: &str = "hp.obo";
 const GENE_FILENAME: &str = "phenotype_to_genes.txt";
 const DISEASE_FILENAME: &str = "phenotype.hpoa";
+
+/// The `HpoTermId` of `HP:0000118 | Phenotypic abnormality`
+pub const PHENOTYPE_ID: HpoTermId = HpoTermId::from_u32(118);
 
 #[derive(Error, Debug)]
 /// Main Error type for this crate

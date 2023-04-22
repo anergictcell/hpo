@@ -1,7 +1,9 @@
+//! Prints every term and its associated genes
+
 use hpo::Ontology;
 
 fn main() {
-    let ontology = Ontology::from_standard("./example_data/").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
     let mut genes: Vec<&str> = Vec::new();
     for term in ontology.hpos() {

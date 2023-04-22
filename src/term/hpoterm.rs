@@ -51,13 +51,13 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 118u32.into());
+    /// let term = HpoTerm::try_new(&ontology, 118u32);
     /// assert!(term.is_ok());
     ///
-    /// let non_existing_term = HpoTerm::try_new(&ontology, 666666666u32.into());
+    /// let non_existing_term = HpoTerm::try_new(&ontology, 666666666u32);
     /// assert!(non_existing_term.is_err());
     /// ```
-    pub fn try_new(ontology: &'a Ontology, term: HpoTermId) -> HpoResult<HpoTerm<'a>> {
+    pub fn try_new<I: Into<HpoTermId>>(ontology: &'a Ontology, term: I) -> HpoResult<HpoTerm<'a>> {
         let term = ontology.get(term).ok_or(HpoError::DoesNotExist)?;
         Ok(HpoTerm::new(ontology, term))
     }
@@ -90,7 +90,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 118u32.into()).unwrap();
+    /// let term = ontology.hpo(118u32).unwrap();
     /// assert_eq!(term.id(), "HP:0000118");
     /// ```
     pub fn id(&self) -> HpoTermId {
@@ -108,7 +108,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 118u32.into()).unwrap();
+    /// let term = ontology.hpo(118u32).unwrap();
     /// assert_eq!(term.name(), "Phenotypic abnormality");
     /// ```
     pub fn name(&self) -> &str {
@@ -124,7 +124,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// assert_eq!(term.parent_ids().len(), 1);
     /// ```
     pub fn parent_ids(&self) -> &HpoGroup {
@@ -140,7 +140,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// assert_eq!(term.parents().count(), 1);
     /// for parent in term.parents() {
     ///    println!("{}", parent.name());
@@ -159,7 +159,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// assert_eq!(term.all_parent_ids().len(), 3);
     /// ```
     pub fn all_parent_ids(&self) -> &HpoGroup {
@@ -175,7 +175,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// assert_eq!(term.all_parents().count(), 3);
     /// for parent in term.all_parents() {
     ///    println!("{}", parent.name());
@@ -194,7 +194,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term = ontology.hpo(1939u32).unwrap();
     /// assert_eq!(term.children_ids().len(), 2);
     /// ```
     pub fn children_ids(&self) -> &HpoGroup {
@@ -210,7 +210,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term = ontology.hpo(1939u32).unwrap();
     /// for child in term.children() {
     ///    println!("{}", child.name());
     /// }
@@ -241,8 +241,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(25454u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -260,8 +260,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -294,8 +294,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(25454u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -313,8 +313,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -350,8 +350,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(12639u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -369,8 +369,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -398,8 +398,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(12639u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -417,8 +417,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -455,8 +455,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(25454u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -475,8 +475,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -505,8 +505,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(25454u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -525,8 +525,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -563,8 +563,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(12639u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -583,8 +583,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -613,8 +613,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(12639u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(!term2.parent_of(&term1));
@@ -633,8 +633,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(1939u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -659,7 +659,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// for gene in term.genes() {
     ///     println!("{}", gene.name());
     /// }
@@ -677,7 +677,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// assert_eq!(term.gene_ids().len(), 575);
     /// ```
     pub fn gene_ids(&self) -> &Genes {
@@ -693,7 +693,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
+    /// let term = ontology.hpo(11017u32).unwrap();
     /// for disease in term.omim_diseases() {
     ///     println!("{}", disease.name());
     /// }
@@ -711,7 +711,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term = ontology.hpo(1939u32).unwrap();
     /// assert_eq!(term.omim_disease_ids().len(), 143);
     /// ```
     pub fn omim_disease_ids(&self) -> &OmimDiseases {
@@ -727,7 +727,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = HpoTerm::try_new(&ontology, 1939u32.into()).unwrap();
+    /// let term = ontology.hpo(1939u32).unwrap();
     /// let ic = term.information_content();
     /// assert_eq!(ic.gene(), 0.6816717);
     /// assert_eq!(ic.omim_disease(), 3.4335358);
@@ -747,8 +747,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 11017u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(11017u32).unwrap();
+    /// let term2 = ontology.hpo(12639u32).unwrap();
     ///
     /// let sim = term1.similarity_score(&term2, &Builtins::GraphIc(InformationContentKind::Omim));
     /// assert_eq!(sim, 0.2765914);
@@ -766,9 +766,9 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 118u32.into()).unwrap();
-    /// let term3 = HpoTerm::try_new(&ontology, 12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(25454u32).unwrap();
+    /// let term2 = ontology.hpo(118u32).unwrap();
+    /// let term3 = ontology.hpo(12639u32).unwrap();
     ///
     /// assert_eq!(term1.distance_to_ancestor(&term2), Some(2));
     /// assert_eq!(term2.distance_to_ancestor(&term1), None);
@@ -799,8 +799,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 118u32.into()).unwrap();
+    /// let term1 = ontology.hpo(25454u32).unwrap();
+    /// let term2 = ontology.hpo(118u32).unwrap();
     ///
     /// assert!(term1.child_of(&term2));
     /// assert!(!term2.child_of(&term1));
@@ -818,8 +818,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 118u32.into()).unwrap();
+    /// let term1 = ontology.hpo(25454u32).unwrap();
+    /// let term2 = ontology.hpo(118u32).unwrap();
     ///
     /// assert!(!term1.parent_of(&term2));
     /// assert!(term2.parent_of(&term1));
@@ -828,7 +828,7 @@ impl<'a> HpoTerm<'a> {
         other.child_of(self)
     }
 
-    /// Returns the shortest path to traverse from `self` ot `other`, if `other` is a parent of `self`
+    /// Returns the shortest path to traverse from `self` to `other`, if `other` is a parent of `self`
     ///
     /// # Examples
     ///
@@ -837,8 +837,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 118u32.into()).unwrap();
+    /// let term1 = ontology.hpo(25454u32).unwrap();
+    /// let term2 = ontology.hpo(118u32).unwrap();
     ///
     /// assert_eq!(
     ///     term1.path_to_ancestor(&term2).unwrap(),
@@ -879,9 +879,9 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = HpoTerm::try_new(&ontology, 25454u32.into()).unwrap();
-    /// let term2 = HpoTerm::try_new(&ontology, 118u32.into()).unwrap();
-    /// let term3 = HpoTerm::try_new(&ontology, 12639u32.into()).unwrap();
+    /// let term1 = ontology.hpo(25454u32).unwrap();
+    /// let term2 = ontology.hpo(118u32).unwrap();
+    /// let term3 = ontology.hpo(12639u32).unwrap();
     ///
     /// assert_eq!(term1.distance_to_term(&term2), Some(2));
     /// assert_eq!(term2.distance_to_term(&term1), Some(2));
@@ -896,8 +896,79 @@ impl<'a> HpoTerm<'a> {
             .min()
     }
 
+    /// Returns the shortest path to traverse from `self` to `other`
+    ///
+    /// This method is not optimized for performance
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology, HpoTermId};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let term1 = ontology.hpo(25454u32).unwrap();
+    /// let term3 = ontology.hpo(12639u32).unwrap();
+    ///
+    /// assert_eq!(
+    ///     term1.path_to_term(&term3).unwrap(),
+    ///     vec![
+    ///         HpoTermId::try_from("HP:0001939").unwrap(),
+    ///         HpoTermId::try_from("HP:0000118").unwrap(),
+    ///         HpoTermId::try_from("HP:0000707").unwrap(),
+    ///         HpoTermId::try_from("HP:0012639").unwrap()
+    ///     ]
+    /// );
+    /// ```
+    pub fn path_to_term(&self, other: &HpoTerm) -> Option<Vec<HpoTermId>> {
+        if other.parent_of(self) {
+            return self.path_to_ancestor(other);
+        }
+        if self.parent_of(other) {
+            return other.path_to_ancestor(self).map(|terms| {
+                terms
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .chain(std::iter::once(&other.id()))
+                    .copied()
+                    .collect()
+            });
+        }
+
+        self.all_common_ancestors(other)
+            .iter()
+            .map(|ancestor| {
+                (
+                    ancestor,
+                    self.distance_to_ancestor(&ancestor)
+                        .expect("self must have a path to its ancestor")
+                        + other
+                            .distance_to_ancestor(&ancestor)
+                            .expect("other must have a path to its ancestor"),
+                )
+            })
+            .min_by_key(|tuple| tuple.1)
+            .map(|min| {
+                self.path_to_ancestor(&min.0)
+                    .expect("self must have a path to its ancestor")
+                    .iter()
+                    .chain(
+                        other
+                            .path_to_ancestor(&min.0)
+                            .expect("other must have a path to its ancestor")
+                            .iter()
+                            .rev()
+                            .skip(1),
+                    )
+                    .chain(std::iter::once(&other.id()))
+                    .copied()
+                    .collect()
+            })
+    }
+
     /// Returns `true` if the term is flagged as obsolete
-    pub fn obsolete(&self) -> bool {
+    pub fn is_obsolete(&self) -> bool {
         self.obsolete
     }
 
@@ -921,6 +992,62 @@ impl<'a> HpoTerm<'a> {
     pub fn replacement_id(&self) -> Option<HpoTermId> {
         self.replaced_by
     }
+
+    /// Returns `true` if the term is a descendent of a modifier root term
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mendelian_inheritance = ontology.hpo(34345u32).unwrap();
+    /// let adult_onset = ontology.hpo(3581u32).unwrap();
+    /// let abnormal_forebrain_morphology = ontology.hpo(100547u32).unwrap();
+    ///
+    /// assert!(mendelian_inheritance.is_modifier());
+    /// assert!(adult_onset.is_modifier());
+    /// assert!(!abnormal_forebrain_morphology.is_modifier());
+    /// ```
+    pub fn is_modifier(&self) -> bool {
+        self.ontology
+            .modifier()
+            .iter()
+            .any(|modifier_root| (self.all_parent_ids() | self.id()).contains(&modifier_root))
+    }
+
+    /// Returns the category of the term, or `None` if uncategorized
+    ///
+    /// Categories are defined in [`Ontology::set_default_categories()`]
+    ///
+    /// The default implementation ensures that each term is categorized
+    /// in exactly one category, but this can be modified on the Ontology level.
+    /// If a term might be part of multiple categories, one is (semi-)randomly
+    /// selected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology, HpoTermId};
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mendelian_inheritance = ontology.hpo(HpoTermId::from_u32(34345)).unwrap();
+    /// let adult_onset = ontology.hpo(HpoTermId::from_u32(3581)).unwrap();
+    /// let abnormal_hypothalamus_physiology = ontology.hpo(HpoTermId::from_u32(12285)).unwrap();
+    ///
+    /// assert_eq!(mendelian_inheritance.categories(), vec![HpoTermId::from_u32(5)]);
+    /// assert_eq!(adult_onset.categories(), vec![HpoTermId::from_u32(12823)]);
+    /// assert_eq!(abnormal_hypothalamus_physiology.categories(), vec![HpoTermId::from_u32(707), HpoTermId::from_u32(818)]);
+    /// ```
+    pub fn categories(&self) -> Vec<HpoTermId> {
+        self.ontology
+            .categories()
+            .iter()
+            .filter(|cat| (self.all_parent_ids() | self.id()).contains(cat))
+            .collect()
+    }
 }
 
 impl PartialEq for HpoTerm<'_> {
@@ -930,3 +1057,131 @@ impl PartialEq for HpoTerm<'_> {
 }
 
 impl Eq for HpoTerm<'_> {}
+
+#[cfg(test)]
+mod test_categories {
+    use super::*;
+    use crate::Ontology;
+
+    #[test]
+    fn test_categories() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let mendelian_inheritance = ontology.hpo(HpoTermId::from_u32(34345)).unwrap();
+        let adult_onset = ontology.hpo(HpoTermId::from_u32(3581)).unwrap();
+        let abnormal_hypothalamus_physiology = ontology.hpo(HpoTermId::from_u32(12285)).unwrap();
+
+        assert_eq!(
+            mendelian_inheritance.categories(),
+            vec![HpoTermId::from_u32(5)]
+        );
+        assert_eq!(adult_onset.categories(), vec![HpoTermId::from_u32(12823)]);
+        assert_eq!(
+            abnormal_hypothalamus_physiology.categories(),
+            vec![HpoTermId::from_u32(707), HpoTermId::from_u32(818)]
+        );
+    }
+
+    #[test]
+    fn test_categories_is_self() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let inheritance = ontology.hpo(HpoTermId::from_u32(5)).unwrap();
+        assert_eq!(inheritance.categories(), vec![HpoTermId::from_u32(5)]);
+
+        let nervous_system = ontology.hpo(HpoTermId::from_u32(707)).unwrap();
+        assert_eq!(nervous_system.categories(), vec![HpoTermId::from_u32(707)]);
+    }
+
+    #[test]
+    fn test_modifier() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let mendelian_inheritance = ontology.hpo(34345u32).unwrap();
+        let adult_onset = ontology.hpo(3581u32).unwrap();
+        let abnormal_forebrain_morphology = ontology.hpo(100_547u32).unwrap();
+
+        assert!(mendelian_inheritance.is_modifier());
+        assert!(adult_onset.is_modifier());
+        assert!(!abnormal_forebrain_morphology.is_modifier());
+    }
+
+    #[test]
+    fn test_modifier_is_self() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+
+        let inheritance = ontology.hpo(5u32).unwrap();
+        let nervous_system = ontology.hpo(707u32).unwrap();
+
+        assert!(inheritance.is_modifier());
+        assert!(!nervous_system.is_modifier());
+    }
+}
+
+#[cfg(test)]
+mod test_path_to_term {
+    use super::*;
+
+    #[test]
+    fn normal() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(25454u32).unwrap();
+        let term2 = ontology.hpo(12639u32).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![
+                HpoTermId::try_from("HP:0001939").unwrap(),
+                HpoTermId::try_from("HP:0000118").unwrap(),
+                HpoTermId::try_from("HP:0000707").unwrap(),
+                HpoTermId::try_from("HP:0012639").unwrap()
+            ]
+        );
+
+        assert_eq!(
+            term2.path_to_term(&term1).unwrap(),
+            vec![
+                HpoTermId::try_from("HP:0000707").unwrap(),
+                HpoTermId::try_from("HP:0000118").unwrap(),
+                HpoTermId::try_from("HP:0001939").unwrap(),
+                HpoTermId::try_from("HP:0025454").unwrap(),
+            ]
+        );
+    }
+
+    #[test]
+    fn same_term() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(12639u32).unwrap();
+        let term2 = ontology.hpo(12639u32).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![HpoTermId::try_from("HP:0012639").unwrap()]
+        );
+    }
+
+    #[test]
+    fn parent_term() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(12639u32).unwrap();
+        let term2 = ontology.hpo(707u32).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![HpoTermId::try_from("HP:0000707").unwrap()]
+        );
+    }
+
+    #[test]
+    fn child_term() {
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let term1 = ontology.hpo(707u32).unwrap();
+        let term2 = ontology.hpo(12639u32).unwrap();
+
+        assert_eq!(
+            term1.path_to_term(&term2).unwrap(),
+            vec![HpoTermId::try_from("HP:0012639").unwrap()]
+        );
+    }
+}

@@ -29,6 +29,20 @@ impl HpoTermId {
             .try_into()
             .expect("hpo can only run on systems with at least 32 bit architecture")
     }
+
+    /// Creates a new `HpoTermId` from a `u32` integer
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use hpo::HpoTermId;
+    ///
+    /// let a = HpoTermId::from_u32(118);
+    /// assert_eq!(a.to_usize(), 118usize);
+    /// ```
+    pub const fn from_u32(inner: u32) -> Self {
+        HpoTermId { inner }
+    }
 }
 
 impl AnnotationId for HpoTermId {
@@ -115,20 +129,3 @@ impl PartialEq<&str> for HpoTermId {
         self == &HpoTermId::new(other)
     }
 }
-
-// pub(crate) struct Iter<T> {
-//     iter: T
-// }
-
-// impl<T: Iterator<Item = HpoTermId>> Iter<T> {
-//     pub(crate) fn new(iter: T) -> Self {
-//         Self {iter}
-//     }
-// }
-
-// impl<T: Iterator<Item = HpoTermId>> Iterator for Iter<T> {
-//     type Item = HpoTermId;
-//     fn next(&mut self) -> Option<Self::Item> {
-//         self.iter.next()
-//     }
-// }

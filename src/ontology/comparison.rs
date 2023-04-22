@@ -1,3 +1,24 @@
+//! Compare two versions of the HPO Ontology to each other
+//!
+//! # Examples
+//!
+//! ```rust
+//! use hpo::Ontology;
+//!
+//! let old_ontology = Ontology::default();
+//! let new_ontology = Ontology::default();
+//!
+//! let comparison = old_ontology.compare(&new_ontology);
+//!
+//! for term in comparison.changed_hpo_terms() {
+//!     println!("Changed term: {}", term.id());
+//! }
+//!
+//! for term in comparison.added_hpo_terms() {
+//!     println!("New term: {}", term.id());
+//! }
+//! // ...
+//! ```
 use std::collections::HashSet;
 use std::fmt::Display;
 
@@ -33,7 +54,7 @@ impl<'a> Display for Comparison<'a> {
 }
 
 impl<'a> Comparison<'a> {
-    /// Constructs a new [`OntologyComparison`] from two [`Ontology`]
+    /// Constructs a new [`Comparison`] from two [`Ontology`]
     /// The first argument, `lhs`, is considered the `old` or `base` Ontology,
     /// while the second argument, `rhs` is considered the `new` or `changed` one.
     pub fn new(lhs: &'a Ontology, rhs: &'a Ontology) -> Self {
@@ -62,6 +83,8 @@ impl<'a> Comparison<'a> {
     /// Differences are defined as either:
     /// - Changed name
     /// - Changed direct parents
+    /// - Changed obsolete state
+    /// - Changed replacement term
     pub fn changed_hpo_terms(&self) -> Vec<HpoTermDelta> {
         self.lhs
             .hpos()
@@ -170,7 +193,7 @@ impl HpoTermDelta {
             lhs_parents.difference(&rhs_parents).copied().collect();
         let added_parents: Vec<HpoTermId> = rhs_parents.difference(&lhs_parents).copied().collect();
 
-        let obsolete = (lhs.obsolete(), rhs.obsolete());
+        let obsolete = (lhs.is_obsolete(), rhs.is_obsolete());
         let replacement = (
             lhs.replaced_by().map(|t| t.id()),
             rhs.replaced_by().map(|t| t.id()),
@@ -231,6 +254,9 @@ impl HpoTermDelta {
         }
     }
 
+    /// Returns the `old` and `new` obsolete states if they are different
+    ///
+    /// Returns `None` if the obsolete state is unchanged
     pub fn changed_obsolete(&self) -> Option<(bool, bool)> {
         if self.obsolete.0 == self.obsolete.1 {
             None
@@ -239,6 +265,9 @@ impl HpoTermDelta {
         }
     }
 
+    /// Returns the replacement terms if they exist are different
+    ///
+    /// Returns `None` if the obsolete state is unchanged
     pub fn changed_replacement(&self) -> Option<(Option<HpoTermId>, Option<HpoTermId>)> {
         if self.replacement.0 == self.replacement.1 {
             None

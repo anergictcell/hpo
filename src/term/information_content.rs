@@ -78,7 +78,7 @@ impl InformationContent {
 }
 
 /// Different types of information contents
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum InformationContentKind {
     /// Information content related to the associated genes
     Gene,

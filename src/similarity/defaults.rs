@@ -12,6 +12,7 @@ use crate::HpoTerm;
 /// Graph based Information coefficient similarity
 ///
 /// For a detailed description see [Deng Y, et. al., PLoS One, (2015)](https://pubmed.ncbi.nlm.nih.gov/25664462/)
+#[derive(Debug)]
 pub struct GraphIc {
     kind: InformationContentKind,
 }
@@ -64,6 +65,7 @@ impl Similarity for GraphIc {
 /// Similarity score from Resnik
 ///
 /// For a detailed description see [Resnik P, Proceedings of the 14th IJCAI, (1995)](https://www.ijcai.org/Proceedings/95-1/Papers/059.pdf)
+#[derive(Debug)]
 pub struct Resnik {
     kind: InformationContentKind,
 }
@@ -99,6 +101,7 @@ impl Similarity for Resnik {
 /// Similarity score from Lin
 ///
 /// For a detailed description see [Lin D, Proceedings of the 15th ICML, (1998)](https://dl.acm.org/doi/10.5555/645527.657297)
+#[derive(Debug)]
 pub struct Lin {
     kind: InformationContentKind,
 }
@@ -146,6 +149,7 @@ impl Similarity for Lin {
 /// This algorithm is an implementation as described in the paper cited above. It is different
 /// from the `JC` implementation in the `HPOSim` R library. It is identical to the `JC2`
 /// implementation in [`PyHPO`](https://pypi.org/project/pyhpo/)
+#[derive(Debug)]
 pub struct Jc {
     kind: InformationContentKind,
 }
@@ -188,6 +192,7 @@ impl Similarity for Jc {
 ///
 /// For a detailed description see [Schlicker A, et.al., BMC Bioinformatics, (2006)](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-7-302)
 ///
+#[derive(Debug)]
 pub struct Relevance {
     kind: InformationContentKind,
 }
@@ -224,6 +229,7 @@ impl Similarity for Relevance {
 ///
 /// For a detailed description see [Li B, et. al., arXiv, (2010)](https://arxiv.org/abs/1001.0958)
 ///
+#[derive(Debug)]
 pub struct InformationCoefficient {
     kind: InformationContentKind,
 }
@@ -257,7 +263,7 @@ impl Similarity for InformationCoefficient {
 }
 
 /// Similarity score based on distance between terms
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Distance {}
 
 impl Distance {
@@ -292,6 +298,7 @@ impl Similarity for Distance {
 /// to the same annotations, their similarity score will be `1`. If both
 /// terms do not have any associated terms, they are considered completely
 /// different, i.e. have a similarity of `0`.
+#[derive(Debug)]
 pub struct Mutation {
     kind: InformationContentKind,
 }

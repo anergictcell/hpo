@@ -190,6 +190,7 @@ impl<T: Similarity> Similarity for CachedSimilarity<T> {
 
 /// Default implementations for combining similarity scores
 /// of 2 [`HpoSet`]s
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum StandardCombiner {
     /// funSimAvg algorithm from [Schlicker A, et. al., BMC Bioinf (2006)](https://pubmed.ncbi.nlm.nih.gov/16776819/)
     FunSimAvg,
@@ -218,7 +219,7 @@ impl TryFrom<&str> for StandardCombiner {
 }
 
 impl StandardCombiner {
-    fn fun_sim_avg(&self, m: &Matrix<f32>) -> f32 {
+    fn fun_sim_avg(self, m: &Matrix<f32>) -> f32 {
         let (rows, cols) = self.dim_f32(m);
         let row_maxes = self.row_maxes(m);
         let col_maxes = self.col_maxes(m);
@@ -228,7 +229,7 @@ impl StandardCombiner {
         nom / 2.0
     }
 
-    fn fun_sim_max(&self, m: &Matrix<f32>) -> f32 {
+    fn fun_sim_max(self, m: &Matrix<f32>) -> f32 {
         let (rows, cols) = self.dim_f32(m);
         let row_maxes = self.row_maxes(m);
         let col_maxes = self.col_maxes(m);
@@ -236,7 +237,7 @@ impl StandardCombiner {
         (row_maxes.iter().sum::<f32>() / rows).max(col_maxes.iter().sum::<f32>() / cols)
     }
 
-    fn bwa(&self, m: &Matrix<f32>) -> f32 {
+    fn bwa(self, m: &Matrix<f32>) -> f32 {
         let (rows, cols) = self.dim_f32(m);
         let row_maxes = self.row_maxes(m);
         let col_maxes = self.col_maxes(m);
@@ -441,6 +442,7 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
 ///     StandardCombiner::default()
 /// );
 /// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Builtins {
     /// [Distance](`Distance`) - based similarity
     Distance(InformationContentKind),

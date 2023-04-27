@@ -17,7 +17,6 @@ pub mod similarity;
 pub mod stats;
 pub mod term;
 
-pub use matrix::Matrix;
 pub use ontology::comparison;
 pub use ontology::Ontology;
 pub use set::HpoSet;

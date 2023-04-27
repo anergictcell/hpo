@@ -190,6 +190,7 @@ impl<T: Similarity> Similarity for CachedSimilarity<T> {
 
 /// Default implementations for combining similarity scores
 /// of 2 [`HpoSet`]s
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum StandardCombiner {
     /// funSimAvg algorithm from [Schlicker A, et. al., BMC Bioinf (2006)](https://pubmed.ncbi.nlm.nih.gov/16776819/)
     FunSimAvg,
@@ -441,6 +442,7 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
 ///     StandardCombiner::default()
 /// );
 /// ```
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Builtins {
     /// [Distance](`Distance`) - based similarity
     Distance(InformationContentKind),

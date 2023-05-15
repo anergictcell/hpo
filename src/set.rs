@@ -115,7 +115,7 @@ impl<'a> HpoSet<'a> {
     /// let children = set.child_nodes();
     /// assert_eq!(children.len(), 4);
     /// ```
-    pub fn child_nodes(&mut self) -> HpoSet {
+    pub fn child_nodes(&self) -> Self {
         let group = self
             .group
             .iter()
@@ -710,6 +710,14 @@ impl<'a> IntoIterator for &'a HpoSet<'a> {
     type IntoIter = Iter<'a>;
     fn into_iter(self) -> Self::IntoIter {
         Iter::new(self.group.iter(), self.ontology)
+    }
+}
+
+impl<'b, 'a> Extend<HpoTerm<'b>> for HpoSet<'a> {
+    fn extend<T: IntoIterator<Item = HpoTerm<'b>>>(&mut self, iter: T) {
+        for term in iter {
+            self.group.insert(term.id());
+        }
     }
 }
 

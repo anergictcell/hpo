@@ -311,7 +311,7 @@ mod test {
 
         for (name, id) in test_terms {
             let t = HpoTermInternal::new(String::from(name), id.into());
-            println!("Building: {:?}", t);
+            println!("Building: {t:?}");
             v.append(&mut t.as_bytes());
         }
 
@@ -319,7 +319,7 @@ mod test {
 
         for (name, id) in test_terms {
             let term = term_iter.next().unwrap();
-            println!("Checking: {:?} [{}-{}]", term, name, id);
+            println!("Checking: {term:?} [{name}-{id}]");
             assert_eq!(term.name(), name);
             assert_eq!(term.id().as_u32(), id);
         }

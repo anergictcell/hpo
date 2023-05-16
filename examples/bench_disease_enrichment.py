@@ -1,6 +1,6 @@
 from pyhpo import Ontology
 from pyhpo.annotations import Gene
-from pyhpo.set import HPOSet
+from pyhpo import HPOSet
 from pyhpo.stats import EnrichmentModel
 
 
@@ -11,7 +11,7 @@ enrichment = EnrichmentModel('omim')
 
 count = 0
 for gene in GENES:
-    ci = HPOSet.from_queries(Gene.get(gene).hpo)
+    ci = HPOSet.from_queries(list(Gene.get(gene).hpo))
     for res in enrichment.enrichment(method='hypergeom', hposet=ci):
         if res["enrichment"] < 0.0000005:
             count += 1

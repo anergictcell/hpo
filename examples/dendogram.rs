@@ -10,7 +10,6 @@ use hpo::utils::Combinations;
 use hpo::HpoSet;
 use hpo::Ontology;
 
-
 /// Constructs an Ontology from either JAX-supplied obo data
 /// or from an HPO-specific binary file
 fn read_ontology(path_arg: &str) -> Ontology {
@@ -41,19 +40,23 @@ fn multi_threaded_distance(combs: Combinations<HpoSet<'_>>) -> Vec<f32> {
 fn dendogram<'a>(ontology: &'a Ontology, args: &mut Args) -> (Linkage<'a>, Vec<&'a str>) {
     let diseases: Vec<&OmimDisease> = ontology
         .omim_diseases()
-        .take(args.next().unwrap().parse::<usize>().unwrap()).collect();
+        .take(args.next().unwrap().parse::<usize>().unwrap())
+        .collect();
 
-    let sets = diseases.iter()
+    let sets = diseases
+        .iter()
         .map(|g| g.to_hpo_set(ontology).without_modifier().child_nodes());
     let linkage = if args.next().is_some() {
-        Linkage::union(sets, multi_threaded_distance)
+        Linkage::single(sets, multi_threaded_distance)
     } else {
-        Linkage::union(sets, single_threaded_distance)
+        Linkage::single(sets, single_threaded_distance)
     };
 
-    let sorted_diseases = linkage.indicies().iter().map(|idx| {
-        diseases.get(*idx).unwrap().name()
-    }).collect::<Vec<&str>>();
+    let sorted_diseases = linkage
+        .indicies()
+        .iter()
+        .map(|idx| diseases.get(*idx).unwrap().name())
+        .collect::<Vec<&str>>();
     (linkage, sorted_diseases)
 }
 

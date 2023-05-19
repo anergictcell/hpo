@@ -5,7 +5,7 @@
 /// A combination of (at least) 2 `HpoSet` for Dendogram clustering
 ///
 /// This `struct` is created by the [`Linkage`](`crate::stats::Linkage`) struct and yielded
-/// by the [`Linkage::into_cluster`](`crate::stats::Linkage::into_cluster`) and 
+/// by the [`Linkage::into_cluster`](`crate::stats::Linkage::into_cluster`) and
 /// [`Linkage::cluster`](`crate::stats::Linkage::cluster`) iterators
 #[derive(Debug, Clone, Copy)]
 pub struct Cluster {
@@ -117,7 +117,6 @@ impl ExactSizeIterator for Iter<'_> {
         self.iter.len()
     }
 }
-
 
 /// Iterates [`Cluster`]
 ///

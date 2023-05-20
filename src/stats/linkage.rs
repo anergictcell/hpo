@@ -48,6 +48,11 @@ impl<'a> DistanceMatrix {
 ///   both combined clusters. This method becomes slow with growing input data
 /// - [`Linkage::single`](`Linkage::single`): The minimum distance of each cluster's nodes to the other
 ///   nodes is used as distance for newly formed clusters. This is also known as the Nearest Point Algorithm.
+/// - [`Linkage::complete`](`Linkage::complete`): The maximum distance of each cluster's nodes to the other
+///   nodes is used as distance for newly formed clusters. This is also known by the Farthest Point Algorithm
+///   or Voor Hees Algorithm.
+/// - [`Linkage::average`](`Linkage::average`): The mean distance of each cluster's nodes to the other
+///   nodes is used as distance for newly formed clusters. This is also called the UPGMA algorithm.
 ///
 /// # Examples
 ///
@@ -151,7 +156,7 @@ impl<'a> Linkage<'a> {
 
     /// Performs single-hierarchical clustering of `HpoSet`s
     ///
-    /// In each iteration, `HpoSet`s are compared to each other based on the
+    /// `HpoSet`s are compared to each other based on the
     /// provided `distance` function. `Cluster`s are formed by using the minimum
     /// distance of each encompassing set to the comparison set.
     /// This is also known as the Nearest Point Algorithm.
@@ -197,10 +202,71 @@ impl<'a> Linkage<'a> {
         T: IntoIterator<Item = HpoSet<'a>>,
         F: Fn(Combinations<HpoSet<'_>>) -> Vec<f32>,
     {
+
+        fn f32_min(v1: Option<&f32>, v2: Option<&f32>) -> f32 {
+            if v1.expect("v1 must be `Some`") < v2.expect("v2 must be `Some`") {
+                *v1.expect("v1 must be `Some`")
+            } else {
+                *v2.expect("v2 must be `Some`")
+            }
+        }
+
         let mut linkage = Self::new(sets, &distance);
-        linkage.cluster_minimum();
+        linkage.arithmetic_cluster(f32_min);
         linkage
     }
+
+    /// Performs complete-hierarchical clustering of `HpoSet`s
+    ///
+    /// `HpoSet`s are compared to each other based on the
+    /// provided `distance` function. `Cluster`s are formed by using the maximum
+    /// distance of each encompassing set to the comparison set.
+    /// This is also known by the Farthest Point Algorithm or Voor Hees Algorithm.
+    pub fn complete<T, F>(sets: T, distance: F) -> Self
+    where
+        T: IntoIterator<Item = HpoSet<'a>>,
+        F: Fn(Combinations<HpoSet<'_>>) -> Vec<f32>,
+    {
+
+        fn f32_max(v1: Option<&f32>, v2: Option<&f32>) -> f32 {
+            if v1.expect("v1 must be `Some`") > v2.expect("v2 must be `Some`") {
+                *v1.expect("v1 must be `Some`")
+            } else {
+                *v2.expect("v2 must be `Some`")
+            }
+        }
+
+        let mut linkage = Self::new(sets, &distance);
+        linkage.arithmetic_cluster(f32_max);
+        linkage
+    }
+
+    /// Performs average-hierarchical clustering of `HpoSet`s
+    ///
+    /// `HpoSet`s are compared to each other based on the
+    /// provided `distance` function. `Cluster`s are formed by using the average
+    /// distance of both encompassing sets to the comparison set.
+    /// This is also called the UPGMA algorithm.
+    ///
+    /// # Note
+    /// This method is not implemented completely correct. Instead of calculating
+    /// the average of all distances, it only uses the mean distance of all direct
+    /// cluster nodes.
+    pub fn average<T, F>(sets: T, distance: F) -> Self
+    where
+        T: IntoIterator<Item = HpoSet<'a>>,
+        F: Fn(Combinations<HpoSet<'_>>) -> Vec<f32>,
+    {
+
+        fn mean(v1: Option<&f32>, v2: Option<&f32>) -> f32 {
+            (v1.expect("v1 must be `Some`") + v2.expect("v2 must be `Some`")) / 2.0
+        }
+
+        let mut linkage = Self::new(sets, &distance);
+        linkage.arithmetic_cluster(mean);
+        linkage
+    }
+
 
     /// Returns an Iterator of [`Cluster`] references
     pub fn cluster(&self) -> cluster::Iter {
@@ -369,7 +435,17 @@ impl<'a> Linkage<'a> {
         }
     }
 
-    fn cluster_minimum(&mut self) {
+
+    /// Iteratively clusters all sets in the `Linkage` until none are left
+    ///
+    /// - Finds the 2 clusters/sets with smallest distance
+    /// - inactivates them and adds a new phantom set at the end
+    /// - calculates the distance between the nodes of the new cluster and all
+    ///   other clusters based on `func`
+    /// - appends the `DistanceMatrix` with new distances
+    fn arithmetic_cluster<F>(&mut self, func: F)
+        where F: Fn(Option<&f32>,Option<&f32>) -> f32
+    {
         loop {
             if self.distance_matrix.is_empty() {
                 // All sets are clustered, only one cluster remains
@@ -400,20 +476,20 @@ impl<'a> Linkage<'a> {
                     continue;
                 }
                 if set.is_some() {
-                    let min = match (idx.cmp(&key.0), idx.cmp(&key.1)) {
-                        (Ordering::Less, Ordering::Less) => f32_min(
+                    let distance = match (idx.cmp(&key.0), idx.cmp(&key.1)) {
+                        (Ordering::Less, Ordering::Less) => func(
                             self.distance_matrix.get(&(idx, key.0)),
                             self.distance_matrix.get(&(idx, key.1)),
                         ),
-                        (Ordering::Less, Ordering::Greater) => f32_min(
+                        (Ordering::Less, Ordering::Greater) => func(
                             self.distance_matrix.get(&(idx, key.0)),
                             self.distance_matrix.get(&(key.1, idx)),
                         ),
-                        (Ordering::Greater, Ordering::Less) => f32_min(
+                        (Ordering::Greater, Ordering::Less) => func(
                             self.distance_matrix.get(&(key.0, idx)),
                             self.distance_matrix.get(&(idx, key.1)),
                         ),
-                        (Ordering::Greater, Ordering::Greater) => f32_min(
+                        (Ordering::Greater, Ordering::Greater) => func(
                             self.distance_matrix.get(&(key.0, idx)),
                             self.distance_matrix.get(&(key.1, idx)),
                         ),
@@ -421,7 +497,7 @@ impl<'a> Linkage<'a> {
                             unreachable!("Cannot be reached")
                         }
                     };
-                    self.distance_matrix.insert((idx, new_idx), min);
+                    self.distance_matrix.insert((idx, new_idx), distance);
                 }
             }
             // remove all distance scores that include one of the 2 sets
@@ -450,14 +526,6 @@ impl<'a> Linkage<'a> {
                 .expect("idx is guaranteed to be in cluster")
                 .len()
         })
-    }
-}
-
-fn f32_min(v1: Option<&f32>, v2: Option<&f32>) -> f32 {
-    if v1.expect("v1 must be `Some`") < v2.expect("v2 must be `Some`") {
-        *v1.expect("v1 must be `Some`")
-    } else {
-        *v2.expect("v2 must be `Some`")
     }
 }
 

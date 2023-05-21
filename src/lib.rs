@@ -9,7 +9,7 @@ use std::num::ParseIntError;
 use thiserror::Error;
 
 pub mod annotations;
-mod matrix;
+pub mod matrix;
 mod ontology;
 mod parser;
 mod set;

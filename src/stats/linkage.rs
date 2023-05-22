@@ -202,7 +202,6 @@ impl<'a> Linkage<'a> {
         T: IntoIterator<Item = HpoSet<'a>>,
         F: Fn(Combinations<HpoSet<'_>>) -> Vec<f32>,
     {
-
         fn f32_min(v1: Option<&f32>, v2: Option<&f32>) -> f32 {
             if v1.expect("v1 must be `Some`") < v2.expect("v2 must be `Some`") {
                 *v1.expect("v1 must be `Some`")
@@ -227,7 +226,6 @@ impl<'a> Linkage<'a> {
         T: IntoIterator<Item = HpoSet<'a>>,
         F: Fn(Combinations<HpoSet<'_>>) -> Vec<f32>,
     {
-
         fn f32_max(v1: Option<&f32>, v2: Option<&f32>) -> f32 {
             if v1.expect("v1 must be `Some`") > v2.expect("v2 must be `Some`") {
                 *v1.expect("v1 must be `Some`")
@@ -257,7 +255,6 @@ impl<'a> Linkage<'a> {
         T: IntoIterator<Item = HpoSet<'a>>,
         F: Fn(Combinations<HpoSet<'_>>) -> Vec<f32>,
     {
-
         fn mean(v1: Option<&f32>, v2: Option<&f32>) -> f32 {
             (v1.expect("v1 must be `Some`") + v2.expect("v2 must be `Some`")) / 2.0
         }
@@ -266,7 +263,6 @@ impl<'a> Linkage<'a> {
         linkage.arithmetic_cluster(mean);
         linkage
     }
-
 
     /// Returns an Iterator of [`Cluster`] references
     pub fn cluster(&self) -> cluster::Iter {
@@ -435,7 +431,6 @@ impl<'a> Linkage<'a> {
         }
     }
 
-
     /// Iteratively clusters all sets in the `Linkage` until none are left
     ///
     /// - Finds the 2 clusters/sets with smallest distance
@@ -444,7 +439,8 @@ impl<'a> Linkage<'a> {
     ///   other clusters based on `func`
     /// - appends the `DistanceMatrix` with new distances
     fn arithmetic_cluster<F>(&mut self, func: F)
-        where F: Fn(Option<&f32>,Option<&f32>) -> f32
+    where
+        F: Fn(Option<&f32>, Option<&f32>) -> f32,
     {
         loop {
             if self.distance_matrix.is_empty() {

@@ -8,6 +8,8 @@
 //!
 //! At the moment, `hpo` provides only the hypergeometric enrichment analysis using
 //! the survival function.
+//!
+//! In addition, it provides methods for [hierarchical clustering](`linkage::Linkage`) of `HpoSet`s.
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -16,6 +18,9 @@ use crate::annotations::{GeneId, OmimDiseaseId};
 use crate::HpoTerm;
 
 pub mod hypergeom;
+mod linkage;
+pub use linkage::cluster;
+pub use linkage::Linkage;
 
 /// The fold enrichment and p-value for an enriched Gene or Disease
 ///
@@ -226,13 +231,13 @@ mod test {
 
         let mut iter = Frequencies::new(map.iter(), 3);
         match iter.next() {
-            Some((key, x)) if key == "foo" => assert_eq!(x, 4.0),
-            Some((key, x)) if key == "bar" => assert_eq!(x, 7.0),
+            Some((key, x)) if key == "foo" => assert!((x - 4.0).abs() < f64::EPSILON),
+            Some((key, x)) if key == "bar" => assert!((x - 7.0).abs() < f64::EPSILON),
             _ => panic!("invalid"),
         }
         match iter.next() {
-            Some((key, x)) if key == "foo" => assert_eq!(x, 4.0),
-            Some((key, x)) if key == "bar" => assert_eq!(x, 7.0),
+            Some((key, x)) if key == "foo" => assert!((x - 4.0).abs() < f64::EPSILON),
+            Some((key, x)) if key == "bar" => assert!((x - 7.0).abs() < f64::EPSILON),
             _ => panic!("invalid"),
         }
         assert!(iter.next().is_none());

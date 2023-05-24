@@ -1,17 +1,20 @@
 //! A custom matrix for quick row and column-based data access
-//! This module should not be exposed to clients and is only internally.
+//!
+//! `Matrix` is only used within the [`SimilarityCombiner`](`crate::similarity::SimilarityCombiner`) trait
+//! and should not be used for other purposes, as it does not contain many safety guarantees.
 //!
 //! Imagine the following matrix / Dataframe
-//! ```text
-//!    ||   0|   1|   2|   3|
-//! =========================
-//! 0  ||  11|  12|  13|  14|
-//! 1  ||  21|  22|  23|  24|
-//! 2  ||  31|  32|  33|  34|
-//! ```
-//! ```ignore
-//! use crate::matrix::Matrix;
-//! let m = Matrix::new(3, 4, vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34]);
+//!
+//! | Index |   0 |   1 |   2 |   3 |
+//! |:----- | ---:| ---:| ---:| ---:|
+//! | **0** |  11 |  12 |  13 |  14 |
+//! | **1** |  21 |  22 |  23 |  24 |
+//! | **2** |  31 |  32 |  33 |  34 |
+//!
+//! ```no_run
+//! use hpo::matrix::Matrix;
+//! let data = vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34];
+//! let m = Matrix::new(3, 4, &data);
 //!
 //! for row in m.rows() {
 //!     let v: Vec<String> = row.map(|v| format!("{}", v)).collect();
@@ -39,6 +42,9 @@
 //!
 use std::fmt::Debug;
 
+/// A custom matrix for quick row and column-based data access
+///
+/// This struct is used within the [`SimilarityCombiner`](`crate::similarity::SimilarityCombiner`) trait
 pub struct Matrix<'a, T> {
     rows: usize,
     cols: usize,
@@ -46,26 +52,107 @@ pub struct Matrix<'a, T> {
 }
 
 impl<'a, T> Matrix<'a, T> {
+    /// Crates a new Matrix from `data` with `rows` number of rows, `cols` number of columns
+    ///
+    /// # Note:
+    /// It does not check if the number of rows and cols correspond to the length of data.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use hpo::matrix::Matrix;
+    /// let data = vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34];
+    /// let m = Matrix::new(3, 4, &data);
+    /// assert_eq!(m.len(), 12);
+    /// ```
     pub fn new(rows: usize, cols: usize, data: &'a [T]) -> Self {
         Self { rows, cols, data }
     }
 
+    /// Returns the total length of the data
+    ///
+    /// # Examples
+    /// ```rust
+    /// use hpo::matrix::Matrix;
+    /// let data = vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34];
+    /// let m = Matrix::new(3, 4, &data);
+    /// assert_eq!(m.len(), 12);
+    /// ```
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Returns true if the `Matrix` does not contain any data
+    ///
+    /// # Examples
+    /// ```rust
+    /// use hpo::matrix::Matrix;
+    /// let data: Vec<usize> = vec![];
+    /// let m = Matrix::new(0, 0, &data);
+    /// assert!(m.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
 
+    /// Returns a Tuple with number of rows and number of columns
+    ///
+    /// # Examples
+    /// ```rust
+    /// use hpo::matrix::Matrix;
+    /// let data = vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34];
+    /// let m = Matrix::new(3, 4, &data);
+    /// assert_eq!(m.dim(), (3, 4));
+    /// ```
     pub fn dim(&self) -> (usize, usize) {
         (self.rows, self.cols)
     }
 
+    /// Iterates the rows of the matrix
+    ///
+    /// # Examples
+    /// ```rust
+    /// use hpo::matrix::Matrix;
+    /// let data = vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34];
+    /// let m = Matrix::new(3, 4, &data);
+    ///
+    /// let mut rows = m.rows();
+    ///
+    /// let mut row = rows.next().unwrap();
+    /// assert_eq!(row.next().unwrap(), &11);
+    /// assert_eq!(row.next().unwrap(), &12);
+    /// assert_eq!(row.next().unwrap(), &13);
+    /// assert_eq!(row.next().unwrap(), &14);
+    /// assert!(row.next().is_none());
+    ///
+    /// assert_eq!(rows.next().unwrap().count(), 4);
+    /// assert_eq!(rows.next().unwrap().count(), 4);
+    /// assert!(rows.next().is_none());
+    /// ```
     pub fn rows(&self) -> RowIterator<T> {
         RowIterator::new(self.data, self.row_indicies())
     }
 
+    /// Iterates the columns of the matrix
+    ///
+    /// # Examples
+    /// ```rust
+    /// use hpo::matrix::Matrix;
+    /// let data = vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34];
+    /// let m = Matrix::new(3, 4, &data);
+    ///
+    /// let mut cols = m.cols();
+    ///
+    /// let mut col = cols.next().unwrap();
+    /// assert_eq!(col.next().unwrap(), &11);
+    /// assert_eq!(col.next().unwrap(), &21);
+    /// assert_eq!(col.next().unwrap(), &31);
+    /// assert!(col.next().is_none());
+    ///
+    /// assert_eq!(cols.next().unwrap().count(), 3);
+    /// assert_eq!(cols.next().unwrap().count(), 3);
+    /// assert_eq!(cols.next().unwrap().count(), 3);
+    /// assert!(cols.next().is_none());
+    /// ```
     pub fn cols(&self) -> ColumnIterator<T> {
         ColumnIterator::new(self.data, self.col_indicies())
     }
@@ -89,6 +176,9 @@ impl<T: std::fmt::Display> Debug for Matrix<'_, T> {
     }
 }
 
+/// An iterator of the values of a single row of a `Matrix`
+///
+/// This struct is yielded by `RowIterator`
 pub struct Row<'a, T> {
     iter: std::slice::Iter<'a, T>,
 }
@@ -106,7 +196,9 @@ impl<'a, T> Iterator for Row<'a, T> {
     }
 }
 
-/// Iterates through the rows, returning an Iterator over individual row values
+/// Iterates the rows of a `Matrix`, returning an Iterator over individual row values
+///
+/// This struct is yielded by `Matrix::rows`
 pub struct RowIterator<'a, T> {
     iter: RowIndexIterator,
     data: &'a [T],
@@ -153,6 +245,9 @@ impl Iterator for RowIndexIterator {
     }
 }
 
+/// An iterator of the values of a single column of a `Matrix`
+///
+/// This struct is yielded by `ColumnIterator`
 pub struct Column<'a, T> {
     iter: std::iter::StepBy<std::slice::Iter<'a, T>>,
 }
@@ -170,6 +265,9 @@ impl<'a, T> Iterator for Column<'a, T> {
     }
 }
 
+/// Iterates the columns of a `Matrix`, returning an Iterator over individual column values
+///
+/// This struct is yielded by `Matrix::cols`
 pub struct ColumnIterator<'a, T> {
     data: &'a [T],
     iter: ColumnIndexIterator,
@@ -366,20 +464,3 @@ mod tests {
         assert_eq!(col.sum::<i32>(), 9);
     }
 }
-
-// #[cfg(test)]
-// mod debugtests {
-//     use super::*;
-//     #[test]
-//     fn run(){
-//         let m = Matrix::new(3, 4, vec![11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34]);
-//         for row in m.rows() {
-//             let v: Vec<String> = row.map(|v| format!("{}", v)).collect();
-//             println!("[{}]", v.join(", "));
-//         }
-//         for col in m.cols() {
-//             let v: Vec<String> = col.map(|v| format!("{}", v)).collect();
-//             println!("[{}]", v.join(", "));
-//         }
-//     }
-// }

@@ -9,13 +9,14 @@ use std::num::ParseIntError;
 use thiserror::Error;
 
 pub mod annotations;
-mod matrix;
+pub mod matrix;
 mod ontology;
 mod parser;
 mod set;
 pub mod similarity;
 pub mod stats;
 pub mod term;
+pub mod utils;
 
 pub use ontology::comparison;
 pub use ontology::Ontology;

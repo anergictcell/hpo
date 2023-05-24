@@ -13,7 +13,7 @@ use crate::{HpoTerm, HpoTermId, Ontology};
 /// Each term can occur only once in the group.
 ///
 /// This group is used e.g. for having a set of parent or child HPO Terms
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Hash)]
 pub struct HpoGroup {
     ids: SmallVec<[HpoTermId; crate::DEFAULT_NUM_ALL_PARENTS]>,
 }

@@ -304,7 +304,7 @@ use termarena::Arena;
 /// Abnormality of the hypothalamus-pituitary axis"]
 /// HP:0000864 ---> HP:0012285
 /// ```
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Ontology {
     hpo_terms: Arena,
     genes: HashMap<GeneId, Gene>,

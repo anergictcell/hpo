@@ -64,7 +64,7 @@ impl Display for OmimDiseaseId {
 ///
 /// A disease has a unique [`OmimDiseaseId`] and a name and is
 /// connected to a set of HPO terms
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct OmimDisease {
     id: OmimDiseaseId,
     name: String,

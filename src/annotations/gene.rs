@@ -66,7 +66,7 @@ impl Display for GeneId {
 ///
 /// A gene has a unique [`GeneId`] and a name (symbol) and is
 /// connected to a set of HPO terms
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Gene {
     id: GeneId,
     name: String,

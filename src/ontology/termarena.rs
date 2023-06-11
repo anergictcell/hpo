@@ -74,6 +74,7 @@ use tracing::{trace, warn};
 
 use crate::MAX_HPO_ID_INTEGER as HPO_TERM_NUMBERS;
 
+#[derive(Clone)]
 pub(super) struct Arena {
     terms: Vec<HpoTermInternal>,
     ids: Vec<usize>,

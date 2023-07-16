@@ -58,6 +58,9 @@ impl TryFrom<&str> for HpoTermId {
         if s.len() < 4 {
             return Err(HpoError::ParseIntError);
         }
+        if &s[0..3] != "HP:" {
+            return Err(HpoError::ParseIntError);
+        }
         Ok(HpoTermId {
             inner: s[3..].parse::<u32>()?,
         })

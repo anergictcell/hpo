@@ -62,7 +62,7 @@ fn version_from_obo(header: &str) -> Option<(u16, u8, u8)> {
     header.lines().find_map(|line| {
         line.strip_prefix("data-version: hp/releases/")
             .and_then(|version| {
-                if version.len() == 10 {
+                if version.len() >= 10 {
                     Some((
                         version[0..4].parse().unwrap_or(0u16),
                         version[5..7].parse().unwrap_or(0u8),
@@ -90,7 +90,7 @@ fn term_from_obo(term: &str) -> Option<HpoTermInternal> {
         }
     }
     if let (Some(id), Some(name)) = (id, name) {
-        let mut term = HpoTermInternal::try_new(id, name).unwrap();
+        let mut term = HpoTermInternal::try_new(id, name).ok()?;
         if obsolete == Some("true") {
             *term.obsolete_mut() = true;
         }
@@ -107,7 +107,11 @@ fn add_connections(connections: &mut Connections, term: &str, id: HpoTermId) {
     for line in term.lines() {
         if let Some(value) = line.strip_prefix("is_a: ") {
             if let Some((term_id, _)) = value.split_once(' ') {
-                connections.push((id, HpoTermId::try_from(term_id).unwrap()));
+                if let Ok(con_id) = HpoTermId::try_from(term_id) {
+                    connections.push((id, con_id));
+                } else {
+                    error!("Invalid HpoTermId for parent {term_id}");
+                }
             } else {
                 error!("Unable to parse HPO ID from {}", value);
             }

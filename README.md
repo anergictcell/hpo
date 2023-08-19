@@ -43,6 +43,17 @@ The most relevant modules are:
 ## Examples
 Some (more or less random) examples are included in the [`examples` folder](https://github.com/anergictcell/hpo/tree/main/examples).
 
+### Before you start
+`hpo` requires the master data of the HPO ontology. The data can be downloaded from the HPO's website or from their Github releases. You have to download the files
+
+- `hp.obo`
+- `phenotype.hpoa`
+- `phenotype_to_genes.txt`
+
+Alternatively, you can use the binary ontology of this `hpo` package from the [`tests` folder](https://github.com/anergictcell/hpo/raw/main/tests/example.hpo). I will try to update the binary ontology regularily, but it might be outdated, so please check it yourself.
+
+
+
 ### Ontology
 ```rust
 use hpo::{Ontology, HpoTermId};

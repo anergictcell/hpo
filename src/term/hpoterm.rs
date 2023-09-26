@@ -920,7 +920,10 @@ impl<'a> HpoTerm<'a> {
     ///     ]
     /// );
     /// ```
+    #[allow(clippy::missing_panics_doc)]
     pub fn path_to_term(&self, other: &HpoTerm) -> Option<Vec<HpoTermId>> {
+        // The easiest scenarios are that term and other have a parent-child relationship
+        // in those cases we can simply return the direct path to ancestor from the child term
         if other.parent_of(self) {
             return self.path_to_ancestor(other);
         }
@@ -936,27 +939,32 @@ impl<'a> HpoTerm<'a> {
             });
         }
 
+        // Here we will fist iterate all common ancestors,
+        // then find the common ancestor that has the shortest distance to self and other
+        // then we built the path from self to ancestor and from other to ancestor to
         self.all_common_ancestors(other)
             .iter()
             .map(|ancestor| {
+                // Returning a tuple with (HpoTerm, usize)
+                // the HpoTerm is a common ancestor of both self and other
                 (
                     ancestor,
                     self.distance_to_ancestor(&ancestor)
-                        .expect("self must have a path to its ancestor")
+                        .expect("self does have a path to its ancestor by definition")
                         + other
                             .distance_to_ancestor(&ancestor)
-                            .expect("other must have a path to its ancestor"),
+                            .expect("other does have a path to its ancestor by definition"),
                 )
             })
             .min_by_key(|tuple| tuple.1)
             .map(|min| {
                 self.path_to_ancestor(&min.0)
-                    .expect("self must have a path to its ancestor")
+                    .expect("self does have a path to its ancestor by definition")
                     .iter()
                     .chain(
                         other
                             .path_to_ancestor(&min.0)
-                            .expect("other must have a path to its ancestor")
+                            .expect("other does have a path to its ancestor by definition")
                             .iter()
                             .rev()
                             .skip(1),

@@ -96,6 +96,10 @@ impl<'a> HpoSet<'a> {
     /// This means that it only contains terms that don't have a child
     /// term present in the set.
     ///
+    /// # Panics
+    ///
+    /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
     /// # Examples
     ///
     /// ```

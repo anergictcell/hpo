@@ -58,9 +58,16 @@
 //! - I built it myself and I don't have much prior experience with efficient hashmap data structures
 //! - I'm sure better Hashmap implementations exist that would solve this problem in a more performant way
 //!
-//! I initially used the default `Hashmap` instead, but the performance with the custom lookup is significantly better.
 //! Since the retrieval of `HpoTerm`s from the ontology is the most frequent operation, I wanted to optimize
 //! this lookup as much as possible.
+//!
+//! ## Alternative approaches
+//!
+//! I initially used the default `Hashmap` instead, but the performance with the custom lookup is significantly better.
+//! I also tried `FxHash`, but even this was 3-5 times slower.
+//! I tried using a single `Vec` that will hold an `Option<HpoTermInternal>` for every possible ID, but this
+//! meant a 5 Mio item Vector and the library became unusably slow on my laptop (Macbook M1 16 GB RAM), so this is not
+//! an option either.
 //!
 //! If you're looking at this and are shaking your head, please let me know how to improve this. I'd love to hear feedback,
 //! this part of the crate is the most performance-critical and I am also very interested in learning how to improve

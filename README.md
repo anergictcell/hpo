@@ -9,12 +9,15 @@ HPO, the [Human Phenotype Ontology](https://hpo.jax.org/app/) is a standard voca
 This library provides convenient APIs to work with the ontology. The main goals are to compare terms - or sets of terms - to each other and run statistics for enrichment analysis.
 
 ### Features
-- Calculate the similarity of HPO terms
-- Calculate the similarity of multiple sets of HPO terms (e.g. a patient's clinical information)
-- Enrichment analysis of genes and diseases in sets of HPO terms
-- Compare different HPO versions
-- Graph based analysis of the ontology
-- Completely written in Rust, so it's **🚀blazingly fast🚀**<sup>TM</sup> ([Benchmarks](#benchmarks))
+- 👫 Identify patient cohorts based on clinical features
+- 👨‍👧‍👦 Cluster patients or other clinical information for GWAS
+- 🩻→🧬 Phenotype to Genotype studies
+- 🍎🍊 HPO similarity analysis
+- 🔬Enrichment analysis of genes and diseases in sets of HPO terms
+- 🕸️ Graph based analysis of phenotypes, genes and diseases
+- 🔗 Linkage calculation for dendogram analysis
+- 🚀 Completely written in Rust, so it's **blazingly fast**<sup>TM</sup> ([Benchmarks](#benchmarks))
+
 
 ## What is the current state?
 
@@ -50,7 +53,7 @@ Some (more or less random) examples are included in the [`examples` folder](http
 - `phenotype.hpoa`
 - `phenotype_to_genes.txt`
 
-Alternatively, you can use the binary ontology of this `hpo` package from the [`tests` folder](https://github.com/anergictcell/hpo/raw/main/tests/example.hpo). I will try to update the binary ontology regularily, but it might be outdated, so please check it yourself.
+Alternatively, you can use the binary ontology of this `hpo` package from the [`tests` folder](https://github.com/anergictcell/hpo/raw/main/tests/ontology.hpo). I will try to update the binary ontology regularily, but it might be outdated, so please check it yourself.
 
 
 

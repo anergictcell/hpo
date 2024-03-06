@@ -49,14 +49,14 @@ HPO data must be downloaded first from  [Jax HPO](https://hpo.jax.org/) itself. 
 - [hp.obo](https://hpo.jax.org/app/data/ontology) (Required for [`HpoTerm`]s and their connection to each other)
 
 1. Data can be loaded directly from the code with  [`Ontology::from_standard`]:
-```rust
+```no_run
     let ontology = Ontology::from_standard("/path/to/master-data/").unwrap();
 ```
 
 2. Or it can be converted to a localy binary by copy  `examples/obo_to_bin.rs` into your project, then run .
 `cargo run --example --release obo_to_bin <PATH TO FOLDER WITH JAX DATA> <OUTPUT FILENAME>`
 Finally, load the data using [`Ontology::from_binary`]:
-```rust
+```no_run
     let ontology = Ontology::from_binary("your-hpo-binary.hpo").unwrap();
 ```
 

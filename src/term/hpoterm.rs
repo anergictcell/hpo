@@ -920,6 +920,8 @@ impl<'a> HpoTerm<'a> {
     ///     ]
     /// );
     /// ```
+    /// # Panics
+    /// TODO    
     pub fn path_to_term(&self, other: &HpoTerm) -> Option<Vec<HpoTermId>> {
         if other.parent_of(self) {
             return self.path_to_ancestor(other);

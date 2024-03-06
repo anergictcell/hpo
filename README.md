@@ -50,6 +50,7 @@ HPO data must be downloaded first from  [Jax HPO](https://hpo.jax.org/) itself. 
 
 1. Data can be loaded directly from the code with  [`Ontology::from_standard`]:
 ```no_run
+    use hpo::Ontology;
     let ontology = Ontology::from_standard("/path/to/master-data/").unwrap();
 ```
 
@@ -57,6 +58,7 @@ HPO data must be downloaded first from  [Jax HPO](https://hpo.jax.org/) itself. 
 `cargo run --example --release obo_to_bin <PATH TO FOLDER WITH JAX DATA> <OUTPUT FILENAME>`
 Finally, load the data using [`Ontology::from_binary`]:
 ```no_run
+    use hpo::Ontology;
     let ontology = Ontology::from_binary("your-hpo-binary.hpo").unwrap();
 ```
 

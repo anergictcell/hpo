@@ -150,7 +150,7 @@ impl OmimDisease {
         res.append(&mut usize_to_u32(name_length).to_be_bytes().to_vec());
 
         // OMIM Disease name (n bytes)
-        for c in name.iter() {
+        for c in name {
             res.push(*c);
         }
 

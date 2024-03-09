@@ -55,18 +55,7 @@ impl HpoTermInternal {
 
     pub fn try_new(id: &str, name: &str) -> HpoResult<HpoTermInternal> {
         let id = HpoTermId::try_from(id)?;
-        Ok(HpoTermInternal {
-            id,
-            name: name.to_string(),
-            parents: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
-            all_parents: HpoGroup::with_capacity(DEFAULT_NUM_ALL_PARENTS),
-            children: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
-            genes: Genes::with_capacity(DEFAULT_NUM_GENES),
-            omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
-            ic: InformationContent::default(),
-            obsolete: false,
-            replacement: None,
-        })
+        Ok(Self::new(name.to_string(), id))
     }
 
     pub fn id(&self) -> &HpoTermId {

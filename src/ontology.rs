@@ -1005,6 +1005,14 @@ impl Ontology {
             .collect();
         Ok(())
     }
+
+    /// Iterates [`HpoTerm`]s
+    pub fn iter(&self) -> Iter<'_> {
+        Iter {
+            inner: self.hpo_terms.iter(),
+            ontology: self,
+        }
+    }
 }
 
 /// Methods to add annotations
@@ -1646,10 +1654,7 @@ impl<'a> IntoIterator for &'a Ontology {
     type IntoIter = Iter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter {
-            inner: self.hpo_terms.iter(),
-            ontology: self,
-        }
+        self.iter()
     }
 }
 

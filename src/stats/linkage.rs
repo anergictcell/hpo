@@ -523,13 +523,18 @@ impl<'a> Linkage<'a> {
                 .len()
         })
     }
+
+    /// Returns an Iterator of [`Cluster`] references
+    pub fn iter(&self) -> cluster::Iter {
+        self.cluster()        
+    }
 }
 
 impl<'a> IntoIterator for &'a Linkage<'a> {
     type Item = &'a Cluster;
     type IntoIter = cluster::Iter<'a>;
     fn into_iter(self) -> Self::IntoIter {
-        self.cluster()
+        self.iter()
     }
 }
 

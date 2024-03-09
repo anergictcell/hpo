@@ -526,7 +526,7 @@ impl<'a> Linkage<'a> {
 
     /// Returns an Iterator of [`Cluster`] references
     pub fn iter(&self) -> cluster::Iter {
-        self.cluster()        
+        self.cluster()
     }
 }
 

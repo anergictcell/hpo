@@ -43,6 +43,27 @@ The most relevant modules are:
 ## Examples
 Some (more or less random) examples are included in the [`examples` folder](https://github.com/anergictcell/hpo/tree/main/examples).
 
+HPO data must be downloaded first from  [Jax HPO](https://hpo.jax.org/) itself. You need the following files:
+- [phenotype.hpoa](https://hpo.jax.org/app/data/annotations) available as "Download HPO annotations" (Required to connect `OmimDisease` to `HpoTerm`s
+- [phenotype_to_genes.txt](https://hpo.jax.org/app/data/annotations) available as "Phenotype to genes" (Required to connect `Gene` to `HpoTerm`)
+- [hp.obo](https://hpo.jax.org/app/data/ontology) (Required for `HpoTerm`s and their connection to each other)
+
+1. Data can be loaded directly from the code with  [`Ontology::from_standard`]:
+```no_run
+    use hpo::Ontology;
+    let ontology = Ontology::from_standard("/path/to/master-data/").unwrap();
+```
+
+2. Or it can be converted to a localy binary by copy  `examples/obo_to_bin.rs` into your project, then run .
+`cargo run --example --release obo_to_bin <PATH TO FOLDER WITH JAX DATA> <OUTPUT FILENAME>`
+Finally, load the data using [`Ontology::from_binary`]:
+```no_run
+    use hpo::Ontology;
+    let ontology = Ontology::from_binary("your-hpo-binary.hpo").unwrap();
+```
+
+3. Another possibility is to use the snapshot from the [Github repository](https://github.com/anergictcell/hpo) of this crate which contains a binary build of the ontology <https://github.com/anergictcell/hpo/blob/main/tests/ontology.hpo>. IT will not always be up to date, so please double-check yourself.
+
 ### Ontology
 ```rust
 use hpo::{Ontology, HpoTermId};

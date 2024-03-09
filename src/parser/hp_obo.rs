@@ -28,7 +28,7 @@ pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology
     let Ok(file_content) = fs::read_to_string(&filename) else {
         return Err(HpoError::CannotOpenFile(
             filename.as_ref().display().to_string(),
-        ))
+        ));
     };
 
     for term in file_content.split("\n\n") {

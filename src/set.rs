@@ -115,6 +115,8 @@ impl<'a> HpoSet<'a> {
     /// let children = set.child_nodes();
     /// assert_eq!(children.len(), 4);
     /// ```
+    /// # Panics
+    /// TODO
     pub fn child_nodes(&self) -> Self {
         let group = self
             .group

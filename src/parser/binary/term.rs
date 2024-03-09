@@ -33,7 +33,7 @@ pub(crate) fn from_bytes_v1(bytes: Bytes) -> Result<HpoTermInternal, HpoError> {
     }
 
     let Ok(name) = String::from_utf8(bytes[9..total_len as usize].to_vec()) else {
-        return Err(HpoError::ParseBinaryError)
+        return Err(HpoError::ParseBinaryError);
     };
     Ok(HpoTermInternal::new(name, id.into()))
 }
@@ -67,7 +67,7 @@ pub(crate) fn from_bytes_v2(bytes: Bytes) -> Result<HpoTermInternal, HpoError> {
     }
 
     let Ok(name) = String::from_utf8(bytes[9..9 + name_len].to_vec()) else {
-        return Err(HpoError::ParseBinaryError)
+        return Err(HpoError::ParseBinaryError);
     };
     let mut term = HpoTermInternal::new(name, id.into());
 

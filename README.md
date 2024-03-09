@@ -44,9 +44,9 @@ The most relevant modules are:
 Some (more or less random) examples are included in the [`examples` folder](https://github.com/anergictcell/hpo/tree/main/examples).
 
 HPO data must be downloaded first from  [Jax HPO](https://hpo.jax.org/) itself. You need the following files:
-- [phenotype.hpoa](https://hpo.jax.org/app/data/annotations) available as "Download HPO annotations" (Required to connect [`OmimDisease`]s to [`HpoTerm`]s)
-- [phenotype_to_genes.txt](https://hpo.jax.org/app/data/annotations) available as "Phenotype to genes" (Required to connect [`Gene`]s to [`HpoTerm`]s)
-- [hp.obo](https://hpo.jax.org/app/data/ontology) (Required for [`HpoTerm`]s and their connection to each other)
+- [phenotype.hpoa](https://hpo.jax.org/app/data/annotations) available as "Download HPO annotations" (Required to connect `OmimDisease` to `HpoTerm`s
+- [phenotype_to_genes.txt](https://hpo.jax.org/app/data/annotations) available as "Phenotype to genes" (Required to connect `Gene` to `HpoTerm`)
+- [hp.obo](https://hpo.jax.org/app/data/ontology) (Required for `HpoTerm`s and their connection to each other)
 
 1. Data can be loaded directly from the code with  [`Ontology::from_standard`]:
 ```no_run

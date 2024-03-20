@@ -1,7 +1,9 @@
 use core::fmt::Debug;
+use std::collections::hash_map::Values;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
+use std::iter::Filter;
 use std::ops::BitOr;
 use std::path::Path;
 
@@ -317,6 +319,17 @@ pub struct Ontology {
 impl Debug for Ontology {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Ontology with {} terns", self.hpo_terms.len())
+    }
+}
+
+pub struct DiseaseIter<'a, F> {
+    inner: Filter<Values<'a, OmimDiseaseId, OmimDisease>, F>,
+}
+
+impl<'a, F: FnMut(&&'a OmimDisease) -> bool + 'a> Iterator for DiseaseIter<'a, F> {
+    type Item = &'a OmimDisease;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
     }
 }
 
@@ -743,6 +756,50 @@ impl Ontology {
         &self,
     ) -> std::collections::hash_map::Values<'_, OmimDiseaseId, OmimDisease> {
         self.omim_diseases.values()
+    }
+
+    /// Returns an Iterator of all [`OmimDisease`]s whose names contains the provided
+    /// substring.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// for result in ontology.diseases_by_name("Cystinosis") {
+    ///     println!("{:?}", result.name());
+    ///  }
+    /// ```
+    pub fn diseases_by_name<'a>(
+        &'a self,
+        substring: &'a str,
+    ) -> DiseaseIter<impl FnMut(&&'a OmimDisease) -> bool + 'a> {
+        DiseaseIter {
+            inner: self
+                .omim_diseases
+                .values()
+                .filter(move |disease| disease.name().contains(substring)),
+        }
+    }
+
+    /// Returns the first matching [`OmimDisease`] whose name contains the provided
+    /// substring.
+    ///
+    /// If no such substring is present, return `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let cystinosis = ontology.disease_by_name("Cystinosis");
+    /// ```
+    pub fn disease_by_name(&self, substring: &str) -> Option<&OmimDisease> {
+        self.omim_diseases
+            .values()
+            .find(|&disease| disease.name().contains(substring))
     }
 
     /// Returns the Jax-Ontology release version
@@ -1753,5 +1810,30 @@ mod test {
         assert_eq!(diff.added_omim_diseases().len(), 0);
         assert_eq!(diff.removed_omim_diseases().len(), 0);
         assert_eq!(diff.changed_omim_diseases().len(), 0);
+    }
+
+    #[test]
+    fn diseases_by_name() {
+        let ont = Ontology::from_binary("tests/example.hpo").unwrap();
+        assert_eq!(ont.diseases_by_name("Cystinosis").count(), 3);
+        assert_eq!(ont.diseases_by_name("Macdermot-Winter syndrome").count(), 1);
+        assert_eq!(ont.diseases_by_name("anergictcell syndrome").count(), 0);
+
+        let cystinosis = vec![
+            "Cystinosis, adult nonnephropathic",
+            "Cystinosis, late-onset juvenile or adolescent nephropathic",
+            "Cystinosis, nephropathic",
+        ];
+        assert_eq!(
+            cystinosis.contains(&ont.disease_by_name("Cystinosis").unwrap().name()),
+            true
+        );
+        assert_eq!(
+            ont.disease_by_name("Macdermot-Winter syndrome")
+                .unwrap()
+                .name(),
+            "Macdermot-Winter syndrome"
+        );
+        assert_eq!(ont.disease_by_name("anergictcell syndrome").is_none(), true);
     }
 }

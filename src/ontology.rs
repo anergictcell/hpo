@@ -3,7 +3,7 @@ use std::collections::hash_map::Values;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
-use std::iter::Filter;
+
 use std::ops::BitOr;
 use std::path::Path;
 
@@ -322,14 +322,27 @@ impl Debug for Ontology {
     }
 }
 
-pub struct DiseaseIter<'a, F> {
-    inner: Filter<Values<'a, OmimDiseaseId, OmimDisease>, F>,
+/// Iterates [`OmimDisease`] that match the query string
+///
+/// This struct is returned by [`Ontology::omim_diseases_by_name`]
+pub struct OmimDiseaseFilter<'a> {
+    iter: Values<'a, OmimDiseaseId, OmimDisease>,
+    query: &'a str,
 }
 
-impl<'a, F: FnMut(&&'a OmimDisease) -> bool + 'a> Iterator for DiseaseIter<'a, F> {
+impl<'a> OmimDiseaseFilter<'a> {
+    fn new(iter: Values<'a, OmimDiseaseId, OmimDisease>, query: &'a str) -> Self {
+        OmimDiseaseFilter { iter, query }
+    }
+}
+
+impl<'a> Iterator for OmimDiseaseFilter<'a> {
     type Item = &'a OmimDisease;
+
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
+        self.iter
+            .by_ref()
+            .find(|&item| item.name().contains(self.query))
     }
 }
 
@@ -767,20 +780,12 @@ impl Ontology {
     /// use hpo::Ontology;
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// for result in ontology.diseases_by_name("Cystinosis") {
+    /// for result in ontology.omim_diseases_by_name("Cystinosis") {
     ///     println!("{:?}", result.name());
     ///  }
     /// ```
-    pub fn diseases_by_name<'a>(
-        &'a self,
-        substring: &'a str,
-    ) -> DiseaseIter<impl FnMut(&&'a OmimDisease) -> bool + 'a> {
-        DiseaseIter {
-            inner: self
-                .omim_diseases
-                .values()
-                .filter(move |disease| disease.name().contains(substring)),
-        }
+    pub fn omim_diseases_by_name<'a>(&'a self, substring: &'a str) -> OmimDiseaseFilter {
+        OmimDiseaseFilter::new(self.omim_diseases.values(), substring)
     }
 
     /// Returns the first matching [`OmimDisease`] whose name contains the provided
@@ -794,9 +799,9 @@ impl Ontology {
     /// use hpo::Ontology;
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let cystinosis = ontology.disease_by_name("Cystinosis");
+    /// let cystinosis = ontology.omim_disease_by_name("Cystinosis");
     /// ```
-    pub fn disease_by_name(&self, substring: &str) -> Option<&OmimDisease> {
+    pub fn omim_disease_by_name(&self, substring: &str) -> Option<&OmimDisease> {
         self.omim_diseases
             .values()
             .find(|&disease| disease.name().contains(substring))
@@ -1815,25 +1820,31 @@ mod test {
     #[test]
     fn diseases_by_name() {
         let ont = Ontology::from_binary("tests/example.hpo").unwrap();
-        assert_eq!(ont.diseases_by_name("Cystinosis").count(), 3);
-        assert_eq!(ont.diseases_by_name("Macdermot-Winter syndrome").count(), 1);
-        assert_eq!(ont.diseases_by_name("anergictcell syndrome").count(), 0);
+        assert_eq!(ont.omim_diseases_by_name("Cystinosis").count(), 3);
+        assert_eq!(
+            ont.omim_diseases_by_name("Macdermot-Winter syndrome")
+                .count(),
+            1
+        );
+        assert_eq!(
+            ont.omim_diseases_by_name("anergictcell syndrome").count(),
+            0
+        );
 
-        let cystinosis = vec![
+        let cystinosis = [
             "Cystinosis, adult nonnephropathic",
             "Cystinosis, late-onset juvenile or adolescent nephropathic",
             "Cystinosis, nephropathic",
         ];
+        assert!(cystinosis.contains(&ont.omim_disease_by_name("Cystinosis").unwrap().name()));
+
         assert_eq!(
-            cystinosis.contains(&ont.disease_by_name("Cystinosis").unwrap().name()),
-            true
-        );
-        assert_eq!(
-            ont.disease_by_name("Macdermot-Winter syndrome")
+            ont.omim_disease_by_name("Macdermot-Winter syndrome")
                 .unwrap()
                 .name(),
             "Macdermot-Winter syndrome"
         );
-        assert_eq!(ont.disease_by_name("anergictcell syndrome").is_none(), true);
+
+        assert!(ont.omim_disease_by_name("anergictcell syndrome").is_none());
     }
 }

@@ -40,8 +40,17 @@ fn main() {
     let sim1 = Builtins::new(&sim1_name, ic_kind).expect("invalid algoritm 1");
     let sim2 = Builtins::new(&sim2_name, ic_kind).expect("invalid algoritm 2");
 
+    let mut n_terms = 100_000;
+
+    if let Some(n) = args.next() {
+        if let Ok(items) = n.parse::<usize>() {
+            n_terms = items;
+        }
+    }
+
     let scores: Vec<String> = ontology
         .into_iter()
+        .take(n_terms)
         .par_bridge()
         .map(|term1| {
             let mut inner_score = Vec::new();

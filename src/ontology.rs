@@ -936,7 +936,7 @@ impl Ontology {
         Ok(ont)
     }
 
-    /// Returns the code to crate a `Mermaid` flow diagram
+    /// Returns the code to create a `Mermaid` flow diagram
     ///
     /// This is meant to be used with smaller ontologies, e.g. from [`Ontology::sub_ontology`]
     pub fn as_mermaid(&self) -> String {
@@ -953,6 +953,30 @@ impl Ontology {
                 code.push_str(&format!("{} --> {}\n", term.id(), child.id()));
             }
         }
+        code
+    }
+
+    /// Returns the code to create a `graphviz` flow diagram
+    ///
+    /// Only node names are printed with one word per line for readability
+    ///
+    /// Layout must be specified: `dot` is useful for structured data, similar to mermaid output,
+    /// `fdp` can be used when graph should be focused on the root node,
+    /// `neato` is an alternative but quite slow for larger graph
+    // This is meant to be used with smaller ontologies, e.g. from [`Ontology::sub_ontology`]
+    pub fn as_graphviz(&self, layout: &str) -> String {
+        let mut code = String::new();
+        code.push_str("digraph G  {\n");
+        // nicer layout than neator but we must remove the "All" node
+        code.push_str(&format!("layout={layout}\n"));
+        for term in self {
+            for child in term.children() {
+                let term_name = term.name().replace(' ', "\n");
+                let child_name = child.name().replace(' ', "\n");
+                code.push_str(&format!("\"{term_name}\" -> \"{child_name}\"\n"));
+            }
+        }
+        code.push_str("}\n");
         code
     }
 
@@ -1846,5 +1870,18 @@ mod test {
         );
 
         assert!(ont.omim_disease_by_name("anergictcell syndrome").is_none());
+    }
+
+    #[test]
+    fn graphiv() {
+        let mut ontology = Ontology::default();
+        ontology.insert_term("Root".into(), 1u32);
+        ontology.insert_term("A very long name".into(), 2u32);
+        ontology.insert_term("A small name".into(), 3u32);
+
+        ontology.add_parent(1u32, 2u32);
+        ontology.add_parent(1u32, 3u32);
+        let graph = ontology.as_graphviz("fdp");
+        assert_eq!(graph, "digraph G  {\nlayout=fdp\n\"Root\" -> \"A\nvery\nlong\nname\"\n\"Root\" -> \"A\nsmall\nname\"\n}\n");
     }
 }

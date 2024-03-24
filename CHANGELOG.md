@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.3] - 2024-03-24
+
+### Feature
+
+- Add method to search for `OmimDisease`
+
+### Bugfix
+
+- Fix the JC similarity algorithm (see https://github.com/anergictcell/pyhpo/issues/20)
+
+### Documentation
+
+- Add a Changelog and a checklist for releases and patches
+
 
 ## [0.8.2] - 2024-03-09
 

@@ -150,7 +150,7 @@ impl<'a> HpoTerm<'a> {
         Iter::new(self.parents.iter(), self.ontology)
     }
 
-    /// Returns the [`HpoTermId`]s of al; direct and indirect parents
+    /// Returns the [`HpoTermId`]s of all direct and indirect parents
     ///
     /// # Examples
     ///
@@ -166,7 +166,7 @@ impl<'a> HpoTerm<'a> {
         self.all_parents
     }
 
-    /// Returns an iterator of the direct and indrect patients of the term
+    /// Returns an iterator of the direct and indirect parents of the term
     ///
     /// # Examples
     ///

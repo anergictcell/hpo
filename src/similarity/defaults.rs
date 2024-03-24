@@ -142,13 +142,19 @@ impl Similarity for Lin {
 
 /// Similarity score from Jiang & Conrath
 ///
-/// For a detailed description see [Jiang J, Conrath D, ROCLING X, (1997)](https://aclanthology.org/O97-1002.pdf)
+/// For a detailed description see [Jiang J, Conrath D, Rocling X, (1997)](https://aclanthology.org/O97-1002.pdf)
 ///
 /// # Note
 ///
-/// This algorithm is an implementation as described in the paper cited above. It is different
-/// from the `JC` implementation in the `HPOSim` R library. It is identical to the `JC2`
-/// implementation in [`PyHPO`](https://pypi.org/project/pyhpo/)
+/// This algorithm is an implementation as described in the paper cited above, with minor
+/// modifications. It is different from the `JC` implementation in the `HPOSim` R library.
+/// For a discussion on the correct implementation see
+/// [this issue from pyhpo](https://github.com/anergictcell/pyhpo/issues/20).
+///
+/// # Note
+///
+/// The logic of the JC similarity was changed in version `0.8.3`. Ensure you update
+/// to at least `0.8.3` before using it.
 #[derive(Debug)]
 pub struct Jc {
     kind: InformationContentKind,
@@ -179,12 +185,16 @@ impl Similarity for Jc {
             return 1.0;
         }
 
-        let ic_combined = a.information_content().get_kind(&self.kind)
-            + b.information_content().get_kind(&self.kind);
+        let ic1 = a.information_content().get_kind(&self.kind);
+        let ic2 = b.information_content().get_kind(&self.kind);
+
+        if ic1 == 0.0 || ic2 == 0.0 {
+            return 0.0;
+        }
 
         let resnik = Resnik::new(self.kind).calculate(a, b);
 
-        1.0 - (ic_combined - 2.0 * resnik)
+        1.0 / (ic1 + ic2 - 2.0 * resnik + 1.0)
     }
 }
 

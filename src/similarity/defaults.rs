@@ -142,7 +142,7 @@ impl Similarity for Lin {
 
 /// Similarity score from Jiang & Conrath
 ///
-/// For a detailed description see [Jiang J, Conrath D, ROCLING X, (1997)](https://aclanthology.org/O97-1002.pdf)
+/// For a detailed description see [Jiang J, Conrath D, Rocling X, (1997)](https://aclanthology.org/O97-1002.pdf)
 ///
 /// # Note
 ///

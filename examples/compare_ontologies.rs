@@ -16,6 +16,15 @@ fn ontology(path_arg: &str) -> Ontology {
     }
 }
 
+fn ontology2(path_arg: &str) -> Ontology {
+    let path = Path::new(path_arg);
+
+    match path.is_file() {
+        true => Ontology::from_binary(path).unwrap(),
+        false => Ontology::from_genes_to_phenotypes(&path.to_string_lossy()).unwrap(),
+    }
+}
+
 /// Prints some basic stats about the differences
 /// between two Ontologies
 fn overview(diffs: &Comparison) {
@@ -89,15 +98,19 @@ fn changed_terms(diffs: &Comparison) {
 
 /// Prints info about Gene-specific changes
 fn changed_genes(diffs: &Comparison) {
-    println!("#Gene Delta\tID\tOld Name:New Name\tAdded Parents\tRemoved Parents");
-    for term in diffs.changed_genes() {
-        print!("Delta\t{}", term.id());
-        if let Some(names) = term.changed_name() {
+    println!(
+        "#Gene Delta\tID\tOld Name:New Name\tn Terms Old\tn Terms New\tAdded Terms\tRemoved Terms"
+    );
+    for gene in diffs.changed_genes() {
+        print!("Delta\t{}", gene.id());
+        if let Some(names) = gene.changed_name() {
             print!("\t{}:{}", names.0, names.1);
         } else {
             print!("\t.");
         }
-        if let Some(added) = term.added_terms() {
+        let (n_l, n_r) = gene.n_terms();
+        print!("\t{n_l}\t{n_r}");
+        if let Some(added) = gene.added_terms() {
             print!(
                 "\t{}",
                 added
@@ -109,7 +122,7 @@ fn changed_genes(diffs: &Comparison) {
         } else {
             print!("\t.");
         }
-        if let Some(removed) = term.removed_terms() {
+        if let Some(removed) = gene.removed_terms() {
             print!(
                 "\t{}",
                 removed
@@ -127,15 +140,19 @@ fn changed_genes(diffs: &Comparison) {
 
 /// Prints info about Gene-specific changes
 fn changed_diseases(diffs: &Comparison) {
-    println!("#Disease Delta\tID\tOld Name:New Name\tAdded Parents\tRemoved Parents");
-    for term in diffs.changed_omim_diseases() {
-        print!("Delta\t{}", term.id());
-        if let Some(names) = term.changed_name() {
+    println!("#Disease Delta\tID\tOld Name:New Name\tn Terms Old\tn Terms New\tAdded Terms\tRemoved Terms");
+    for disease in diffs.changed_omim_diseases() {
+        print!("Delta\t{}", disease.id());
+        if let Some(names) = disease.changed_name() {
             print!("\t{}:{}", names.0, names.1);
         } else {
             print!("\t.");
         }
-        if let Some(added) = term.added_terms() {
+
+        let (n_l, n_r) = disease.n_terms();
+        print!("\t{n_l}\t{n_r}");
+
+        if let Some(added) = disease.added_terms() {
             print!(
                 "\t{}",
                 added
@@ -147,7 +164,7 @@ fn changed_diseases(diffs: &Comparison) {
         } else {
             print!("\t.");
         }
-        if let Some(removed) = term.removed_terms() {
+        if let Some(removed) = disease.removed_terms() {
             print!(
                 "\t{}",
                 removed
@@ -206,7 +223,7 @@ fn main() {
     let arg_new = args.next().unwrap();
 
     let lhs = ontology(&arg_old);
-    let rhs = ontology(&arg_new);
+    let rhs = ontology2(&arg_new);
 
     let diffs = lhs.compare(&rhs);
 

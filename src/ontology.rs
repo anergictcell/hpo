@@ -374,7 +374,7 @@ impl Ontology {
     /// use hpo::Ontology;
     /// use hpo::HpoTermId;
     ///
-    /// let ontology = Ontology::from_binary("/path/to/jax_hpo_data/").unwrap();
+    /// let ontology = Ontology::from_standard("/path/to/jax_hpo_data/").unwrap();
     ///
     /// assert!(ontology.len() == 26);
     ///
@@ -393,6 +393,62 @@ impl Ontology {
         let gene = path.join(crate::GENE_FILENAME);
         let disease = path.join(crate::DISEASE_FILENAME);
         parser::load_from_standard_files(&obo, &gene, &disease, &mut ont)?;
+        ont.calculate_information_content()?;
+        ont.set_default_categories()?;
+        ont.set_default_modifier()?;
+        Ok(ont)
+    }
+
+    /// Initialize the [`Ontology`] from data provided by [Jax HPO](https://hpo.jax.org/)
+    ///
+    /// You must download:
+    ///
+    /// - Actual OBO data: [`hp.obo`](https://hpo.jax.org/app/data/ontology)
+    /// - Links between HPO and OMIM diseases: [`phenotype.hpoa`](https://hpo.jax.org/app/data/annotations)
+    /// - Links between HPO and Genes: [`genes_to_phenotypes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/genes_to_phenotype.txt)
+    ///
+    /// and then specify the folder where the data is stored.
+    ///
+    /// # Errors
+    ///
+    /// This method can fail for various reasons:
+    ///
+    /// - obo file not present or available: [`HpoError::CannotOpenFile`]
+    /// - [`Ontology::add_gene`] failed
+    /// - [`Ontology::add_omim_disease`] failed
+    ///
+    /// # Note
+    ///
+    /// This method has one difference to [`Ontology::from_standard`] in that every [`Gene`]
+    /// only contains directly linked [`HpoTerm`] and not all inherited ones.
+    /// See [this discussion](https://github.com/anergictcell/hpo/issues/44) for a more detailed
+    /// explanation
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use hpo::Ontology;
+    /// use hpo::HpoTermId;
+    ///
+    /// let ontology = Ontology::genes_to_phenotypes("/path/to/jax_hpo_data/").unwrap();
+    ///
+    /// assert!(ontology.len() == 26);
+    ///
+    /// let absent_term = HpoTermId::try_from("HP:9999999").unwrap();
+    /// assert!(ontology.hpo(absent_term).is_none());
+    ///
+    /// let present_term = HpoTermId::try_from("HP:0000001").unwrap();
+    /// let root_term = ontology.hpo(present_term).unwrap();
+    /// assert_eq!(root_term.name(), "All");
+    /// ```
+    ///
+    pub fn from_genes_to_phenotypes(folder: &str) -> HpoResult<Self> {
+        let mut ont = Ontology::default();
+        let path = Path::new(folder);
+        let obo = path.join(crate::OBO_FILENAME);
+        let gene = path.join(crate::GENE_TO_PHENO_FILENAME);
+        let disease = path.join(crate::DISEASE_FILENAME);
+        parser::load_from_standard_no_transitive_genes(&obo, &gene, &disease, &mut ont)?;
         ont.calculate_information_content()?;
         ont.set_default_categories()?;
         ont.set_default_modifier()?;

@@ -31,6 +31,7 @@ const MAX_HPO_ID_INTEGER: usize = 10_000_000;
 
 const OBO_FILENAME: &str = "hp.obo";
 const GENE_FILENAME: &str = "phenotype_to_genes.txt";
+const GENE_TO_PHENO_FILENAME: &str = "genes_to_phenotype.txt";
 const DISEASE_FILENAME: &str = "phenotype.hpoa";
 
 /// The `HpoTermId` of `HP:0000118 | Phenotypic abnormality`

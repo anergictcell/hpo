@@ -962,12 +962,12 @@ impl Ontology {
     ///
     /// Layout must be specified: `dot` is useful for structured data, similar to mermaid output,
     /// `fdp` can be used when graph should be focused on the root node,
-    /// `neato` is an alternative but quite slow for larger graph
-    // This is meant to be used with smaller ontologies, e.g. from [`Ontology::sub_ontology`]
+    /// `neato` is an alternative but quite slow for larger graph.
+    ///
+    /// This is meant to be used with smaller ontologies, e.g. from [`Ontology::sub_ontology`]
     pub fn as_graphviz(&self, layout: &str) -> String {
         let mut code = String::new();
         code.push_str("digraph G  {\n");
-        // nicer layout than neator but we must remove the "All" node
         code.push_str(&format!("layout={layout}\n"));
         for term in self {
             for child in term.children() {

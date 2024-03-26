@@ -161,7 +161,7 @@ pub(crate) mod phenotype_hpoa {
     }
 }
 
-pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
+pub(crate) fn load_from_jax_files_with_transivitve_genes<P: AsRef<Path>>(
     obo_file: P,
     gene_file: P,
     disease_file: P,
@@ -173,7 +173,7 @@ pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
     Ok(())
 }
 
-pub(crate) fn load_from_standard_no_transitive_genes<P: AsRef<Path>>(
+pub(crate) fn load_from_jax_files<P: AsRef<Path>>(
     obo_file: P,
     gene_file: P,
     disease_file: P,

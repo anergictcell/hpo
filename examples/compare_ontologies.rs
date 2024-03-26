@@ -21,7 +21,7 @@ fn ontology2(path_arg: &str) -> Ontology {
 
     match path.is_file() {
         true => Ontology::from_binary(path).unwrap(),
-        false => Ontology::from_genes_to_phenotypes(&path.to_string_lossy()).unwrap(),
+        false => Ontology::from_standard_transitive(&path.to_string_lossy()).unwrap(),
     }
 }
 

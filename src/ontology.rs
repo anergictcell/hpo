@@ -72,7 +72,8 @@ use termarena::Arena;
 ///     Then use [`Ontology::from_standard`] to load the data.
 ///     You need the following files:
 ///     - `phenotype.hpoa` (Required to connect [`OmimDisease`]s to [`HpoTerm`]s)
-///     - `phenotype_to_genes.txt` (Required to connect [`Gene`]s to [`HpoTerm`]s)
+///     - `genes_to_phenotype.txt` (Required to connect [`Gene`]s to [`HpoTerm`]s)
+///         - alternatively: `phenotype_to_genes.txt` (use [`Ontology::from_standard_transitive`])
 ///     - `hp.obo` (Required for [`HpoTerm`]s and their connection to each other)
 /// 2. Load the ontology from a binary build using [`Ontology::from_binary`].
 ///
@@ -111,6 +112,15 @@ use termarena::Arena;
 /// Terms and [`crate::annotations`] ([`Gene`]s, [`OmimDisease`]s) have a many-to-many relationship. The
 /// [`Ontology`] does not contain a direct relationship between genes and diseases. This relation
 /// is only present indirectly via the connected [`HpoTerm`]s.
+///
+/// # Transivity of relations
+///
+/// **New in 0.9.0**
+///
+/// During the construction of the Ontology, every [`HpoTerm`] inherits all gene and disease
+/// association of its child terms.
+/// But [`Gene`]s and [`OmimDisease`]s will only contain links to *direct* [`HpoTerm`]s. The annotations
+/// are not transitiv.
 ///
 /// ```mermaid
 /// erDiagram
@@ -368,6 +378,15 @@ impl Ontology {
     /// - [`Ontology::add_gene`] failed
     /// - [`Ontology::add_omim_disease`] failed
     ///
+    ///
+    /// # Note
+    ///
+    /// Since version `0.9.0` this method will not load genes transitively. That means
+    /// only directly linked [`HpoTerm`]s are connected to each gene. However, every
+    /// [`HpoTerm`] will still inherit all gene and disease associations from its children.
+    /// See [this discussion](https://github.com/anergictcell/hpo/issues/44) for a more detailed
+    /// explanation
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -390,9 +409,9 @@ impl Ontology {
         let mut ont = Ontology::default();
         let path = Path::new(folder);
         let obo = path.join(crate::OBO_FILENAME);
-        let gene = path.join(crate::GENE_FILENAME);
+        let gene = path.join(crate::GENE_TO_PHENO_FILENAME);
         let disease = path.join(crate::DISEASE_FILENAME);
-        parser::load_from_standard_files(&obo, &gene, &disease, &mut ont)?;
+        parser::load_from_jax_files(&obo, &gene, &disease, &mut ont)?;
         ont.calculate_information_content()?;
         ont.set_default_categories()?;
         ont.set_default_modifier()?;
@@ -420,7 +439,7 @@ impl Ontology {
     /// # Note
     ///
     /// This method has one difference to [`Ontology::from_standard`] in that every [`Gene`]
-    /// only contains directly linked [`HpoTerm`] and not all inherited ones.
+    /// contains directly linked [`HpoTerm`] and all their ancestor terms.
     /// See [this discussion](https://github.com/anergictcell/hpo/issues/44) for a more detailed
     /// explanation
     ///
@@ -430,7 +449,7 @@ impl Ontology {
     /// use hpo::Ontology;
     /// use hpo::HpoTermId;
     ///
-    /// let ontology = Ontology::genes_to_phenotypes("/path/to/jax_hpo_data/").unwrap();
+    /// let ontology = Ontology::from_standard_transitive("/path/to/jax_hpo_data/").unwrap();
     ///
     /// assert!(ontology.len() == 26);
     ///
@@ -442,13 +461,13 @@ impl Ontology {
     /// assert_eq!(root_term.name(), "All");
     /// ```
     ///
-    pub fn from_genes_to_phenotypes(folder: &str) -> HpoResult<Self> {
+    pub fn from_standard_transitive(folder: &str) -> HpoResult<Self> {
         let mut ont = Ontology::default();
         let path = Path::new(folder);
         let obo = path.join(crate::OBO_FILENAME);
-        let gene = path.join(crate::GENE_TO_PHENO_FILENAME);
+        let gene = path.join(crate::GENE_FILENAME);
         let disease = path.join(crate::DISEASE_FILENAME);
-        parser::load_from_standard_no_transitive_genes(&obo, &gene, &disease, &mut ont)?;
+        parser::load_from_jax_files_with_transivitve_genes(&obo, &gene, &disease, &mut ont)?;
         ont.calculate_information_content()?;
         ont.set_default_categories()?;
         ont.set_default_modifier()?;

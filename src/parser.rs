@@ -8,6 +8,41 @@ pub(crate) mod binary;
 /// Module to parse `hp.obo` file
 pub(crate) mod hp_obo;
 
+/// Module to parse HPO - `Gene` associations from `genes_to_phenotype.txt` file
+pub(crate) mod genes_to_phenotype {
+    use crate::parser::Path;
+    use crate::HpoResult;
+    use std::fs::File;
+    use std::io::BufRead;
+    use std::io::BufReader;
+
+    use crate::HpoTermId;
+    use crate::Ontology;
+
+    /// Quick and dirty parser for development and debugging
+    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
+        let file = File::open(file).unwrap();
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            let line = line.unwrap();
+            // TODO: Check for the header outside of the `lines` iterator
+            if line.starts_with('#') || line.starts_with("ncbi_gene_id") {
+                continue;
+            }
+            let cols: Vec<&str> = line.trim().split('\t').collect();
+            let gene_id = ontology.add_gene(cols[1], cols[0])?;
+            let term_id = HpoTermId::try_from(cols[2])?;
+            ontology.link_gene_term(term_id, gene_id)?;
+
+            ontology
+                .gene_mut(&gene_id)
+                .expect("Cannot find gene {gene_id}")
+                .add_term(term_id);
+        }
+        Ok(())
+    }
+}
+
 /// Module to parse HPO - `Gene` associations from `phenotype_to_genes.txt` file
 pub(crate) mod phenotype_to_genes {
     use crate::parser::Path;
@@ -126,7 +161,7 @@ pub(crate) mod phenotype_hpoa {
     }
 }
 
-pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
+pub(crate) fn load_from_jax_files_with_transivitve_genes<P: AsRef<Path>>(
     obo_file: P,
     gene_file: P,
     disease_file: P,
@@ -134,6 +169,18 @@ pub(crate) fn load_from_standard_files<P: AsRef<Path>>(
 ) -> HpoResult<()> {
     hp_obo::read_obo_file(obo_file, ontology)?;
     phenotype_to_genes::parse(gene_file, ontology)?;
+    phenotype_hpoa::parse(disease_file, ontology)?;
+    Ok(())
+}
+
+pub(crate) fn load_from_jax_files<P: AsRef<Path>>(
+    obo_file: P,
+    gene_file: P,
+    disease_file: P,
+    ontology: &mut Ontology,
+) -> HpoResult<()> {
+    hp_obo::read_obo_file(obo_file, ontology)?;
+    genes_to_phenotype::parse(gene_file, ontology)?;
     phenotype_hpoa::parse(disease_file, ontology)?;
     Ok(())
 }

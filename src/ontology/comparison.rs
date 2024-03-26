@@ -286,6 +286,7 @@ impl HpoTermDelta {
 pub struct AnnotationDelta {
     id: String,
     names: (String, String),
+    n_terms: (usize, usize),
     added_terms: Vec<HpoTermId>,
     removed_terms: Vec<HpoTermId>,
 }
@@ -337,6 +338,7 @@ impl<'a> AnnotationDelta {
             Some(Self {
                 id,
                 names,
+                n_terms: (lhs_terms.len(), rhs_terms.len()),
                 added_terms,
                 removed_terms,
             })
@@ -383,5 +385,10 @@ impl<'a> AnnotationDelta {
     /// Returns the `String`-formatted ID of the annotation
     pub fn id(&self) -> &str {
         &self.id
+    }
+
+    /// Returns the number of terms linked to `old` and `new`
+    pub fn n_terms(&self) -> (usize, usize) {
+        self.n_terms
     }
 }

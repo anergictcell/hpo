@@ -45,7 +45,7 @@ Some (more or less random) examples are included in the [`examples` folder](http
 
 HPO data must be downloaded first from  [Jax HPO](https://hpo.jax.org/) itself. You need the following files:
 - [phenotype.hpoa](https://hpo.jax.org/app/data/annotations) available as "Download HPO annotations" (Required to connect `OmimDisease` to `HpoTerm`s
-- [phenotype_to_genes.txt](https://hpo.jax.org/app/data/annotations) available as "Phenotype to genes" (Required to connect `Gene` to `HpoTerm`)
+- [genes_to_phenotype.txt](https://hpo.jax.org/app/data/annotations) available as "Genes to Phenotype" (Required to connect `Gene` to `HpoTerm`)
 - [hp.obo](https://hpo.jax.org/app/data/ontology) (Required for `HpoTerm`s and their connection to each other)
 
 1. Data can be loaded directly from the code with  [`Ontology::from_standard`]:

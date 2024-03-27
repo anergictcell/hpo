@@ -29,4 +29,4 @@ This procedure is just a suggestion at this point and can be modified if needs a
 - [ ] push to remote, also push tags: `git push -u origin release/<MAJOR>.<MINOR>.<PATCH> && git push tags`
 - [ ] Merge into main
 - [ ] update main branch locally: `git checkout main && git pull`
-- [ ] release to cargo: `cargo release`
+- [ ] release to cargo: `cargo publish`

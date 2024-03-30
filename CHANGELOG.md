@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [0.9.0] - 2024-03-27
 
+### Bugfix
+
+- Fix the name of the `BMA` SimilarityCombiner.
+
+
+## [0.9.0] - 2024-03-27
+
 ### Feature
 
 - `Gene`s by default contain only direct `HpoTerm` associations, not transitive inherited ones.

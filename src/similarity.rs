@@ -197,7 +197,7 @@ pub enum StandardCombiner {
     /// funSimMax algorithm from [Schlicker A, et. al., BMC Bioinf (2006)](https://pubmed.ncbi.nlm.nih.gov/16776819/)
     FunSimMax,
     /// BMA algorithm from [Wang JZ, et. al., Bioinformatics (2007)](https://pubmed.ncbi.nlm.nih.gov/17344234/)
-    Bwa,
+    Bma,
 }
 
 impl Default for StandardCombiner {
@@ -212,7 +212,7 @@ impl TryFrom<&str> for StandardCombiner {
         match value.to_lowercase().as_str() {
             "funsimavg" => Ok(StandardCombiner::FunSimAvg),
             "funsimmax" => Ok(StandardCombiner::FunSimMax),
-            "bwa" => Ok(StandardCombiner::Bwa),
+            "bma" => Ok(StandardCombiner::Bma),
             _ => Err(HpoError::NotImplemented),
         }
     }
@@ -237,7 +237,7 @@ impl StandardCombiner {
         (row_maxes.iter().sum::<f32>() / rows).max(col_maxes.iter().sum::<f32>() / cols)
     }
 
-    fn bwa(self, m: &Matrix<f32>) -> f32 {
+    fn bma(self, m: &Matrix<f32>) -> f32 {
         let (rows, cols) = self.dim_f32(m);
         let row_maxes = self.row_maxes(m);
         let col_maxes = self.col_maxes(m);
@@ -251,7 +251,7 @@ impl SimilarityCombiner for StandardCombiner {
         match self {
             StandardCombiner::FunSimAvg => self.fun_sim_avg(m),
             StandardCombiner::FunSimMax => self.fun_sim_max(m),
-            StandardCombiner::Bwa => self.bwa(m),
+            StandardCombiner::Bma => self.bma(m),
         }
     }
 }

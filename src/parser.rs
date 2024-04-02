@@ -11,6 +11,7 @@ pub(crate) mod hp_obo;
 /// Module to parse HPO - `Gene` associations from `genes_to_phenotype.txt` file
 pub(crate) mod genes_to_phenotype {
     use crate::parser::Path;
+    use crate::HpoError;
     use crate::HpoResult;
     use std::fs::File;
     use std::io::BufRead;
@@ -21,7 +22,8 @@ pub(crate) mod genes_to_phenotype {
 
     /// Quick and dirty parser for development and debugging
     pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
-        let file = File::open(file).unwrap();
+        let filename = file.as_ref().display().to_string();
+        let file = File::open(file).map_err(|_| HpoError::CannotOpenFile(filename))?;
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();
@@ -45,6 +47,7 @@ pub(crate) mod genes_to_phenotype {
 
 /// Module to parse HPO - `Gene` associations from `phenotype_to_genes.txt` file
 pub(crate) mod phenotype_to_genes {
+    use crate::HpoError;
     use crate::parser::Path;
     use crate::HpoResult;
     use std::fs::File;
@@ -56,7 +59,8 @@ pub(crate) mod phenotype_to_genes {
 
     /// Quick and dirty parser for development and debugging
     pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
-        let file = File::open(file).unwrap();
+        let filename = file.as_ref().display().to_string();
+        let file = File::open(file).map_err(|_| HpoError::CannotOpenFile(filename))?;
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();
@@ -132,7 +136,8 @@ pub(crate) mod phenotype_hpoa {
 
     /// Quick and dirty parser for development and debugging
     pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
-        let file = File::open(file).unwrap();
+        let filename = file.as_ref().display().to_string();
+        let file = File::open(file).map_err(|_| HpoError::CannotOpenFile(filename))?;
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();

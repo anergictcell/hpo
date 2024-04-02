@@ -122,24 +122,32 @@ pub trait SimilarityCombiner {
     }
 
     /// Returns the maximum values of each row
+    ///
+    /// # Panics
+    ///
+    /// Panics when rows don't contain any values, i.e. when the matrix is empty
     fn row_maxes(&self, m: &Matrix<f32>) -> Vec<f32> {
         m.rows()
             .map(|row| {
                 // I have no idea why, but I could not get a.max(b) to work
                 // with the borrow checker
-                row.reduce(|a, b| if a > b { a } else { b }).unwrap()
+                row.reduce(|a, b| if a > b { a } else { b }).expect("A matrix must contain values")
             })
             .copied()
             .collect()
     }
 
     /// Returns the maximum values of each column
+    ///
+    /// # Panics
+    ///
+    /// Panics when rows don't contain any values, i.e. when the matrix is empty
     fn col_maxes(&self, m: &Matrix<f32>) -> Vec<f32> {
         m.cols()
             .map(|col| {
                 // I have no idea why, but I could not get a.max(b) to work
                 // with the borrow checker
-                col.reduce(|a, b| if a > b { a } else { b }).unwrap()
+                col.reduce(|a, b| if a > b { a } else { b }).expect("A matrix must contain values")
             })
             .copied()
             .collect()

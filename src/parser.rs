@@ -47,8 +47,8 @@ pub(crate) mod genes_to_phenotype {
 
 /// Module to parse HPO - `Gene` associations from `phenotype_to_genes.txt` file
 pub(crate) mod phenotype_to_genes {
-    use crate::HpoError;
     use crate::parser::Path;
+    use crate::HpoError;
     use crate::HpoResult;
     use std::fs::File;
     use std::io::BufRead;
@@ -83,6 +83,14 @@ pub(crate) mod phenotype_to_genes {
 }
 
 /// Module to parse HPO - `OmimDisease` associations from `phenotype.hpoa` file
+///
+/// # Example line
+///
+/// ```text
+/// OMIM:619340  Developmental and epileptic encephalopathy 96      HP:0011097  PMID:31675180  PCS  1/2  P  HPO:probinson[2021-06-21]
+/// OMIM:609153  Pseudohyperkalemia                             NOT HP:0001878  PMID:2766660   PCS       P  HPO:lccarmody[2018-10-03]
+/// ```
+///
 pub(crate) mod phenotype_hpoa {
     use crate::HpoError;
     use crate::HpoResult;
@@ -92,8 +100,6 @@ pub(crate) mod phenotype_hpoa {
     use std::io::BufReader;
     use std::path::Path;
 
-    use tracing::error;
-
     use crate::Ontology;
 
     struct Omim<'a> {
@@ -102,52 +108,66 @@ pub(crate) mod phenotype_hpoa {
         hpo_id: HpoTermId,
     }
 
-    fn parse_line(line: &str) -> Option<Omim<'_>> {
+    fn parse_line(line: &str) -> HpoResult<Option<Omim<'_>>> {
         // TODO (nice to have): Add check to skip `database_id` header row
         // It is not strictly needed, because we're discarding non-OMIM rows
         if line.starts_with('#') {
-            return None;
+            return Ok(None);
         }
         if !line.starts_with("OMIM") {
-            return None;
+            return Ok(None);
         }
 
-        let cols: Vec<&str> = line.trim().split('\t').collect();
-        if cols[2] == "NOT" {
-            return None;
-        }
+        let mut cols = line.trim().splitn(5, '\t');
 
-        let Some((_, omim_id)) = cols[0].split_once(':') else {
-            error!("cannot parse OMIM ID from {}", cols[0]);
-            return None;
+        let Some(id_col) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+        let Some((_, omim_id)) = id_col.split_once(':') else {
+            return Err(HpoError::InvalidInput(line.to_string()));
         };
 
-        let Ok(hpo_id) = HpoTermId::try_from(cols[3]) else {
-            error!("invalid HPO ID: {}", cols[3]);
-            return None;
+        let Some(omim_name) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
         };
 
-        Some(Omim {
+        if let Some("NOT") = cols.next() {
+            return Ok(None);
+        };
+
+        let hpo_id = if let Some(id) = cols.next() {
+            HpoTermId::try_from(id)?
+        } else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        Ok(Some(Omim {
             id: omim_id,
-            name: cols[1],
+            name: omim_name,
             hpo_id,
-        })
+        }))
     }
 
     /// Quick and dirty parser for development and debugging
+    ///
+    /// # Errors
+    ///
+    /// - [`HpoError::CannotOpenFile`]: Source file not present or can't be opened
+    /// - [`HpoError::ParseIntError`]: A line contains an invalid `omim_disease_id`
+    /// - [`HpoError::DoesNotExist`]: A line contains a non-existing [`HpoTermId`]
     pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
         let filename = file.as_ref().display().to_string();
         let file = File::open(file).map_err(|_| HpoError::CannotOpenFile(filename))?;
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();
-            if let Some(omim) = parse_line(&line) {
+            if let Some(omim) = parse_line(&line)? {
                 let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
                 ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
 
                 ontology
                     .omim_disease_mut(&omim_disease_id)
-                    .ok_or(HpoError::DoesNotExist)?
+                    .expect("Omim disease was just added and cannot be missing")
                     .add_term(omim.hpo_id);
             }
         }
@@ -159,9 +179,64 @@ pub(crate) mod phenotype_hpoa {
         use super::*;
 
         #[test]
+        fn test_skip_comment() {
+            let s = "#OMIM:600171\tGonadal agenesis\t\tHP:0000055\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
+            assert!(parse_line(s)
+                .expect("This line has the correct format")
+                .is_none());
+        }
+
+        #[test]
         fn test_skip_not() {
             let s = "OMIM:600171\tGonadal agenesis\tNOT\tHP:0000055\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
-            assert!(parse_line(s).is_none());
+            assert!(parse_line(s)
+                .expect("This line has the correct format")
+                .is_none());
+        }
+
+        #[test]
+        fn test_skip_orpha() {
+            let s = "ORPHA:600171\tGonadal agenesis\t\tHP:0000055\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
+            assert!(parse_line(s)
+                .expect("This line has the correct format")
+                .is_none());
+        }
+
+        #[test]
+        fn test_skip_orpha_not() {
+            let s = "ORPHA:600171\tGonadal agenesis\tNOT\tHP:0000055\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
+            assert!(parse_line(s)
+                .expect("This line has the correct format")
+                .is_none());
+        }
+
+        #[test]
+        fn test_correct_omim() {
+            let s = "OMIM:600171\tGonadal agenesis\t\tHP:0000055\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
+            let omim = parse_line(s)
+                .expect("This line has the correct format")
+                .expect("Line describes an Omim disease");
+            assert_eq!(omim.name, "Gonadal agenesis");
+            assert_eq!(omim.id, "600171");
+            assert_eq!(omim.hpo_id, "HP:0000055");
+        }
+
+        #[test]
+        fn test_invalid_omim_id() {
+            let s = "OMIM_600171\tGonadal agenesis\t\tHP:0000055\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
+            assert!(parse_line(s).is_err());
+        }
+
+        #[test]
+        fn test_invalid_hpo_id() {
+            let s = "OMIM:600171\tGonadal agenesis\t\tH55\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
+            assert!(parse_line(s).is_err());
+        }
+
+        #[test]
+        fn test_invalid_input() {
+            let s = "OMIM:600171 Gonadal agenesis  HP:0000055 OMIM:600171 TAS P HPO:skoehler[2014-11-27]";
+            assert!(parse_line(s).is_err());
         }
     }
 }

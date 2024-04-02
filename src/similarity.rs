@@ -131,7 +131,8 @@ pub trait SimilarityCombiner {
             .map(|row| {
                 // I have no idea why, but I could not get a.max(b) to work
                 // with the borrow checker
-                row.reduce(|a, b| if a > b { a } else { b }).expect("A matrix must contain values")
+                row.reduce(|a, b| if a > b { a } else { b })
+                    .expect("A matrix must contain values")
             })
             .copied()
             .collect()
@@ -147,7 +148,8 @@ pub trait SimilarityCombiner {
             .map(|col| {
                 // I have no idea why, but I could not get a.max(b) to work
                 // with the borrow checker
-                col.reduce(|a, b| if a > b { a } else { b }).expect("A matrix must contain values")
+                col.reduce(|a, b| if a > b { a } else { b })
+                    .expect("A matrix must contain values")
             })
             .copied()
             .collect()

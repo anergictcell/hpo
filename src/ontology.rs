@@ -366,7 +366,7 @@ impl Ontology {
     ///
     /// - Actual OBO data: [`hp.obo`](https://hpo.jax.org/app/data/ontology)
     /// - Links between HPO and OMIM diseases: [`phenotype.hpoa`](https://hpo.jax.org/app/data/annotations)
-    /// - Links between HPO and Genes: [`phenotype_to_genes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt)
+    /// - Links between HPO and Genes: [`genes_to_phenotype.txt`](http://purl.obolibrary.org/obo/hp/hpoa/genes_to_phenotype.txt)
     ///
     /// and then specify the folder where the data is stored.
     ///
@@ -424,7 +424,7 @@ impl Ontology {
     ///
     /// - Actual OBO data: [`hp.obo`](https://hpo.jax.org/app/data/ontology)
     /// - Links between HPO and OMIM diseases: [`phenotype.hpoa`](https://hpo.jax.org/app/data/annotations)
-    /// - Links between HPO and Genes: [`genes_to_phenotypes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/genes_to_phenotype.txt)
+    /// - Links between HPO and Genes: [`phenotype_to_genes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt)
     ///
     /// and then specify the folder where the data is stored.
     ///

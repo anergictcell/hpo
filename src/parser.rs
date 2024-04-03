@@ -8,8 +8,9 @@ pub(crate) mod binary;
 /// Module to parse `hp.obo` file
 pub(crate) mod hp_obo;
 
-/// Module to parse HPO - `Gene` associations from `genes_to_phenotype.txt` file
-pub(crate) mod genes_to_phenotype {
+/// Module to parse HPO - `Gene` associations
+///
+pub(crate) mod gene_to_hpo {
     use crate::parser::Path;
     use crate::HpoError;
     use crate::HpoResult;
@@ -20,65 +21,234 @@ pub(crate) mod genes_to_phenotype {
     use crate::HpoTermId;
     use crate::Ontology;
 
-    /// Quick and dirty parser for development and debugging
-    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
-        let filename = file.as_ref().display().to_string();
-        let file = File::open(file).map_err(|_| HpoError::CannotOpenFile(filename))?;
-        let reader = BufReader::new(file);
-        for line in reader.lines() {
-            let line = line.unwrap();
-            // TODO: Check for the header outside of the `lines` iterator
-            if line.starts_with('#') || line.starts_with("ncbi_gene_id") {
-                continue;
-            }
-            let cols: Vec<&str> = line.trim().split('\t').collect();
-            let gene_id = ontology.add_gene(cols[1], cols[0])?;
-            let term_id = HpoTermId::try_from(cols[2])?;
-            ontology.link_gene_term(term_id, gene_id)?;
+    struct ParsedGene<'a> {
+        ncbi_id: &'a str,
+        symbol: &'a str,
+        hpo: HpoTermId,
+    }
 
-            ontology
-                .gene_mut(&gene_id)
-                .expect("Cannot find gene {gene_id}")
-                .add_term(term_id);
+    impl<'a> ParsedGene<'a> {
+        fn try_new(ncbi_id: &'a str, symbol: &'a str, hpo: &'a str) -> HpoResult<Self> {
+            let hpo = HpoTermId::try_from(hpo)?;
+            Ok(Self {
+                ncbi_id,
+                symbol,
+                hpo,
+            })
+        }
+    }
+
+    // Removes the first (header) line.
+    // TODO: Update this once https://doc.rust-lang.org/std/io/trait.BufRead.html#method.skip_until is stable
+    fn remove_header<R: BufRead>(reader: &mut R) -> HpoResult<()> {
+        let mut trash = String::with_capacity(80);
+        reader.read_line(&mut trash).map_err(|_| {
+            HpoError::InvalidInput("Invalid data in genes_to_phenotype.txt".to_string())
+        })?;
+        if !trash.starts_with('#')
+            && !trash.starts_with("ncbi_gene_id")
+            && !trash.starts_with("hpo_id")
+        {
+            return Err(HpoError::InvalidInput(
+                "genes_to_phenotype.txt file must contain a header".to_string(),
+            ));
         }
         Ok(())
     }
-}
 
-/// Module to parse HPO - `Gene` associations from `phenotype_to_genes.txt` file
-pub(crate) mod phenotype_to_genes {
-    use crate::parser::Path;
-    use crate::HpoError;
-    use crate::HpoResult;
-    use std::fs::File;
-    use std::io::BufRead;
-    use std::io::BufReader;
+    /// Parses a single line of `genes_to_phenotype.txt`
+    ///
+    /// and returns a `ParsedGene` struct with gene and HPO info
+    fn genes_to_phenotype_line(line: &str) -> HpoResult<ParsedGene<'_>> {
+        let mut cols = line.split('\t');
 
-    use crate::HpoTermId;
-    use crate::Ontology;
+        // Column 1 is the NCBI-ID of the gene
+        let Some(ncbi_id) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
 
-    /// Quick and dirty parser for development and debugging
-    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
+        // Column 2 is the gene symbol
+        let Some(symbol) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        // Column 3 is the Hpo Term ID
+        let Some(hpo) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        ParsedGene::try_new(ncbi_id, symbol, hpo)
+    }
+
+    /// Parses a single line of `phenotype_to_genes.txt`
+    ///
+    /// ```text
+    /// HP:0000002  Abnormality of body height  81848   SPRY4       orphadata   ORPHA:432
+    /// ```
+    fn phenotype_to_gene_line(line: &str) -> HpoResult<ParsedGene<'_>> {
+        let mut cols = line.split('\t');
+
+        // Column 1 is the Hpo Term ID
+        let Some(hpo) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        if cols.next().is_none() {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        // Column 1 is the NCBI-ID of the gene
+        let Some(ncbi_id) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        // Column 2 is the gene symbol
+        let Some(symbol) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        ParsedGene::try_new(ncbi_id, symbol, hpo)
+    }
+
+    /// Parse `genes_to_phenotype.txt` file
+    ///
+    /// ```text
+    /// ncbi_gene_id    gene_symbol hpo_id  hpo_name    frequency   disease_id
+    /// 10  NAT2    HP:0000007  Autosomal recessive inheritance         -       OMIM:243400
+    /// 10  NAT2    HP:0001939  Abnormality of metabolism/homeostasis   -       OMIM:243400
+    /// 16  AARS1   HP:0002460  Distal muscle weakness                  15/15   OMIM:613287
+    /// ```
+    pub fn parse_genes_to_phenotype<P: AsRef<Path>>(
+        file: P,
+        ontology: &mut Ontology,
+    ) -> HpoResult<()> {
+        parse(file, ontology, genes_to_phenotype_line)
+    }
+
+    /// Parse `phenotype_to_genes.txt` file
+    ///
+    /// ```text
+    /// #Format: HPO-id<tab>HPO label<tab>entrez-gene-id<tab>entrez-gene-symbol<tab>Additional Info from G-D source<tab>G-D source<tab>disease-ID for link
+    /// HP:0000002  Abnormality of body height  81848   SPRY4       orphadata   ORPHA:432
+    /// HP:0000002  Abnormality of body height  204219  CERS3       orphadata   ORPHA:79394
+    /// HP:0000002  Abnormality of body height  51360   MBTPS2  -   mim2gene    OMIM:308205
+    /// ```
+    pub fn parse_phenotype_to_genes<P: AsRef<Path>>(
+        file: P,
+        ontology: &mut Ontology,
+    ) -> HpoResult<()> {
+        parse(file, ontology, phenotype_to_gene_line)
+    }
+
+    /// Parses a file to connect genes to HPO terms
+    fn parse<P: AsRef<Path>, F: Fn(&str) -> HpoResult<ParsedGene<'_>>>(
+        file: P,
+        ontology: &mut Ontology,
+        parse_line: F,
+    ) -> HpoResult<()> {
         let filename = file.as_ref().display().to_string();
         let file = File::open(file).map_err(|_| HpoError::CannotOpenFile(filename))?;
-        let reader = BufReader::new(file);
-        for line in reader.lines() {
-            let line = line.unwrap();
-            // TODO: Check for the header outside of the `lines` iterator
-            if line.starts_with('#') || line.starts_with("hpo_id") {
-                continue;
-            }
-            let cols: Vec<&str> = line.trim().split('\t').collect();
-            let gene_id = ontology.add_gene(cols[3], cols[2])?;
-            let term_id = HpoTermId::try_from(cols[0])?;
-            ontology.link_gene_term(term_id, gene_id)?;
+        let mut reader = BufReader::new(file);
 
+        remove_header(&mut reader)?;
+
+        for line in reader.lines() {
+            let line = line.map_err(|_| {
+                HpoError::InvalidInput("Invalid data in genes_to_phenotype.txt".to_string())
+            })?;
+
+            let gene = parse_line(&line)?;
+
+            let gene_id = ontology.add_gene(gene.symbol, gene.ncbi_id)?;
+            ontology.link_gene_term(gene.hpo, gene_id)?;
             ontology
                 .gene_mut(&gene_id)
-                .expect("Cannot find gene {gene_id}")
-                .add_term(term_id);
+                .expect("Gene is present because it was just add_omim_disease")
+                .add_term(gene.hpo);
         }
         Ok(())
+    }
+
+    #[cfg(test)]
+    mod test_gene_pheno_parsing {
+        use crate::annotations::AnnotationId;
+
+        use super::*;
+
+        #[test]
+        fn test_remove_header_ncbi_gene() {
+            let x = "ncbi_gene_id\txyz\n10\tNAT2\n".as_bytes();
+            let mut reader = BufReader::new(x);
+            assert!(remove_header(&mut reader).is_ok());
+
+            let mut lines = reader.lines();
+            assert_eq!(lines.next().unwrap().unwrap(), "10\tNAT2");
+            assert!(lines.next().is_none());
+        }
+
+        #[test]
+        fn test_remove_header_hashtag() {
+            let x = "#foobar\txyz\n10\tNAT2\n".as_bytes();
+            let mut reader = BufReader::new(x);
+            assert!(remove_header(&mut reader).is_ok());
+
+            let mut lines = reader.lines();
+            assert_eq!(lines.next().unwrap().unwrap(), "10\tNAT2");
+            assert!(lines.next().is_none());
+        }
+
+        #[test]
+        fn test_remove_header_fails() {
+            let x = "foobar\txyz\n10\tNAT2\n".as_bytes();
+            let mut reader = BufReader::new(x);
+            assert!(remove_header(&mut reader).is_err());
+        }
+
+        #[test]
+        fn test_parse_correct_line() {
+            let line = "10\tNAT2\tHP:0000007\tfoobar\n";
+            let res = genes_to_phenotype_line(line).expect("This line should parse correctly");
+            assert_eq!(res.ncbi_id, "10");
+            assert_eq!(res.symbol, "NAT2");
+            assert_eq!(res.hpo.as_u32(), 7u32);
+        }
+
+        #[test]
+        fn test_parse_correct_line2() {
+            let line = "10\tNAT2\tHP:0000007\tfoobar";
+            let res = genes_to_phenotype_line(line).expect("This line should parse correctly");
+            assert_eq!(res.ncbi_id, "10");
+            assert_eq!(res.symbol, "NAT2");
+            assert_eq!(res.hpo.as_u32(), 7u32);
+        }
+
+        #[test]
+        fn test_parse_missing_id() {
+            let line = "NAT2\tHP:0000007\tfoobar\n";
+            let res = genes_to_phenotype_line(line);
+            assert!(res.is_err());
+        }
+
+        #[test]
+        fn test_parse_missing_symbol() {
+            let line = "10\tHP:0000007\tfoobar\n";
+            let res = genes_to_phenotype_line(line);
+            assert!(res.is_err());
+        }
+
+        #[test]
+        fn test_parse_missing_hpo() {
+            let line = "10\tNAT2\tfoobar\n";
+            let res = genes_to_phenotype_line(line);
+            assert!(res.is_err());
+        }
+
+        #[test]
+        fn test_parse_invalid_hpo() {
+            let line = "10\tNAT2\tHP:000000A\tfoobar\n";
+            let res = genes_to_phenotype_line(line);
+            assert!(res.is_err());
+        }
     }
 }
 
@@ -248,7 +418,7 @@ pub(crate) fn load_from_jax_files_with_transivitve_genes<P: AsRef<Path>>(
     ontology: &mut Ontology,
 ) -> HpoResult<()> {
     hp_obo::read_obo_file(obo_file, ontology)?;
-    phenotype_to_genes::parse(gene_file, ontology)?;
+    gene_to_hpo::parse_phenotype_to_genes(gene_file, ontology)?;
     phenotype_hpoa::parse(disease_file, ontology)?;
     Ok(())
 }
@@ -260,7 +430,7 @@ pub(crate) fn load_from_jax_files<P: AsRef<Path>>(
     ontology: &mut Ontology,
 ) -> HpoResult<()> {
     hp_obo::read_obo_file(obo_file, ontology)?;
-    genes_to_phenotype::parse(gene_file, ontology)?;
+    gene_to_hpo::parse_genes_to_phenotype(gene_file, ontology)?;
     phenotype_hpoa::parse(disease_file, ontology)?;
     Ok(())
 }

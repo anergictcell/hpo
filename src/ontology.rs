@@ -1,5 +1,5 @@
 use core::fmt::Debug;
-use std::collections::hash_map::Values;
+use std::collections::hash_map::{Entry, Values};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
@@ -898,11 +898,12 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::GeneId;
     ///
     /// let ontology_1 = Ontology::from_binary("tests/example.hpo").unwrap();
     /// let mut ontology_2 = Ontology::default();
     ///
-    /// ontology_2.add_gene("FOOBAR", "666666").unwrap();
+    /// ontology_2.add_gene("FOOBAR", GeneId::from(666666));
     ///
     /// let compare = ontology_1.compare(&ontology_2);
     /// assert_eq!(compare.added_hpo_terms().len(), 0);
@@ -974,13 +975,13 @@ impl Ontology {
             if matched_terms.is_empty() {
                 continue;
             }
-            let gene_id = ont.add_gene(
+            ont.add_gene(
                 self.gene(gene.id()).ok_or(HpoError::DoesNotExist)?.name(),
-                &gene.id().as_u32().to_string(),
-            )?;
+                *gene.id(),
+            );
             for term in &matched_terms {
-                ont.link_gene_term(term, gene_id)?;
-                ont.gene_mut(&gene_id)
+                ont.link_gene_term(term, *gene.id())?;
+                ont.gene_mut(gene.id())
                     .ok_or(HpoError::DoesNotExist)?
                     .add_term(term);
             }
@@ -1270,7 +1271,7 @@ impl Ontology {
         }
     }
 
-    /// Add a gene to the Ontology. and return the [`GeneId`]
+    /// Add a gene to the Ontology
     ///
     /// If the gene does not yet exist, a new [`Gene`] entity is created
     /// and stored in the Ontology.
@@ -1281,19 +1282,19 @@ impl Ontology {
     /// Adding a gene does not connect it to any HPO terms.
     /// Use [`Ontology::link_gene_term`] for creating connections.
     ///
-    /// # Errors
-    ///
-    /// If the `gene_id` is invalid, an [`HpoError::ParseIntError`] is returned
+    /// This method was changed to receive the `gene_id` as [`GeneId`]
+    /// instead of `str` in `0.10` and does not return a `Result` anymore.
     ///
     /// # Examples
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::GeneId;
     ///
     /// let mut ontology = Ontology::default();
     /// assert!(ontology.gene(&1u32.into()).is_none());
     ///
-    /// ontology.add_gene("Foo", "1");
+    /// ontology.add_gene("Foo", GeneId::from(1));
     ///
     /// // Genes can be iterated...
     /// let mut gene_iterator = ontology.genes();
@@ -1304,14 +1305,9 @@ impl Ontology {
     /// // .. or accessed directly
     /// assert!(ontology.gene(&1u32.into()).is_some());
     /// ```
-    pub fn add_gene(&mut self, gene_name: &str, gene_id: &str) -> HpoResult<GeneId> {
-        let id = GeneId::try_from(gene_id)?;
-        match self.genes.entry(id) {
-            std::collections::hash_map::Entry::Occupied(_) => Ok(id),
-            std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert(Gene::new(id, gene_name));
-                Ok(id)
-            }
+    pub fn add_gene(&mut self, gene_name: &str, gene_id: GeneId) {
+        if let Entry::Vacant(entry) = self.genes.entry(gene_id) {
+            entry.insert(Gene::new(gene_id, gene_name));
         }
     }
 
@@ -1383,7 +1379,7 @@ impl Ontology {
     ///
     /// let mut ontology = Ontology::default();
     /// ontology.insert_term("Term-Foo".into(), 1u32);
-    /// ontology.add_gene("Foo", "5");
+    /// ontology.add_gene("Foo", GeneId::from(5));
     /// ontology.link_gene_term(1u32, GeneId::from(5u32)).unwrap();
     ///
     /// let term = ontology.hpo(1u32).unwrap();

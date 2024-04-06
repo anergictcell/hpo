@@ -2,7 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.9.0] - 2024-03-27
+## [0.10.0]
+
+### Documentation
+
+- Change orders of methods in `Ontology` to clean up the documentation.
+
+### Refactor
+
+- Improve the OBO parser with better error handling
+
+
+## [0.9.1] - 2024-03-30
 
 ### Bugfix
 

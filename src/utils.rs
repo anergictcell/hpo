@@ -120,4 +120,14 @@ mod test {
         assert_eq!(c.next(), Some((&4, &4)));
         assert_eq!(c.next(), None);
     }
+
+    #[test]
+    fn combinations_with_none() {
+        let a = vec![Some(1), Some(2), None, Some(4)];
+        let mut c = Combinations::new(&a);
+        assert_eq!(c.next(), Some((&1, &2)));
+        assert_eq!(c.next(), Some((&1, &4)));
+        assert_eq!(c.next(), Some((&2, &4)));
+        assert_eq!(c.next(), None);
+    }
 }

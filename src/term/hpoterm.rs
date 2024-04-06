@@ -39,6 +39,9 @@ pub struct HpoTerm<'a> {
 impl<'a> HpoTerm<'a> {
     /// Constructs a new [`HpoTerm`]
     ///
+    /// Clients should rarely, if ever, use this function. Instead, use the
+    /// [`Ontology::hpo`] method to get an [`HpoTerm`]
+    ///
     /// # Errors
     ///
     /// If the given [`HpoTermId`] does not match an existing term
@@ -56,6 +59,11 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let non_existing_term = HpoTerm::try_new(&ontology, 666666666u32);
     /// assert!(non_existing_term.is_err());
+    ///
+    /// // better retrieve terms from `Ontology`:
+    ///
+    /// let term = ontology.hpo(118u32);
+    /// assert!(term.is_some());
     /// ```
     pub fn try_new<I: Into<HpoTermId>>(ontology: &'a Ontology, term: I) -> HpoResult<HpoTerm<'a>> {
         let term = ontology.get(term).ok_or(HpoError::DoesNotExist)?;

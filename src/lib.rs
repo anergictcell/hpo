@@ -21,6 +21,7 @@ pub mod utils;
 pub use ontology::comparison;
 pub use ontology::Ontology;
 pub use set::HpoSet;
+#[doc(inline)]
 pub use term::{HpoTerm, HpoTermId};
 
 const DEFAULT_NUM_PARENTS: usize = 10;

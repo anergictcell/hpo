@@ -622,79 +622,6 @@ impl Ontology {
         }
     }
 
-    /// Returns a binary representation of the Ontology
-    ///
-    /// The binary data is separated into sections:
-    ///
-    /// - Metadata (HPO and Bindat Version) (see `Ontology::metadata_as_bytes`)
-    /// - Terms (Names + IDs) (see `HpoTermInternal::as_bytes`)
-    /// - Term - Parent connection (Child ID - Parent ID)
-    ///   (see `HpoTermInternal::parents_as_byte`)
-    /// - Genes (Names + IDs + Connected HPO Terms) ([`Gene::as_bytes`])
-    /// - OMIM Diseases (Names + IDs + Connected HPO Terms)
-    ///   ([`OmimDisease::as_bytes`])
-    ///
-    /// Every section starts with 4 bytes to indicate its size
-    /// (big-endian encoded `u32`)
-    ///
-    /// This method is only useful if you use are modifying the ontology
-    /// and want to save data for later re-use.
-    ///
-    /// # Panics
-    ///
-    /// Panics when the buffer length of any subsegment larger than `u32::MAX`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// let bytes = ontology.as_bytes();
-    /// ```
-    pub fn as_bytes(&self) -> Vec<u8> {
-        fn usize_to_u32(n: usize) -> u32 {
-            n.try_into().expect("unable to convert {n} to u32")
-        }
-        let mut res = Vec::new();
-
-        // Add metadata, version info
-        res.append(&mut self.metadata_as_bytes());
-
-        // All HPO Terms
-        let mut buffer = Vec::new();
-        for term in self.hpo_terms.values() {
-            buffer.append(&mut term.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // All Term - Parent connections
-        buffer.clear();
-        for term in self.hpo_terms.values() {
-            buffer.append(&mut term.parents_as_byte());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // Genes and Gene-Term connections
-        buffer.clear();
-        for gene in self.genes.values() {
-            buffer.append(&mut gene.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // OMIM Disease and Disease-Term connections
-        buffer.clear();
-        for omim_disease in self.omim_diseases.values() {
-            buffer.append(&mut omim_disease.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        res
-    }
-
     /// Returns the number of HPO-Terms in the Ontology
     ///
     /// # Examples
@@ -721,6 +648,16 @@ impl Ontology {
         self.len() == 0
     }
 
+    /// Returns the Jax-Ontology release version
+    ///
+    /// e.g. `2023-03-13`
+    pub fn hpo_version(&self) -> String {
+        format!(
+            "{:0>4}-{:0>2}-{:0>2}",
+            self.hpo_version.0, self.hpo_version.1, self.hpo_version.2,
+        )
+    }
+
     /// Returns the [`HpoTerm`] of the provided [`HpoTermId`]
     ///
     /// If no such term is present in the Ontolgy, `None` is returned
@@ -736,22 +673,6 @@ impl Ontology {
     /// ```
     pub fn hpo<I: Into<HpoTermId>>(&self, term_id: I) -> Option<HpoTerm> {
         HpoTerm::try_new(self, term_id).ok()
-    }
-
-    /// Returns an Iterator of all [`HpoTerm`]s from the Ontology
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// for term in ontology.hpos() {
-    ///     println!("{}", term.name());
-    /// }
-    /// ```
-    ///
-    pub fn hpos(&self) -> Iter<'_> {
-        self.into_iter()
     }
 
     /// Returns a reference to the [`Gene`] of the provided [`GeneId`]
@@ -882,16 +803,6 @@ impl Ontology {
             .find(|&disease| disease.name().contains(substring))
     }
 
-    /// Returns the Jax-Ontology release version
-    ///
-    /// e.g. `2023-03-13`
-    pub fn hpo_version(&self) -> String {
-        format!(
-            "{:0>4}-{:0>2}-{:0>2}",
-            self.hpo_version.0, self.hpo_version.1, self.hpo_version.2,
-        )
-    }
-
     /// Compares `self` to another `Ontology` to identify added/removed terms, genes and diseases
     ///
     /// # Examples
@@ -912,6 +823,146 @@ impl Ontology {
     /// ```
     pub fn compare<'a>(&'a self, other: &'a Ontology) -> Comparison {
         Comparison::new(self, other)
+    }
+
+    /// Iterates [`HpoTerm`]s
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// let mut ont_iter = ontology.iter();
+    ///
+    /// assert!(ont_iter.next().is_some());
+    /// ```
+    ///
+    pub fn iter(&self) -> Iter<'_> {
+        Iter {
+            inner: self.hpo_terms.iter(),
+            ontology: self,
+        }
+    }
+
+    /// Returns an Iterator of all [`HpoTerm`]s from the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// for term in ontology.hpos() {
+    ///     println!("{}", term.name());
+    /// }
+    /// ```
+    ///
+    /// # Note
+    ///
+    /// This method is deprecated and will be removed in the future.
+    /// Use either [`Ontology::iter`] or iterate the ontology directly:
+    ///
+    /// ```rust
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// for term in &ontology {
+    ///     println!("{}", term.name());
+    /// }
+    /// ```
+    ///
+    pub fn hpos(&self) -> Iter<'_> {
+        self.into_iter()
+    }
+
+    /// Returns a reference to the categories of the Ontology
+    ///
+    /// Categories are top-level `HpoTermId`s used for
+    /// categorizing individual `HpoTerm`s.
+    ///
+    /// See [`Ontology::set_default_categories()`] for more information
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    ///
+    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// assert_eq!(ontology.categories().len(), 6);
+    /// ```
+    pub fn categories(&self) -> &HpoGroup {
+        &self.categories
+    }
+
+    /// Returns a binary representation of the Ontology
+    ///
+    /// The binary data is separated into sections:
+    ///
+    /// - Metadata (HPO and Bindat Version) (see `Ontology::metadata_as_bytes`)
+    /// - Terms (Names + IDs) (see `HpoTermInternal::as_bytes`)
+    /// - Term - Parent connection (Child ID - Parent ID)
+    ///   (see `HpoTermInternal::parents_as_byte`)
+    /// - Genes (Names + IDs + Connected HPO Terms) ([`Gene::as_bytes`])
+    /// - OMIM Diseases (Names + IDs + Connected HPO Terms)
+    ///   ([`OmimDisease::as_bytes`])
+    ///
+    /// Every section starts with 4 bytes to indicate its size
+    /// (big-endian encoded `u32`)
+    ///
+    /// This method is only useful if you use are modifying the ontology
+    /// and want to save data for later re-use.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the buffer length of any subsegment larger than `u32::MAX`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// let bytes = ontology.as_bytes();
+    /// ```
+    pub fn as_bytes(&self) -> Vec<u8> {
+        fn usize_to_u32(n: usize) -> u32 {
+            n.try_into().expect("unable to convert {n} to u32")
+        }
+        let mut res = Vec::new();
+
+        // Add metadata, version info
+        res.append(&mut self.metadata_as_bytes());
+
+        // All HPO Terms
+        let mut buffer = Vec::new();
+        for term in self.hpo_terms.values() {
+            buffer.append(&mut term.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        // All Term - Parent connections
+        buffer.clear();
+        for term in self.hpo_terms.values() {
+            buffer.append(&mut term.parents_as_byte());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        // Genes and Gene-Term connections
+        buffer.clear();
+        for gene in self.genes.values() {
+            buffer.append(&mut gene.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        // OMIM Disease and Disease-Term connections
+        buffer.clear();
+        for omim_disease in self.omim_diseases.values() {
+            buffer.append(&mut omim_disease.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        res
     }
 
     /// Constructs a smaller ontology that contains only the `leaves` terms and
@@ -1055,26 +1106,13 @@ impl Ontology {
         code.push_str("}\n");
         code
     }
+}
 
-    /// Returns a reference to the categories of the Ontology
-    ///
-    /// Categories are top-level `HpoTermId`s used for
-    /// categorizing individual `HpoTerm`s.
-    ///
-    /// See [`Ontology::set_default_categories()`] for more information
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::{HpoTerm, Ontology};
-    ///
-    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// assert_eq!(ontology.categories().len(), 6);
-    /// ```
-    pub fn categories(&self) -> &HpoGroup {
-        &self.categories
-    }
-
+/// Methods to add annotations
+///
+/// These methods should rarely (if ever) be used by clients.
+/// Calling these functions might disrupt the Ontology and associated terms.
+impl Ontology {
     /// Returns a mutable reference to the categories vector
     ///
     /// This is a vector that should contain top-level `HpoTermId`s used for
@@ -1168,20 +1206,6 @@ impl Ontology {
         Ok(())
     }
 
-    /// Iterates [`HpoTerm`]s
-    pub fn iter(&self) -> Iter<'_> {
-        Iter {
-            inner: self.hpo_terms.iter(),
-            ontology: self,
-        }
-    }
-}
-
-/// Methods to add annotations
-///
-/// These methods should rarely (if ever) be used by clients.
-/// Calling these functions might disrupt the Ontology and associated terms.
-impl Ontology {
     /// Crates and inserts a new term to the ontology
     ///
     /// This method does not link the term to its parents or to any annotations

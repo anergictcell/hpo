@@ -36,9 +36,5 @@ harness = false
 name = "ancestors"
 harness = false
 
-[[bench]]
-name = "parser"
-harness = false
-
 [profile.release]
 lto = true

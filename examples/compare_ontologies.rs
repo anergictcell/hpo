@@ -223,7 +223,6 @@ fn main() {
     let arg_old = args.nth(1).unwrap();
     let lhs = ontology(&arg_old);
 
-
     let rhs = if let Some(arg_new) = args.next() {
         ontology(&arg_new)
     } else {

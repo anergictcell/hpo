@@ -16,7 +16,7 @@ fn ontology(path_arg: &str) -> Ontology {
     }
 }
 
-fn ontology2(path_arg: &str) -> Ontology {
+fn ontology_transitive(path_arg: &str) -> Ontology {
     let path = Path::new(path_arg);
 
     match path.is_file() {
@@ -213,17 +213,21 @@ fn print_replacement_diff(replacements: Option<(Option<HpoTermId>, Option<HpoTer
 fn main() {
     let mut args = std::env::args();
 
-    if args.len() != 3 {
+    if args.len() < 2 {
         println!("Compare two Ontologies to each other and print the differences\n\n");
-        println!("Usage:\ncompare_ontologies </PATH/TO/ONTOLOGY> </PATH/TO/OTHER-ONTOLOGY>");
+        println!("Usage:\ncompare_ontologies </PATH/TO/ONTOLOGY> [</PATH/TO/OTHER-ONTOLOGY>]");
         println!("e.g.:\ncompare_ontologies tests/ontology.hpo tests/ontology_v2.hpo:\n");
+        println!("Alternatively compare transitive vs non-transitive:\ncompare_ontologies tests/ontology.hpo\n");
         process::exit(1)
     }
     let arg_old = args.nth(1).unwrap();
-    let arg_new = args.next().unwrap();
-
     let lhs = ontology(&arg_old);
-    let rhs = ontology2(&arg_new);
+
+    let rhs = if let Some(arg_new) = args.next() {
+        ontology(&arg_new)
+    } else {
+        ontology_transitive(&arg_old)
+    };
 
     let diffs = lhs.compare(&rhs);
 

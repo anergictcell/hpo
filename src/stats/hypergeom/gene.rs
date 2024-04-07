@@ -1,7 +1,7 @@
-use statrs::distribution::{DiscreteCDF, Hypergeometric};
 use tracing::debug;
 
 use crate::annotations::GeneId;
+use crate::stats::hypergeom::statrs::Hypergeometric;
 use crate::stats::{f64_from_u64, Enrichment, SampleSet};
 use crate::HpoTerm;
 

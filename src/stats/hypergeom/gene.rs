@@ -1,8 +1,8 @@
 use tracing::debug;
 
 use crate::annotations::GeneId;
-use crate::stats::{f64_from_u64, Enrichment, SampleSet};
 use crate::stats::hypergeom::statrs::Hypergeometric;
+use crate::stats::{f64_from_u64, Enrichment, SampleSet};
 use crate::HpoTerm;
 
 /// Calculates the hypergeometric enrichment of genes within the `set` compared to the `background`

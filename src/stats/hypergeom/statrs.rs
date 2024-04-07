@@ -41,7 +41,6 @@ pub const MAX_FACTORIAL: usize = 170;
 // values 0!...170!
 #[allow(clippy::cast_precision_loss)]
 const FCACHE: [f64; MAX_FACTORIAL + 1] = {
-
     let mut fcache = [1.0; MAX_FACTORIAL + 1];
 
     let mut i = 1;
@@ -52,7 +51,6 @@ const FCACHE: [f64; MAX_FACTORIAL + 1] = {
     }
     fcache
 };
-
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Hypergeometric {
@@ -70,18 +68,6 @@ impl Hypergeometric {
     /// # Errors
     ///
     /// If `successes > population` or `draws > population`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use statrs::distribution::Hypergeometric;
-    ///
-    /// let mut result = Hypergeometric::new(2, 2, 2);
-    /// assert!(result.is_ok());
-    ///
-    /// result = Hypergeometric::new(2, 3, 2);
-    /// assert!(result.is_err());
-    /// ```
     pub fn new(population: u64, successes: u64, draws: u64) -> Result<Hypergeometric, String> {
         if successes > population || draws > population {
             Err("Invalid params".to_string())
@@ -100,7 +86,7 @@ impl Hypergeometric {
     ///
     /// # Formula
     ///
-    /// ```ignore
+    /// ```text
     /// max(0, n + K - N)
     /// ```
     ///
@@ -115,7 +101,7 @@ impl Hypergeometric {
     ///
     /// # Formula
     ///
-    /// ```ignore
+    /// ```text
     /// min(K, n)
     /// ```
     ///
@@ -129,7 +115,7 @@ impl Hypergeometric {
     ///
     /// # Formula
     ///
-    /// ```ignore
+    /// ```text
     /// 1 - ((n choose k+1) * (N-n choose K-k-1)) / (N choose K) * 3_F_2(1,
     /// k+1-K, k+1-n; k+2, N+k+2-K-n; 1)
     /// ```
@@ -157,8 +143,6 @@ impl Hypergeometric {
     }
 }
 
-
-
 /// Computes the logarithm of the gamma function
 /// with an accuracy of 16 floating point digits.
 /// The implementation is derived from
@@ -182,14 +166,13 @@ fn ln_gamma(x: f64) -> f64 {
             .iter()
             .enumerate()
             .skip(1)
-            .fold(GAMMA_DK[0], |s, t| s + t.1 / (x + f64_from_usize(t.0) - 1.0));
+            .fold(GAMMA_DK[0], |s, t| {
+                s + t.1 / (x + f64_from_usize(t.0) - 1.0)
+            });
 
-        s.ln()
-            + LN_2_SQRT_E_OVER_PI
-            + (x - 0.5) * ((x - 0.5 + GAMMA_R) / std::f64::consts::E).ln()
+        s.ln() + LN_2_SQRT_E_OVER_PI + (x - 0.5) * ((x - 0.5 + GAMMA_R) / std::f64::consts::E).ln()
     }
 }
-
 
 /// Computes the logarithmic factorial function `x -> ln(x!)`
 /// for `x >= 0`.
@@ -218,7 +201,6 @@ pub fn ln_binomial(n: u64, k: u64) -> f64 {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -239,12 +221,57 @@ mod test {
         );
         assert!(
             (
-                FCACHE[170] - 
+                FCACHE[170] -
                 7257415615307994000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000.0
             )
             .abs() < f64::EPSILON
         );
     }
 
-}
+    #[test]
+    fn test_hypergeom_build() {
+        let mut result = Hypergeometric::new(2, 2, 2);
+        assert!(result.is_ok());
 
+        result = Hypergeometric::new(2, 3, 2);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_hypergeom_max() {
+        let hyper = Hypergeometric::new(50, 25, 13).unwrap();
+        assert_eq!(hyper.max(), 13);
+
+        let hyper = Hypergeometric::new(50, 10, 13).unwrap();
+        assert_eq!(hyper.max(), 10);
+    }
+
+    #[test]
+    fn min() {
+        let hyper = Hypergeometric::new(50, 25, 30).unwrap();
+        assert_eq!(hyper.min(), 5);
+
+        let hyper = Hypergeometric::new(50, 40, 30).unwrap();
+        assert_eq!(hyper.min(), 20);
+
+        let hyper = Hypergeometric::new(50, 10, 13).unwrap();
+        assert_eq!(hyper.min(), 0);
+    }
+
+    #[test]
+    fn test_hypergeom_cdf() {
+        // Numbers calculated here https://statisticsbyjim.com/probability/hypergeometric-distribution/
+        let hyper = Hypergeometric::new(50, 25, 13).unwrap();
+
+        // more than 1 == 2 or more
+        assert!((hyper.sf(1) - 0.9996189832542451).abs() < f64::EPSILON);
+        // more than 3 == 4 or more
+        assert!((hyper.sf(3) - 0.9746644799047702).abs() < f64::EPSILON);
+        // more than 7 == 8 or more
+        assert!((hyper.sf(7) - 0.26009737477738537).abs() < f64::EPSILON);
+        // more than 12 == 13 or more
+        assert!((hyper.sf(12) - 0.000014654490222007184).abs() < f64::EPSILON);
+
+        assert!(hyper.sf(13) < f64::EPSILON);
+    }
+}

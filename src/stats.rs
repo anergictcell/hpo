@@ -239,7 +239,6 @@ fn f64_from_usize(n: usize) -> f64 {
     intermediate.into()
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;

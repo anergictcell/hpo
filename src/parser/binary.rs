@@ -6,7 +6,7 @@
 //! to update their versions to the newest one.
 pub(crate) mod ontology;
 pub(crate) mod term;
-use std::fmt::Display;
+use std::{cmp::Ordering, fmt::Display};
 
 use crate::{term::internal::HpoTermInternal, HpoError};
 
@@ -37,6 +37,27 @@ impl Display for BinaryVersion {
                 BinaryVersion::V2 => "2",
             }
         )
+    }
+}
+
+impl From<&BinaryVersion> for u8 {
+    fn from(value: &BinaryVersion) -> Self {
+        match *value {
+            BinaryVersion::V1 => 1,
+            BinaryVersion::V2 => 2,
+        }
+    }
+}
+
+impl PartialOrd for BinaryVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for BinaryVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
+        u8::from(self).cmp(&u8::from(other))
     }
 }
 

@@ -1,6 +1,10 @@
 use std::{env::Args, process};
 
-use hpo::{annotations::OmimDiseaseId, term::HpoGroup, HpoResult, HpoSet, HpoTermId, Ontology};
+use hpo::{
+    annotations::{Disease, OmimDiseaseId},
+    term::HpoGroup,
+    HpoResult, HpoSet, HpoTermId, Ontology,
+};
 
 /// Tries to parse an HpoTermId from a string `HP:0007768` or a `u32`
 fn id_from_freetext(value: &str) -> HpoResult<HpoTermId> {

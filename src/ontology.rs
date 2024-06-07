@@ -1,5 +1,5 @@
+use crate::annotations::Disease;
 use core::fmt::Debug;
-use std::collections::hash_map::Values;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
@@ -11,7 +11,8 @@ use tracing::debug;
 
 use crate::annotations::AnnotationId;
 use crate::annotations::{Gene, GeneId};
-use crate::annotations::{OmimDisease, OmimDiseaseId};
+use crate::annotations::{OmimDisease, OmimDiseaseFilter, OmimDiseaseId};
+use crate::annotations::{OrphaDisease, OrphaDiseaseId};
 use crate::parser;
 use crate::parser::binary::{BinaryTermBuilder, BinaryVersion, Bytes};
 use crate::term::internal::HpoTermInternal;
@@ -321,6 +322,7 @@ pub struct Ontology {
     hpo_terms: Arena,
     genes: HashMap<GeneId, Gene>,
     omim_diseases: HashMap<OmimDiseaseId, OmimDisease>,
+    orpha_diseases: HashMap<OrphaDiseaseId, OrphaDisease>,
     hpo_version: (u16, u8, u8),
     categories: HpoGroup,
     modifier: HpoGroup,
@@ -329,30 +331,6 @@ pub struct Ontology {
 impl Debug for Ontology {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Ontology with {} terns", self.hpo_terms.len())
-    }
-}
-
-/// Iterates [`OmimDisease`] that match the query string
-///
-/// This struct is returned by [`Ontology::omim_diseases_by_name`]
-pub struct OmimDiseaseFilter<'a> {
-    iter: Values<'a, OmimDiseaseId, OmimDisease>,
-    query: &'a str,
-}
-
-impl<'a> OmimDiseaseFilter<'a> {
-    fn new(iter: Values<'a, OmimDiseaseId, OmimDisease>, query: &'a str) -> Self {
-        OmimDiseaseFilter { iter, query }
-    }
-}
-
-impl<'a> Iterator for OmimDiseaseFilter<'a> {
-    type Item = &'a OmimDisease;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .by_ref()
-            .find(|&item| item.name().contains(self.query))
     }
 }
 
@@ -612,6 +590,14 @@ impl Ontology {
         ont.add_omim_disease_from_bytes(&bytes[section_start + 4..section_end])?;
         section_start += section_len + 4;
 
+        // Orpha Diseases
+        if bytes.version() > BinaryVersion::V2 {
+            section_len = u32_from_bytes(&bytes[section_start..]) as usize;
+            section_end += 4 + section_len;
+            ont.add_orpha_disease_from_bytes(&bytes[section_start + 4..section_end])?;
+            section_start += section_len + 4;
+        }
+
         if section_start == bytes.len() {
             ont.calculate_information_content()?;
             ont.set_default_categories()?;
@@ -819,6 +805,8 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     /// let disease = ontology.omim_disease(&601495u32.into()).unwrap();
     /// assert_eq!(disease.name(), "Agammaglobulinemia 1, autosomal recessive");
@@ -835,6 +823,8 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     /// for disease in ontology.omim_diseases() {
     ///     println!("{}", disease.name());
@@ -853,6 +843,8 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// for result in ontology.omim_diseases_by_name("Cystinosis") {
@@ -872,6 +864,8 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let cystinosis = ontology.omim_disease_by_name("Cystinosis");
@@ -880,6 +874,43 @@ impl Ontology {
         self.omim_diseases
             .values()
             .find(|&disease| disease.name().contains(substring))
+    }
+
+    /// Returns a reference to the [`OrphaDisease`] of the provided [`OrphaDiseaseId`]
+    ///
+    /// If no such disease is present, `None` is returned
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    /// let ontology = Ontology::from_standard("example_data/2024-03-06/").unwrap();
+    /// let disease = ontology.orpha_disease(&508533u32.into()).unwrap();
+    /// assert_eq!(disease.name(), "Skeletal dysplasia-T-cell immunodeficiency-developmental delay syndrome");
+    /// ```
+    pub fn orpha_disease(&self, orpha_disease_id: &OrphaDiseaseId) -> Option<&OrphaDisease> {
+        self.orpha_diseases.get(orpha_disease_id)
+    }
+
+    /// Returns an Iterator of all [`OrphaDisease`]s from the Ontology
+    ///
+    /// It is likely that the return type will change to a dedicated Iterator
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// for disease in ontology.orpha_diseases() {
+    ///     println!("{}", disease.name());
+    /// }
+    /// ```
+    pub fn orpha_diseases(
+        &self,
+    ) -> std::collections::hash_map::Values<'_, OrphaDiseaseId, OrphaDisease> {
+        self.orpha_diseases.values()
     }
 
     /// Returns the Jax-Ontology release version
@@ -1315,7 +1346,7 @@ impl Ontology {
         }
     }
 
-    /// Add a OMIM disease to the Ontology. and return the [`OmimDiseaseId`]
+    /// Add an OMIM disease to the Ontology and return the [`OmimDiseaseId`]
     ///
     /// If the disease does not yet exist, a new [`OmimDisease`] entity is
     /// created and stored in the Ontology.
@@ -1334,6 +1365,7 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
     ///
     /// let mut ontology = Ontology::default();
     /// assert!(ontology.omim_disease(&1u32.into()).is_none());
@@ -1359,6 +1391,56 @@ impl Ontology {
             std::collections::hash_map::Entry::Occupied(_) => Ok(id),
             std::collections::hash_map::Entry::Vacant(entry) => {
                 entry.insert(OmimDisease::new(id, omim_disease_name));
+                Ok(id)
+            }
+        }
+    }
+
+    /// Add an ORPHA disease to the Ontology and return the [`OrphaDiseaseId`]
+    ///
+    /// If the disease does not yet exist, a new [`OrphaDisease`] entity is
+    /// created and stored in the Ontology.
+    /// If the disease already exists in the ontology, it is not added again.
+    ///
+    /// # Note
+    ///
+    /// Adding a disease does not connect it to any HPO terms.
+    /// Use [`Ontology::link_orpha_disease_term`] for creating connections.
+    ///
+    /// # Errors
+    ///
+    /// If the `orpha_disease_id` is invalid, an [`HpoError::ParseIntError`] is returned
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    ///
+    /// let mut ontology = Ontology::default();
+    /// assert!(ontology.orpha_disease(&1u32.into()).is_none());
+    ///
+    /// ontology.add_orpha_disease("Foo", "1");
+    ///
+    /// // Diseases can be iterated...
+    /// let mut disease_iterator = ontology.orpha_diseases();
+    /// let orpha_disease = disease_iterator.next().unwrap();
+    /// assert_eq!(orpha_disease.name(), "Foo");
+    /// assert!(disease_iterator.next().is_none());
+    ///
+    /// // .. or accessed directly
+    /// assert!(ontology.orpha_disease(&1u32.into()).is_some());
+    /// ```
+    pub fn add_orpha_disease(
+        &mut self,
+        orpha_disease_name: &str,
+        orpha_disease_id: &str,
+    ) -> HpoResult<OrphaDiseaseId> {
+        let id = OrphaDiseaseId::try_from(orpha_disease_id)?;
+        match self.orpha_diseases.entry(id) {
+            std::collections::hash_map::Entry::Occupied(_) => Ok(id),
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(OrphaDisease::new(id, orpha_disease_name));
                 Ok(id)
             }
         }
@@ -1423,7 +1505,7 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
-    /// use hpo::annotations::OmimDiseaseId;
+    /// use hpo::annotations::{Disease, OmimDiseaseId};
     ///
     /// let mut ontology = Ontology::default();
     /// ontology.insert_term("Term-Foo".into(), 1u32);
@@ -1447,6 +1529,50 @@ impl Ontology {
             let parents = term.all_parents().clone();
             for parent in &parents {
                 self.link_omim_disease_term(parent, omim_disease_id)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Add the [`OrphaDisease`] as annotation to the [`HpoTerm`]
+    ///
+    /// The disease will be recursively connected to all parent `HpoTerms` as well.
+    ///
+    /// This method does not add the HPO-term to the [`OrphaDisease`], this
+    /// must be handled by the client.
+    ///
+    /// # Errors
+    ///
+    /// If the HPO term is not present, an [`HpoError`] is returned
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// use hpo::annotations::{Disease, OrphaDiseaseId};
+    ///
+    /// let mut ontology = Ontology::default();
+    /// ontology.insert_term("Term-Foo".into(), 1u32);
+    /// ontology.add_orpha_disease("Foo", "5");
+    /// ontology.link_orpha_disease_term(1u32, OrphaDiseaseId::from(5u32)).unwrap();
+    ///
+    /// let term = ontology.hpo(1u32).unwrap();
+    /// assert_eq!(term.orpha_diseases().next().unwrap().name(), "Foo");
+    /// ```
+    pub fn link_orpha_disease_term<I: Into<HpoTermId>>(
+        &mut self,
+        term_id: I,
+        orpha_disease_id: OrphaDiseaseId,
+    ) -> HpoResult<()> {
+        let term = self.get_mut(term_id).ok_or(HpoError::DoesNotExist)?;
+
+        if term.add_orpha_disease(orpha_disease_id) {
+            // If the disease is already associated to the term, this branch will
+            // be skipped. That is desired, because by definition
+            // all parent terms are already linked as well
+            let parents = term.all_parents().clone();
+            for parent in &parents {
+                self.link_orpha_disease_term(parent, orpha_disease_id)?;
             }
         }
         Ok(())
@@ -1480,6 +1606,7 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
     ///
     /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
@@ -1493,6 +1620,27 @@ impl Ontology {
         omim_disease_id: &OmimDiseaseId,
     ) -> Option<&mut OmimDisease> {
         self.omim_diseases.get_mut(omim_disease_id)
+    }
+
+    /// Returns a mutable reference to the [`OrphaDisease`] of the provided [`OrphaDiseaseId`]
+    ///
+    /// If no such disease is present, `None` is returned
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use hpo::Ontology;
+    /// use hpo::annotations::Disease;
+    ///
+    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut disease = ontology.orpha_disease_mut(&508533u32.into()).unwrap();
+    /// assert_eq!(disease.hpo_terms().len(), 96);
+    /// disease.add_term(1u32);
+    /// assert_eq!(disease.hpo_terms().len(), 97);
+    /// ```
+    pub fn orpha_disease_mut(&mut self, disease_id: &OrphaDiseaseId) -> Option<&mut OrphaDisease> {
+        self.orpha_diseases.get_mut(disease_id)
     }
 
     /// Calculates the [`crate::term::InformationContent`]s for every term
@@ -1523,6 +1671,7 @@ impl Ontology {
     pub fn calculate_information_content(&mut self) -> HpoResult<()> {
         self.calculate_gene_ic()?;
         self.calculate_omim_disease_ic()?;
+        self.calculate_orpha_disease_ic()?;
         Ok(())
     }
 }
@@ -1683,6 +1832,32 @@ impl Ontology {
         Ok(())
     }
 
+    /// Adds [`OrphaDisease`]s to the ontoloigy and connects them to connected terms
+    ///
+    /// This method is part of the Ontology-building, based on the binary
+    /// data format and requires a specified data layout.
+    ///
+    /// It connects all connected terms and their parents properly. The
+    /// method assumes that the bytes encode all Disease-term connections.
+    ///
+    /// See [`OrphaDisease::as_bytes`] for explanation of the binary layout
+    fn add_orpha_disease_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
+        let mut idx: usize = 0;
+        loop {
+            if idx >= bytes.len() {
+                break;
+            }
+            let disease_len = u32_from_bytes(&bytes[idx..]) as usize;
+            let disease = OrphaDisease::try_from(&bytes[idx..idx + disease_len])?;
+            for term in disease.hpo_terms() {
+                self.link_orpha_disease_term(term, *disease.id())?;
+            }
+            self.orpha_diseases.insert(*disease.id(), disease);
+            idx += disease_len;
+        }
+        Ok(())
+    }
+
     /// This method is part of the cache creation to link all terms to their
     /// direct and indirect parents (grandparents)
     ///
@@ -1786,6 +1961,20 @@ impl Ontology {
             let current_diseases = term.omim_diseases().len();
             term.information_content_mut()
                 .set_omim_disease(n_omim_diseases, current_diseases)?;
+        }
+        Ok(())
+    }
+
+    /// Calculates the Orpha-Disease-specific Information Content for every term
+    ///
+    /// If no diseases are present in the Ontology, no IC are calculated
+    fn calculate_orpha_disease_ic(&mut self) -> HpoResult<()> {
+        let n_orpha_diseases = self.orpha_diseases.len();
+
+        for term in self.hpo_terms.values_mut() {
+            let current_diseases = term.orpha_diseases().len();
+            term.information_content_mut()
+                .set_orpha_disease(n_orpha_diseases, current_diseases)?;
         }
         Ok(())
     }

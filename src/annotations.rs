@@ -11,16 +11,27 @@
 //! For more information check out the individual sections for [`Gene`] and [`OmimDisease`]
 
 mod gene;
+use core::fmt::Debug;
+use core::hash::Hash;
 pub use gene::{Gene, GeneId, GeneIterator, Genes};
+use std::fmt::Display;
 
+mod disease;
 mod omim_disease;
-pub use omim_disease::{OmimDisease, OmimDiseaseId, OmimDiseaseIterator, OmimDiseases};
+mod orpha_disease;
+pub use disease::Disease;
+pub use omim_disease::{
+    OmimDisease, OmimDiseaseFilter, OmimDiseaseId, OmimDiseaseIterator, OmimDiseases,
+};
+pub use orpha_disease::{OrphaDisease, OrphaDiseaseId, OrphaDiseaseIterator, OrphaDiseases};
 
 /// All annotations ([`Gene`]s, [`OmimDisease`]s) are defined by a unique ID that is constrained by this trait
 ///
 /// The ID must be unique only within the annotation type, i.e. a gene and a disease
 /// can have the same ID.
-pub trait AnnotationId {
+pub trait AnnotationId:
+    Clone + Copy + Debug + Hash + PartialEq + PartialOrd + Eq + Ord + Display + From<u32>
+{
     /// Return the integer representation of the annotation ID
     fn as_u32(&self) -> u32;
 

@@ -22,7 +22,7 @@
 use std::collections::HashSet;
 use std::fmt::Display;
 
-use crate::annotations::{Gene, OmimDisease};
+use crate::annotations::{Disease, Gene, OmimDisease, OrphaDisease};
 use crate::term::HpoGroup;
 use crate::{HpoTerm, HpoTermId, Ontology};
 
@@ -40,7 +40,7 @@ impl<'a> Display for Comparison<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Version\t{}\t{}\nTerms\t{}\t{}\nGenes\t{}\t{}\nOmim Diseases\t{}\t{}",
+            "Version\t{}\t{}\nTerms\t{}\t{}\nGenes\t{}\t{}\nOmim Diseases\t{}\t{}\nOrpha Diseases\t{}\t{}",
             self.lhs.hpo_version(),
             self.rhs.hpo_version(),
             self.lhs.len(),
@@ -48,7 +48,9 @@ impl<'a> Display for Comparison<'a> {
             self.lhs.genes().count(),
             self.rhs.genes().count(),
             self.lhs.omim_diseases().count(),
-            self.rhs.omim_diseases().count()
+            self.rhs.omim_diseases().count(),
+            self.lhs.orpha_diseases().count(),
+            self.rhs.orpha_diseases().count()
         )
     }
 }
@@ -160,6 +162,41 @@ impl<'a> Comparison<'a> {
             .omim_diseases()
             .filter_map(|disease| {
                 if let Some(rhs) = self.rhs.omim_disease(disease.id()) {
+                    AnnotationDelta::disease(disease, rhs)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// Returns all [`OrphaDisease`]s that are exclusively in the `new` Ontology
+    pub fn added_orpha_diseases(&self) -> Vec<&OrphaDisease> {
+        self.rhs
+            .orpha_diseases()
+            .filter(|disease| self.lhs.orpha_disease(disease.id()).is_none())
+            .collect()
+    }
+
+    /// Returns all [`OrphaDisease`]s that are exclusively in the `old` Ontology
+    pub fn removed_orpha_diseases(&self) -> Vec<&OrphaDisease> {
+        self.lhs
+            .orpha_diseases()
+            .filter(|disease| self.rhs.orpha_disease(disease.id()).is_none())
+            .collect()
+    }
+
+    /// Returns an [`AnnotationDelta`] struct for every [`OrphaDisease`] that is different
+    /// between the `old` and `new` Ontology.
+    ///
+    /// Differences are defined as either:
+    /// - Changed name
+    /// - Changed direct associated `HpoTerm`s
+    pub fn changed_orpha_diseases(&self) -> Vec<AnnotationDelta> {
+        self.lhs
+            .orpha_diseases()
+            .filter_map(|disease| {
+                if let Some(rhs) = self.rhs.orpha_disease(disease.id()) {
                     AnnotationDelta::disease(disease, rhs)
                 } else {
                     None
@@ -307,7 +344,7 @@ impl<'a> AnnotationDelta {
     /// Constructs a new [`AnnotationDelta`] by comparing two [`OmimDisease`]s
     ///
     /// Returns `None` if both are identical
-    pub fn disease(lhs: &OmimDisease, rhs: &OmimDisease) -> Option<Self> {
+    pub fn disease<D: Disease>(lhs: &D, rhs: &D) -> Option<Self> {
         let lhs_terms = lhs.hpo_terms();
         let rhs_terms = rhs.hpo_terms();
 

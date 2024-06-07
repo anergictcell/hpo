@@ -1,5 +1,6 @@
 //! Prints every term and its associated Omim Disease
 
+use hpo::annotations::Disease;
 use hpo::Ontology;
 
 fn main() {

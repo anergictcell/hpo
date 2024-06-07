@@ -4,7 +4,7 @@ use std::io::Write;
 use std::{env::Args, time::SystemTime};
 
 use hpo::{
-    annotations::{OmimDisease, OmimDiseaseId},
+    annotations::{Disease, OmimDisease, OmimDiseaseId},
     similarity::{GraphIc, GroupSimilarity, StandardCombiner},
     term::HpoGroup,
     HpoSet, HpoTermId, Ontology,

@@ -13,6 +13,7 @@ use crate::{f32_from_usize, HpoResult};
 pub struct InformationContent {
     gene: f32,
     omim: f32,
+    orpha: f32,
 }
 
 impl InformationContent {
@@ -36,11 +37,22 @@ impl InformationContent {
         &mut self.omim
     }
 
+    /// The ORPHA-disease-specific information content
+    pub fn orpha_disease(&self) -> f32 {
+        self.orpha
+    }
+
+    /// A mutable reference to the ORPHA-disease-specific information content
+    pub fn orpha_disease_mut(&mut self) -> &mut f32 {
+        &mut self.orpha
+    }
+
     /// Returns the information content of the provided kind
     pub fn get_kind(&self, kind: &InformationContentKind) -> f32 {
         match kind {
             InformationContentKind::Gene => self.gene(),
             InformationContentKind::Omim => self.omim_disease(),
+            InformationContentKind::Orpha => self.orpha_disease(),
         }
     }
 
@@ -65,7 +77,7 @@ impl InformationContent {
         Ok(())
     }
 
-    /// Calculates and caches the gene `InformationContent`
+    /// Calculates and caches the OMIM `InformationContent`
     ///
     /// # Errors
     ///
@@ -73,6 +85,17 @@ impl InformationContent {
     /// because larger numbers can't be safely converted to `f32`
     pub fn set_omim_disease(&mut self, total: usize, current: usize) -> HpoResult<()> {
         self.omim = Self::calculate(total, current)?;
+        Ok(())
+    }
+
+    /// Calculates and caches the ORPHA `InformationContent`
+    ///
+    /// # Errors
+    ///
+    /// This method returns an error if there are more ORPHA diseases than `u16::MAX`
+    /// because larger numbers can't be safely converted to `f32`
+    pub fn set_orpha_disease(&mut self, total: usize, current: usize) -> HpoResult<()> {
+        self.orpha = Self::calculate(total, current)?;
         Ok(())
     }
 }
@@ -84,4 +107,6 @@ pub enum InformationContentKind {
     Gene,
     /// Information content related to the associated OMIM-diseases
     Omim,
+    /// Information content related to the associated ORPHA-diseases
+    Orpha,
 }

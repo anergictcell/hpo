@@ -80,6 +80,7 @@ pub(crate) mod phenotype_to_genes {
 
 /// Module to parse HPO - `OmimDisease` associations from `phenotype.hpoa` file
 pub(crate) mod phenotype_hpoa {
+    use crate::annotations::Disease;
     use crate::HpoError;
     use crate::HpoResult;
     use crate::HpoTermId;
@@ -92,29 +93,35 @@ pub(crate) mod phenotype_hpoa {
 
     use crate::Ontology;
 
-    struct Omim<'a> {
+    enum DiseaseKind<'a> {
+        Omim(DiseaseComponents<'a>),
+        Orpha(DiseaseComponents<'a>),
+    }
+
+    struct DiseaseComponents<'a> {
         id: &'a str,
         name: &'a str,
         hpo_id: HpoTermId,
     }
 
-    fn parse_line(line: &str) -> Option<Omim<'_>> {
-        // TODO (nice to have): Add check to skip `database_id` header row
-        // It is not strictly needed, because we're discarding non-OMIM rows
-        if line.starts_with('#') {
-            return None;
+    fn parse_line(line: &str) -> Option<DiseaseKind<'_>> {
+        if line.starts_with("OMIM") {
+            parse_disease_components(line).map(DiseaseKind::Omim)
+        } else if line.starts_with("ORPHA") {
+            parse_disease_components(line).map(DiseaseKind::Orpha)
+        } else {
+            None
         }
-        if !line.starts_with("OMIM") {
-            return None;
-        }
+    }
 
+    fn parse_disease_components(line: &str) -> Option<DiseaseComponents<'_>> {
         let cols: Vec<&str> = line.trim().split('\t').collect();
         if cols[2] == "NOT" {
             return None;
         }
 
         let Some((_, omim_id)) = cols[0].split_once(':') else {
-            error!("cannot parse OMIM ID from {}", cols[0]);
+            error!("cannot parse Disease ID from {}", cols[0]);
             return None;
         };
 
@@ -123,7 +130,7 @@ pub(crate) mod phenotype_hpoa {
             return None;
         };
 
-        Some(Omim {
+        Some(DiseaseComponents {
             id: omim_id,
             name: cols[1],
             hpo_id,
@@ -136,14 +143,26 @@ pub(crate) mod phenotype_hpoa {
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();
-            if let Some(omim) = parse_line(&line) {
-                let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
-                ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
+            match parse_line(&line) {
+                Some(DiseaseKind::Omim(omim)) => {
+                    let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
+                    ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
 
-                ontology
-                    .omim_disease_mut(&omim_disease_id)
-                    .ok_or(HpoError::DoesNotExist)?
-                    .add_term(omim.hpo_id);
+                    ontology
+                        .omim_disease_mut(&omim_disease_id)
+                        .ok_or(HpoError::DoesNotExist)?
+                        .add_term(omim.hpo_id);
+                }
+                Some(DiseaseKind::Orpha(orpha)) => {
+                    let orpha_disease_id = ontology.add_orpha_disease(orpha.name, orpha.id)?;
+                    ontology.link_orpha_disease_term(orpha.hpo_id, orpha_disease_id)?;
+
+                    ontology
+                        .orpha_disease_mut(&orpha_disease_id)
+                        .ok_or(HpoError::DoesNotExist)?
+                        .add_term(orpha.hpo_id);
+                }
+                _ => {}
             }
         }
         Ok(())

@@ -63,7 +63,7 @@ where
             let pvalue = hyper.sf(observed_successes - 1);
             let enrichment = (f64_from_u64(observed_successes) / f64_from_u64(sample_set.len()))
                 / (f64_from_u64(*successes) / f64_from_u64(background.len()));
-            res.push(Enrichment::disease(
+            res.push(Enrichment::annotation(
                 disease,
                 pvalue,
                 observed_successes,

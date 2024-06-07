@@ -12,9 +12,9 @@
 //! In addition, it provides methods for [hierarchical clustering](`linkage::Linkage`) of `HpoSet`s.
 
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::marker::PhantomData;
 
-use crate::annotations::{GeneId, OmimDiseaseId};
+use crate::annotations::{AnnotationId, Disease, GeneId, OmimDiseaseId};
 use crate::HpoTerm;
 
 pub mod hypergeom;
@@ -84,50 +84,77 @@ impl Enrichment<OmimDiseaseId> {
     }
 }
 
+impl<T: AnnotationId> Enrichment<T> {
+    /// Constructs an `Enrichment` for any annotated item (Gene, Disease)
+    pub fn annotation(annotation: T, pvalue: f64, count: u64, enrichment: f64) -> Self {
+        Self {
+            annotation,
+            pvalue,
+            count,
+            enrichment,
+        }
+    }
+}
+
 struct SampleSet<T> {
     /// The total number of HpoTerms in the full set
     size: u64,
     /// A map containing the counts of each Gene/Disease in the SampleSet
-    counts: HashMap<T, u64>,
+    counts: HashMap<u32, u64>,
+    phantom: PhantomData<T>,
+}
+
+fn calculate_counts<
+    'a,
+    U: FnMut(HpoTerm<'a>) -> IT,
+    I: IntoIterator<Item = HpoTerm<'a>>,
+    IT: IntoIterator<Item = u32>,
+>(
+    terms: I,
+    mut iter: U,
+) -> (u64, HashMap<u32, u64>) {
+    let mut size = 0u64;
+    let mut counts: HashMap<u32, u64> = HashMap::new();
+    for term in terms {
+        size += 1;
+        for id in iter(term) {
+            counts
+                .entry(id)
+                .and_modify(|count| *count += 1)
+                .or_insert(1);
+        }
+    }
+    (size, counts)
 }
 
 impl<'a> SampleSet<GeneId> {
     /// Constructs a new [`SampleSet`] with gene counts from an iterator of [`HpoTerm`]s
-    pub fn gene<I: IntoIterator<Item = HpoTerm<'a>>>(iter: I) -> Self {
-        let mut size = 0u64;
-        let mut counts: HashMap<GeneId, u64> = HashMap::new();
-        for term in iter {
-            size += 1;
-            for gene in term.genes() {
-                counts
-                    .entry(*gene.id())
-                    .and_modify(|count| *count += 1)
-                    .or_insert(1);
-            }
+    pub fn gene<I: IntoIterator<Item = HpoTerm<'a>>>(terms: I) -> Self {
+        let term2geneid = |term: HpoTerm<'a>| term.genes().map(|d| d.id().as_u32());
+
+        let (size, counts) = calculate_counts(terms, term2geneid);
+        Self {
+            size,
+            counts,
+            phantom: PhantomData,
         }
-        Self { size, counts }
     }
 }
 
 impl<'a> SampleSet<OmimDiseaseId> {
     /// Constructs a new `SampleSet` with disease counts from an iterator of [`HpoTerm`]s
-    pub fn disease<I: IntoIterator<Item = HpoTerm<'a>>>(ontology: I) -> Self {
-        let mut size = 0u64;
-        let mut counts: HashMap<OmimDiseaseId, u64> = HashMap::new();
-        for term in ontology {
-            size += 1;
-            for disease in term.omim_diseases() {
-                counts
-                    .entry(*disease.id())
-                    .and_modify(|count| *count += 1)
-                    .or_insert(1);
-            }
+    pub fn disease<I: IntoIterator<Item = HpoTerm<'a>>>(terms: I) -> Self {
+        let term2omimid = |term: HpoTerm<'a>| term.omim_diseases().map(|d| d.id().as_u32());
+        let (size, counts) = calculate_counts(terms, term2omimid);
+        Self {
+            size,
+            counts,
+            phantom: PhantomData,
         }
-        Self { size, counts }
     }
 }
 
-impl<T> SampleSet<T> {
+impl<T: AnnotationId> SampleSet<T> {
     /// Returns the total number of [`HpoTerm`]s in the [`SampleSet`]
     fn len(&self) -> u64 {
         self.size
@@ -140,16 +167,13 @@ impl<T> SampleSet<T> {
     fn is_empty(&self) -> bool {
         self.size == 0
     }
-}
-
-impl<T: Hash + std::cmp::Eq> SampleSet<T> {
     /// The number of terms in the `SampleSet` that are connected to the given gene or disease
     ///
     /// Terms can be directly or indirectly connected to the gene/disease.
     ///
     /// Returns `None` if the key is not present
     fn get(&self, key: &T) -> Option<&u64> {
-        self.counts.get(key)
+        self.counts.get(&key.as_u32())
     }
 
     /// Returns the frequency of terms that are connected to the given gene or disease
@@ -161,61 +185,74 @@ impl<T: Hash + std::cmp::Eq> SampleSet<T> {
     #[allow(dead_code)]
     fn frequency(&self, key: &T) -> Option<f64> {
         self.counts
-            .get(key)
+            .get(&key.as_u32())
             .map(|count| f64_from_u64(*count) / f64_from_u64(self.size))
     }
 
     /// An iterator of [`SampleSet::frequency`] values, along with their key
     #[allow(dead_code)]
     fn frequencies(&self) -> Frequencies<T> {
-        Frequencies::new(self.counts.iter(), self.size)
+        Frequencies::new(self.counts.iter(), self.size, self.phantom)
     }
 }
 
-impl<'a, T: Clone> IntoIterator for &'a SampleSet<T> {
+impl<'a, T: AnnotationId> IntoIterator for &'a SampleSet<T> {
     type Item = (T, u64);
     type IntoIter = Counts<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        Counts::new(self.counts.iter())
+        Counts::new(self.counts.iter(), self.phantom)
     }
 }
 
 /// An iterator of [`SampleSet::frequency`] values, along with their key
 struct Frequencies<'a, K> {
-    inner: std::collections::hash_map::Iter<'a, K, u64>,
+    inner: std::collections::hash_map::Iter<'a, u32, u64>,
     total: u64,
+    phantom: PhantomData<K>,
 }
 
 impl<'a, K> Frequencies<'a, K> {
-    pub fn new(inner: std::collections::hash_map::Iter<'a, K, u64>, total: u64) -> Self {
-        Self { inner, total }
+    pub fn new(
+        inner: std::collections::hash_map::Iter<'a, u32, u64>,
+        total: u64,
+        phantom: PhantomData<K>,
+    ) -> Self {
+        Self {
+            inner,
+            total,
+            phantom,
+        }
     }
 }
 
-impl<K: Clone> Iterator for Frequencies<'_, K> {
+impl<K: AnnotationId> Iterator for Frequencies<'_, K> {
     type Item = (K, f64);
     fn next(&mut self) -> Option<Self::Item> {
         self.inner
             .next()
-            .map(|(k, v)| (k.clone(), f64_from_u64(*v) / f64_from_u64(self.total)))
+            .map(|(k, v)| (K::from(*k), f64_from_u64(*v) / f64_from_u64(self.total)))
     }
 }
 
 /// An iterator of [`SampleSet::frequency`] values, along with their key
 struct Counts<'a, K> {
-    inner: std::collections::hash_map::Iter<'a, K, u64>,
+    inner: std::collections::hash_map::Iter<'a, u32, u64>,
+    phantom: PhantomData<K>,
 }
 
 impl<'a, K> Counts<'a, K> {
-    pub fn new(inner: std::collections::hash_map::Iter<'a, K, u64>) -> Self {
-        Self { inner }
+    pub fn new(
+        inner: std::collections::hash_map::Iter<'a, u32, u64>,
+        phantom: PhantomData<K>,
+    ) -> Self {
+        Self { inner, phantom }
     }
 }
 
-impl<K: Clone> Iterator for Counts<'_, K> {
+impl<K: AnnotationId> Iterator for Counts<'_, K> {
     type Item = (K, u64);
     fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|(k, v)| (k.clone(), *v))
+        self.inner.next().map(|(k, v)| (K::from(*k), *v))
     }
 }
 
@@ -236,18 +273,26 @@ mod test {
     #[test]
     fn iterate_frequencies() {
         let mut map = HashMap::new();
-        map.insert(String::from("foo"), 12u64);
-        map.insert(String::from("bar"), 21u64);
+        map.insert(12u32, 12u64);
+        map.insert(21u32, 21u64);
 
-        let mut iter = Frequencies::new(map.iter(), 3);
+        let mut iter: Frequencies<'_, OmimDiseaseId> = Frequencies::new(map.iter(), 3, PhantomData);
         match iter.next() {
-            Some((key, x)) if key == "foo" => assert!((x - 4.0).abs() < f64::EPSILON),
-            Some((key, x)) if key == "bar" => assert!((x - 7.0).abs() < f64::EPSILON),
+            Some((key, x)) if key == OmimDiseaseId::from(12) => {
+                assert!((x - 4.0).abs() < f64::EPSILON);
+            }
+            Some((key, x)) if key == OmimDiseaseId::from(21) => {
+                assert!((x - 7.0).abs() < f64::EPSILON);
+            }
             _ => panic!("invalid"),
         }
         match iter.next() {
-            Some((key, x)) if key == "foo" => assert!((x - 4.0).abs() < f64::EPSILON),
-            Some((key, x)) if key == "bar" => assert!((x - 7.0).abs() < f64::EPSILON),
+            Some((key, x)) if key == OmimDiseaseId::from(12) => {
+                assert!((x - 4.0).abs() < f64::EPSILON);
+            }
+            Some((key, x)) if key == OmimDiseaseId::from(21) => {
+                assert!((x - 7.0).abs() < f64::EPSILON);
+            }
             _ => panic!("invalid"),
         }
         assert!(iter.next().is_none());
@@ -256,18 +301,18 @@ mod test {
     #[test]
     fn iterate_counts() {
         let mut map = HashMap::new();
-        map.insert(String::from("foo"), 12u64);
-        map.insert(String::from("bar"), 21u64);
+        map.insert(12u32, 12u64);
+        map.insert(21u32, 21u64);
 
-        let mut iter = Counts::new(map.iter());
+        let mut iter: Counts<'_, OmimDiseaseId> = Counts::new(map.iter(), PhantomData);
         match iter.next() {
-            Some((key, x)) if key == "foo" => assert_eq!(x, 12),
-            Some((key, x)) if key == "bar" => assert_eq!(x, 21),
+            Some((key, x)) if key == OmimDiseaseId::from(12) => assert_eq!(x, 12),
+            Some((key, x)) if key == OmimDiseaseId::from(21) => assert_eq!(x, 21),
             _ => panic!("invalid"),
         }
         match iter.next() {
-            Some((key, x)) if key == "foo" => assert_eq!(x, 12),
-            Some((key, x)) if key == "bar" => assert_eq!(x, 21),
+            Some((key, x)) if key == OmimDiseaseId::from(12) => assert_eq!(x, 12),
+            Some((key, x)) if key == OmimDiseaseId::from(21) => assert_eq!(x, 21),
             _ => panic!("invalid"),
         }
         assert!(iter.next().is_none());

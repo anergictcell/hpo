@@ -254,7 +254,7 @@ impl TryFrom<Bytes<'_>> for HpoTermInternal {
     fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
         match bytes.version() {
             BinaryVersion::V1 => from_bytes_v1(bytes),
-            BinaryVersion::V2 => from_bytes_v2(bytes),
+            _ => from_bytes_v2(bytes),
         }
     }
 }

@@ -678,6 +678,15 @@ impl Ontology {
         res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
         res.append(&mut buffer);
 
+
+        // ORPHA Disease and Disease-Term connections
+        buffer.clear();
+        for orpha_disease in self.orpha_diseases.values() {
+            buffer.append(&mut orpha_disease.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
         res
     }
 
@@ -979,6 +988,10 @@ impl Ontology {
                 terms.insert(self.get_unchecked(parent));
             }
         }
+
+        // The IDs of all Terms that will be present in the new ontology
+        // This list is used to identify which terms each disease or gene
+        // should be connected to
         let ids: HpoGroup = terms.iter().map(|term| *term.id()).collect();
 
         let mut ont = Self::default();
@@ -998,18 +1011,31 @@ impl Ontology {
 
         ont.create_cache();
 
-        // Iterate all genes, check the associated terms and see if one
-        // is part of the `ids` set
+        // We only want to add genes and diseases to the ontology that are
+        // associated with an actual phenotype of the ontology and not just
+        // with a modifier terms. e.g. the modifier "Recessive inheritance"
+        // is linked to roughly half of all diseases
+        let phenotype_ids: HpoGroup = terms.iter()
+            .filter(|term| {
+                (term.all_parents() & self.modifier()).is_empty()
+            })
+            .map(|term| *term.id()).collect();
+
+        // Iterate all genes
         for gene in self.genes() {
-            let matched_terms = gene.hpo_terms() & &ids;
-            if matched_terms.is_empty() {
+            // check if the gene is linked to any phenotype terms
+            // --> don't include modifier terms here
+            if (gene.hpo_terms() & &phenotype_ids).is_empty() {
                 continue;
             }
             let gene_id = ont.add_gene(
                 self.gene(gene.id()).ok_or(HpoError::DoesNotExist)?.name(),
                 &gene.id().as_u32().to_string(),
             )?;
-            for term in &matched_terms {
+
+            // Link the gene to every term in the new ontology
+            // --> also modifier terms
+            for term in &(gene.hpo_terms() & &ids) {
                 ont.link_gene_term(term, gene_id)?;
                 ont.gene_mut(&gene_id)
                     .ok_or(HpoError::DoesNotExist)?
@@ -1017,26 +1043,50 @@ impl Ontology {
             }
         }
 
-        // Iterate all genes, check the associated terms and see if one
-        // is part of the `ids` set
+        // Iterate all Omim diseases
         for omim_disease in self.omim_diseases() {
-            let matched_terms = omim_disease.hpo_terms() & &ids;
-            if matched_terms.is_empty() {
+            // check if the omim_disease is linked to any phenotype terms
+            // --> don't include modifier terms here
+            if (omim_disease.hpo_terms() & &phenotype_ids).is_empty() {
                 continue;
             }
             let omim_disease_id = ont.add_omim_disease(
-                self.omim_disease(omim_disease.id())
-                    .ok_or(HpoError::DoesNotExist)?
-                    .name(),
+                self.omim_disease(omim_disease.id()).ok_or(HpoError::DoesNotExist)?.name(),
                 &omim_disease.id().as_u32().to_string(),
             )?;
-            for term in &matched_terms {
+
+            // Link the omim_disease to every term in the new ontology
+            // --> also modifier terms
+            for term in &(omim_disease.hpo_terms() & &ids) {
                 ont.link_omim_disease_term(term, omim_disease_id)?;
                 ont.omim_disease_mut(&omim_disease_id)
                     .ok_or(HpoError::DoesNotExist)?
                     .add_term(term);
             }
         }
+
+        // Iterate all Orpha diseases
+        for orpha_disease in self.orpha_diseases() {
+            // check if the orpha_disease is linked to any phenotype terms
+            // --> don't include modifier terms here
+            if (orpha_disease.hpo_terms() & &phenotype_ids).is_empty() {
+                continue;
+            }
+            let orpha_disease_id = ont.add_orpha_disease(
+                self.orpha_disease(orpha_disease.id()).ok_or(HpoError::DoesNotExist)?.name(),
+                &orpha_disease.id().as_u32().to_string(),
+            )?;
+
+            // Link the orpha_disease to every term in the new ontology
+            // --> also modifier terms
+            for term in &(orpha_disease.hpo_terms() & &ids) {
+                ont.link_orpha_disease_term(term, orpha_disease_id)?;
+                ont.orpha_disease_mut(&orpha_disease_id)
+                    .ok_or(HpoError::DoesNotExist)?
+                    .add_term(term);
+            }
+        }
+
         ont.calculate_information_content()?;
 
         Ok(ont)
@@ -1720,7 +1770,7 @@ impl Ontology {
         bytes.extend_from_slice(&[0x48, 0x50, 0x4f]);
 
         // Version
-        bytes.push(0x2);
+        bytes.push(0x3);
 
         bytes.extend_from_slice(&self.hpo_version.0.to_be_bytes()[..]);
         bytes.push(self.hpo_version.1);

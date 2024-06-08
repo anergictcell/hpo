@@ -9,6 +9,7 @@ pub(crate) fn version(bytes: &[u8]) -> HpoResult<Bytes> {
 
     if bytes[0..3] == [0x48, 0x50, 0x4f] {
         match bytes[3] {
+            3u8 => Ok(Bytes::new(&bytes[4..], super::BinaryVersion::V3)),
             2u8 => Ok(Bytes::new(&bytes[4..], super::BinaryVersion::V2)),
             _ => Err(HpoError::NotImplemented),
         }

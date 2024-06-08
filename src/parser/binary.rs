@@ -14,6 +14,7 @@ use crate::{term::internal::HpoTermInternal, HpoError};
 pub(crate) enum BinaryVersion {
     V1,
     V2,
+    V3,
 }
 
 impl TryFrom<u8> for BinaryVersion {
@@ -22,6 +23,7 @@ impl TryFrom<u8> for BinaryVersion {
         match value {
             1u8 => Ok(BinaryVersion::V1),
             2u8 => Ok(BinaryVersion::V2),
+            3u8 => Ok(BinaryVersion::V3),
             _ => Err(HpoError::NotImplemented),
         }
     }
@@ -35,6 +37,7 @@ impl Display for BinaryVersion {
             match self {
                 BinaryVersion::V1 => "1",
                 BinaryVersion::V2 => "2",
+                BinaryVersion::V3 => "3",
             }
         )
     }
@@ -45,6 +48,7 @@ impl From<&BinaryVersion> for u8 {
         match *value {
             BinaryVersion::V1 => 1,
             BinaryVersion::V2 => 2,
+            BinaryVersion::V3 => 3,
         }
     }
 }

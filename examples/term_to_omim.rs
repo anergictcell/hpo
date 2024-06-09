@@ -6,14 +6,23 @@ use hpo::Ontology;
 fn main() {
     let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
-    let mut omim_diseases: Vec<String> = Vec::new();
+    let mut diseases: Vec<String> = Vec::new();
     for term in ontology.hpos() {
-        omim_diseases.clear();
+        diseases.clear();
         for disease in term.omim_diseases() {
-            omim_diseases.push(disease.id().to_string());
+            diseases.push(disease.id().to_string());
         }
-        omim_diseases.sort();
-        println!("{}\t{}", term.id(), omim_diseases.join(","));
+        diseases.sort();
+        println!("{}\t{}", term.id(), diseases.join(","));
+    }
+
+    for term in ontology.hpos() {
+        diseases.clear();
+        for disease in term.orpha_diseases() {
+            diseases.push(disease.id().to_string());
+        }
+        diseases.sort();
+        println!("{}\t{}", term.id(), diseases.join(","));
     }
 }
 

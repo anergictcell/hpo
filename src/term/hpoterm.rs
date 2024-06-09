@@ -746,14 +746,14 @@ impl<'a> HpoTerm<'a> {
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use hpo::{HpoTerm, Ontology};
     /// use hpo::annotations::Disease;
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let term = ontology.hpo(1939u32).unwrap();
-    /// assert_eq!(term.orpha_disease_ids().len(), 143);
+    /// assert_eq!(term.orpha_disease_ids().len(), 32);
     /// ```
     pub fn orpha_disease_ids(&self) -> &OrphaDiseases {
         self.orpha_diseases

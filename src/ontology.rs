@@ -893,12 +893,12 @@ impl Ontology {
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use hpo::Ontology;
     /// use hpo::annotations::Disease;
-    /// let ontology = Ontology::from_standard("example_data/2024-03-06/").unwrap();
-    /// let disease = ontology.orpha_disease(&508533u32.into()).unwrap();
-    /// assert_eq!(disease.name(), "Skeletal dysplasia-T-cell immunodeficiency-developmental delay syndrome");
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// let disease = ontology.orpha_disease(&110u32.into()).unwrap();
+    /// assert_eq!(disease.name(), "Bardet-Biedl syndrome");
     /// ```
     pub fn orpha_disease(&self, orpha_disease_id: &OrphaDiseaseId) -> Option<&OrphaDisease> {
         self.orpha_diseases.get(orpha_disease_id)
@@ -1680,16 +1680,16 @@ impl Ontology {
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use hpo::Ontology;
     /// use hpo::annotations::Disease;
     ///
     /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let mut disease = ontology.orpha_disease_mut(&508533u32.into()).unwrap();
-    /// assert_eq!(disease.hpo_terms().len(), 96);
+    /// let mut disease = ontology.orpha_disease_mut(&110u32.into()).unwrap();
+    /// assert_eq!(disease.hpo_terms().len(), 1);
     /// disease.add_term(1u32);
-    /// assert_eq!(disease.hpo_terms().len(), 97);
+    /// assert_eq!(disease.hpo_terms().len(), 2);
     /// ```
     pub fn orpha_disease_mut(&mut self, disease_id: &OrphaDiseaseId) -> Option<&mut OrphaDisease> {
         self.orpha_diseases.get_mut(disease_id)

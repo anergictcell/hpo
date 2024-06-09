@@ -49,7 +49,7 @@
 //!
 //! let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 //!
-//! let gene = ontology.gene_by_name("EZH2").unwrap();
+//! let gene = ontology.gene_by_name("KRAS").unwrap();
 //! let gene_hpo_set = gene.to_hpo_set(&ontology);
 //!
 //! let mut enrichments = gene_enrichment(&ontology, &gene_hpo_set);

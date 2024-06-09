@@ -39,7 +39,6 @@ use termarena::Arena;
 ///
 /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 ///
-/// // get single terms from the ontology
 ///
 /// let absent_term = HpoTermId::try_from("HP:9999999").unwrap();
 /// assert!(ontology.hpo(absent_term).is_none());
@@ -53,10 +52,13 @@ use termarena::Arena;
 /// assert_eq!(term.name(), "Phenotypic abnormality");
 ///
 /// // get all genes of the ontology
-/// assert_eq!(ontology.genes().count(), 4852);
+/// assert_eq!(ontology.genes().count(), 615);
 ///
-/// // get all diseases of the ontology
-/// assert_eq!(ontology.omim_diseases().count(), 4431);
+/// // get all OMIM diseases of the ontology
+/// assert_eq!(ontology.omim_diseases().count(), 147);
+///
+/// // get all ORPHA diseases of the ontology
+/// assert_eq!(ontology.orpha_diseases().count(), 319);
 ///
 /// // Iterate all HPO terms
 /// for term in &ontology {
@@ -758,8 +760,8 @@ impl Ontology {
     /// ```
     /// use hpo::Ontology;
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// let gene = ontology.gene(&57505u32.into()).unwrap();
-    /// assert_eq!(gene.name(), "AARS2");
+    /// let gene = ontology.gene(&57492u32.into()).unwrap();
+    /// assert_eq!(gene.name(), "ARID1B");
     /// ```
     pub fn gene(&self, gene_id: &GeneId) -> Option<&Gene> {
         self.genes.get(gene_id)
@@ -780,8 +782,8 @@ impl Ontology {
     /// use hpo::Ontology;
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let gene = ontology.gene_by_name("AARS2").unwrap();
-    /// assert_eq!(gene.name(), "AARS2");
+    /// let gene = ontology.gene_by_name("ARID1B").unwrap();
+    /// assert_eq!(gene.name(), "ARID1B");
     ///
     /// assert!(ontology.gene_by_name("FOOBAR66").is_none());
     /// ```
@@ -817,8 +819,8 @@ impl Ontology {
     /// use hpo::annotations::Disease;
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// let disease = ontology.omim_disease(&601495u32.into()).unwrap();
-    /// assert_eq!(disease.name(), "Agammaglobulinemia 1, autosomal recessive");
+    /// let disease = ontology.omim_disease(&269880u32.into()).unwrap();
+    /// assert_eq!(disease.name(), "Short syndrome");
     /// ```
     pub fn omim_disease(&self, omim_disease_id: &OmimDiseaseId) -> Option<&OmimDisease> {
         self.omim_diseases.get(omim_disease_id)
@@ -1639,10 +1641,10 @@ impl Ontology {
     ///
     /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let mut gene = ontology.gene_mut(&57505u32.into()).unwrap();
-    /// assert_eq!(gene.hpo_terms().len(), 10);
+    /// let mut gene = ontology.gene_mut(&2175u32.into()).unwrap();
+    /// assert_eq!(gene.hpo_terms().len(), 3);
     /// gene.add_term(1u32);
-    /// assert_eq!(gene.hpo_terms().len(), 11);
+    /// assert_eq!(gene.hpo_terms().len(), 4);
     /// ```
     pub fn gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
         self.genes.get_mut(gene_id)
@@ -1660,7 +1662,7 @@ impl Ontology {
     ///
     /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let mut disease = ontology.omim_disease_mut(&601495u32.into()).unwrap();
+    /// let mut disease = ontology.omim_disease_mut(&269880u32.into()).unwrap();
     /// assert_eq!(disease.hpo_terms().len(), 1);
     /// disease.add_term(1u32);
     /// assert_eq!(disease.hpo_terms().len(), 2);
@@ -2130,7 +2132,7 @@ mod test {
 
     #[test]
     fn check_v2_parsing() {
-        let ont = Ontology::from_binary("tests/example.hpo").unwrap();
+        let ont = Ontology::from_binary("tests/example_v2.hpo").unwrap();
 
         assert_eq!(ont.hpo_version, (2023, 1, 31));
         assert_eq!(ont.hpo_version(), "2023-01-31");
@@ -2139,7 +2141,7 @@ mod test {
     #[test]
     fn compare_v1_v2() {
         let ont1 = Ontology::from_binary("tests/example_v1.hpo").unwrap();
-        let ont2 = Ontology::from_binary("tests/example.hpo").unwrap();
+        let ont2 = Ontology::from_binary("tests/example_v2.hpo").unwrap();
 
         let diff = ont1.compare(&ont2);
         assert_eq!(diff.added_hpo_terms().len(), 0);
@@ -2158,9 +2160,9 @@ mod test {
     #[test]
     fn diseases_by_name() {
         let ont = Ontology::from_binary("tests/example.hpo").unwrap();
-        assert_eq!(ont.omim_diseases_by_name("Cystinosis").count(), 3);
+        assert_eq!(ont.omim_diseases_by_name("dysplasia").count(), 10);
         assert_eq!(
-            ont.omim_diseases_by_name("Macdermot-Winter syndrome")
+            ont.omim_diseases_by_name("Fetal iodine deficiency disorder")
                 .count(),
             1
         );
@@ -2169,18 +2171,21 @@ mod test {
             0
         );
 
-        let cystinosis = [
-            "Cystinosis, adult nonnephropathic",
-            "Cystinosis, late-onset juvenile or adolescent nephropathic",
-            "Cystinosis, nephropathic",
+        let susceptibility = [
+            "Encephalopathy, acute, infection-induced, susceptibility to, 3",
+            "Epidermodysplasia verruciformis, susceptibility to, 1",
+            "Leprosy, susceptibility to",
+            "Spondyloarthropathy, susceptibility to, 2",
+            "Systemic lupus erythematosus, susceptibility to, 6",
+            "Tinea imbricata, susceptibility to",
         ];
-        assert!(cystinosis.contains(&ont.omim_disease_by_name("Cystinosis").unwrap().name()));
+        assert!(susceptibility.contains(&ont.omim_disease_by_name("susceptibility").unwrap().name()));
 
         assert_eq!(
-            ont.omim_disease_by_name("Macdermot-Winter syndrome")
+            ont.omim_disease_by_name("Fetal iodine deficiency disorder")
                 .unwrap()
                 .name(),
-            "Macdermot-Winter syndrome"
+            "Fetal iodine deficiency disorder"
         );
 
         assert!(ont.omim_disease_by_name("anergictcell syndrome").is_none());

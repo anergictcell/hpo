@@ -302,7 +302,7 @@ impl SimilarityCombiner for StandardCombiner {
 ///     StandardCombiner::default()
 /// );
 ///
-/// assert_eq!(similarity, 0.8177036);
+/// assert_eq!(similarity, 0.695935);
 /// ```
 ///
 /// ## Using `GroupSimilarity` directly
@@ -344,7 +344,7 @@ impl SimilarityCombiner for StandardCombiner {
 ///     Builtins::GraphIc(InformationContentKind::Omim)
 /// );
 ///
-/// assert_eq!(sim.calculate(&set_1, &set_2), 0.8177036);
+/// assert_eq!(sim.calculate(&set_1, &set_2), 0.695935);
 /// ```
 pub struct GroupSimilarity<T, C> {
     combiner: C,

@@ -75,18 +75,18 @@ impl<'a> DistanceMatrix {
 ///
 /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 /// let sets = vec![
-///     ontology.gene_by_name("GBA1").unwrap().to_hpo_set(&ontology),
-///     ontology.gene_by_name("BRCA2").unwrap().to_hpo_set(&ontology),
-///     ontology.gene_by_name("EZH2").unwrap().to_hpo_set(&ontology),
-///     ontology.gene_by_name("DMD").unwrap().to_hpo_set(&ontology),
+///     ontology.gene_by_name("KRAS").unwrap().to_hpo_set(&ontology),
+///     ontology.gene_by_name("WDR45").unwrap().to_hpo_set(&ontology),
+///     ontology.gene_by_name("TP53").unwrap().to_hpo_set(&ontology),
+///     ontology.gene_by_name("CLCN7").unwrap().to_hpo_set(&ontology),
 /// ];
 ///
 ///
 /// let mut cluster = Linkage::union(sets, distance).into_cluster();
 /// let first = cluster.next().unwrap();
-/// println!("{:?}", first);
+/// // println!("{:?}", first);
 /// // Cluster { idx1: 0, idx2: 3, distance: 0.008127391, size: 2 }
-/// assert_eq!(cluster.next().unwrap().len(), 3);
+/// assert_eq!(cluster.next().unwrap().len(), 2);
 /// assert_eq!(cluster.next().unwrap().len(), 4);
 /// assert!(cluster.next().is_none());
 /// ```
@@ -129,18 +129,18 @@ impl<'a> Linkage<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     /// let sets = vec![
-    ///     ontology.gene_by_name("GBA1").unwrap().to_hpo_set(&ontology),
-    ///     ontology.gene_by_name("BRCA2").unwrap().to_hpo_set(&ontology),
-    ///     ontology.gene_by_name("EZH2").unwrap().to_hpo_set(&ontology),
-    ///     ontology.gene_by_name("DMD").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("KRAS").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("WDR45").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("TP53").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("CLCN7").unwrap().to_hpo_set(&ontology),
     /// ];
     ///
     ///
     /// let mut cluster = Linkage::union(sets, distance).into_cluster();
     /// let first = cluster.next().unwrap();
     /// println!("{:?}", first);
-    /// // Cluster { idx1: 0, idx2: 3, distance: 0.008127391, size: 2 }
-    /// assert_eq!(cluster.next().unwrap().len(), 3);
+    /// // Cluster { idx1: 0, idx2: 3, distance: 0.16666663, size: 2 }
+    /// assert_eq!(cluster.next().unwrap().len(), 2);
     /// assert_eq!(cluster.next().unwrap().len(), 4);
     /// assert!(cluster.next().is_none());
     /// ```
@@ -182,18 +182,18 @@ impl<'a> Linkage<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     /// let sets = vec![
-    ///     ontology.gene_by_name("GBA1").unwrap().to_hpo_set(&ontology),
-    ///     ontology.gene_by_name("BRCA2").unwrap().to_hpo_set(&ontology),
-    ///     ontology.gene_by_name("EZH2").unwrap().to_hpo_set(&ontology),
-    ///     ontology.gene_by_name("DMD").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("KRAS").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("WDR45").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("TP53").unwrap().to_hpo_set(&ontology),
+    ///     ontology.gene_by_name("CLCN7").unwrap().to_hpo_set(&ontology),
     /// ];
     ///
     ///
     /// let mut cluster = Linkage::single(sets, distance).into_cluster();
     /// let first = cluster.next().unwrap();
     /// println!("{:?}", first);
-    /// // Cluster { idx1: 0, idx2: 3, distance: 0.008127391, size: 2 }
-    /// assert_eq!(cluster.next().unwrap().len(), 3);
+    /// // Cluster { idx1: 0, idx2: 3, distance: 0.16666663, size: 2 }
+    /// assert_eq!(cluster.next().unwrap().len(), 2);
     /// assert_eq!(cluster.next().unwrap().len(), 4);
     /// assert!(cluster.next().is_none());
     /// ```
@@ -297,16 +297,16 @@ impl<'a> Linkage<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let genes = vec!["GBA1", "BRCA2", "EZH2", "DMD"];
+    /// let genes = vec!["KRAS", "WDR45", "TP53", "CLCN7"];
     /// let sets = genes.iter().map(|gene| ontology.gene_by_name(gene).unwrap().to_hpo_set(&ontology));
     ///
     /// let linkage = Linkage::union(sets, distance);
     /// let indicies = linkage.indicies();
-    /// assert_eq!(indicies, vec![0usize, 3usize, 2usize, 1usize]);
+    /// assert_eq!(indicies, vec![0usize, 2usize, 1usize, 3usize]);
     /// for idx in indicies {
     ///    print!("{} ", genes[idx]);
     /// }
-    /// // "GBA1 DMD EZH2 BRCA2"
+    /// // "KRAS TP53 WDR45 CLCN7"
     /// ```
     pub fn indicies(&self) -> Vec<usize> {
         let mut res = Vec::with_capacity(self.initial_len);

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Feature
+
+- Add Orphante diseases (`OrphaDisease`) to Ontology
+- Filter gene and disease annotations in subontology based on association with phenotypes
+- Add binary version 3
+- Add new example ontology
+
+### Refactor
+
+- Update example ontology
+- Update unit- and doctests to align with updated example ontology
+
 ## [0.9.0] - 2024-03-27
 
 ### Bugfix

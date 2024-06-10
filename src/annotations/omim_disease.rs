@@ -73,7 +73,7 @@ impl Disease for OmimDisease {
     /// Initializes a new OMIM disease
     ///
     /// This method should rarely, if ever, be used directly. The
-    /// preferred way to create new genes is through [`Ontology::add_omim_disease`]
+    /// preferred way to create new genes is through [`crate::Ontology::add_omim_disease`]
     /// to ensure that each disease exists only once.
     fn new(id: Self::AnnoID, name: &str) -> OmimDisease {
         Self {
@@ -163,7 +163,7 @@ impl<'a> std::iter::Iterator for DiseaseIterator<'a, OmimDiseaseId> {
 
 /// Iterates [`OmimDisease`] that match the query string
 ///
-/// This struct is returned by [`Ontology::omim_diseases_by_name`]
+/// This struct is returned by [`crate::Ontology::omim_diseases_by_name`]
 pub struct OmimDiseaseFilter<'a> {
     iter: Values<'a, OmimDiseaseId, OmimDisease>,
     query: &'a str,

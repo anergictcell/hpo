@@ -308,6 +308,7 @@ impl<'a> Linkage<'a> {
     /// }
     /// // "KRAS TP53 WDR45 CLCN7"
     /// ```
+    /// TODO: This test may sometimes fail, use other example genes that cluster more distinct
     pub fn indicies(&self) -> Vec<usize> {
         let mut res = Vec::with_capacity(self.initial_len);
         for cluster in &self.clusters {

@@ -68,7 +68,7 @@ Finally, load the data using [`Ontology::from_binary`]:
 ### Ontology
 ```rust
 use hpo::{Ontology, HpoTermId};
-use hpo::annotations::{GeneId, OmimDiseaseId};
+use hpo::annotations::{GeneId, OmimDiseaseId, OrphaDiseaseId};
 
 fn example() {
     let ontology = Ontology::from_standard("/path/to/master-data/").unwrap();

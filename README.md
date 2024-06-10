@@ -33,9 +33,10 @@ The main structs used in `hpo` are:
 - [`HpoSet`](https://docs.rs/hpo/latest/hpo/struct.HpoSet.html) is a collection of `HpoTerm`s, like a patient's clinical information.
 - [`Gene`](https://docs.rs/hpo/latest/hpo/annotations/struct.Gene.html) represents a single gene, including information about associated `HpoTerm`s.
 - [`OmimDisease`](https://docs.rs/hpo/latest/hpo/annotations/struct.OmimDisease.html) represents a single OMIM-diseases, including information about associated `HpoTerm`s.
+- [`OrphaDisease`](https://docs.rs/hpo/latest/hpo/annotations/struct.OrphaDisease.html) represents a single ORPHA-diseases, including information about associated `HpoTerm`s.
 
 The most relevant modules are:
-- [`annotations`](https://docs.rs/hpo/latest/hpo/annotations/index.html) contains the `Gene` and `OmimDisease` structs, and some related important types.
+- [`annotations`](https://docs.rs/hpo/latest/hpo/annotations/index.html) contains the `Gene`, `OmimDisease` and `OrphaDisease` structs, and some related important types.
 - [`similarity`](https://docs.rs/hpo/latest/hpo/similarity/index.html) contains structs and helper functions for similarity comparisons for `HpoTerm` and `HpoSet`.
 - [`stats`](https://docs.rs/hpo/latest/hpo/stats/index.html) contains functions to calculate the hypergeometric enrichment score of genes or diseases.
 
@@ -87,6 +88,11 @@ fn example() {
         // do something with disease
     }
 
+    // iterate orpha diseases
+    for disease in ontology.orpha_diseases() {
+        // do something with disease
+    }
+
     // get a single HPO term using HPO ID
     let hpo_id = HpoTermId::try_from("HP:0000123").unwrap();
     let term = ontology.hpo(hpo_id);
@@ -97,6 +103,10 @@ fn example() {
     // get a single Omim disease
     let disease_id = OmimDiseaseId::from(12345u32);
     let disease = ontology.omim_disease(&disease_id);
+
+    // get a single Orpha disease
+    let disease_id = OrphaDiseaseId::from(12345u32);
+    let disease = ontology.orpha_disease(&disease_id);
 
     // get a single Gene
     let hgnc_id = GeneId::from(12345u32);

@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Refactor
 
+- [**breaking**] Add `Disease` trait that is needed to work with `OmimDisease` and `OrphaDisease`
 - Update example ontology
 - Update unit- and doctests to align with updated example ontology
 

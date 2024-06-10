@@ -1,4 +1,4 @@
-//! Prints every term and its associated Omim Disease
+//! Prints every term and its associated Omim and Orpha Disease
 
 use hpo::annotations::Disease;
 use hpo::Ontology;
@@ -39,5 +39,21 @@ with open("term2omim.py.txt", "w") as fh:
             omim_diseases.append(f"OMIM:{disease.id}")
         omim_diseases = ",".join(sorted(omim_diseases))
         _ = fh.write(f"{term.id}\t{omim_diseases}\n")
+
+    for term in Ontology:
+        orpha_diseases = []
+        for disease in term.orpha_diseases:
+            orpha_diseases.append(f"ORPHA:{disease.id}")
+        orpha_diseases = ",".join(sorted(orpha_diseases))
+        _ = fh.write(f"{term.id}\t{orpha_diseases}\n")
+
+*/
+
+/*
+diff-ing
+
+diff \
+<(sort example_data/term2omim.rs.txt) \
+<(sort example_data/term2omim.py.txt)
 
 */

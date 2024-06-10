@@ -97,9 +97,9 @@ impl<T: AnnotationId> Enrichment<T> {
 }
 
 struct SampleSet<T> {
-    /// The total number of HpoTerms in the full set
+    /// The total number of `HpoTerms` in the full set
     size: u64,
-    /// A map containing the counts of each Gene/Disease in the SampleSet
+    /// A map containing the counts of each Gene/Disease in the `SampleSet`
     counts: HashMap<u32, u64>,
     phantom: PhantomData<T>,
 }

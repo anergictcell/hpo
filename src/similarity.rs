@@ -446,9 +446,9 @@ impl Default for GroupSimilarity<GraphIc, StandardCombiner> {
 pub enum Builtins {
     /// [Distance](`Distance`) - based similarity
     Distance(InformationContentKind),
-    /// [GraphIc](`GraphIc`) - based similarity
+    /// [`GraphIc`](`GraphIc`) - based similarity
     GraphIc(InformationContentKind),
-    /// [InformationCoefficient](`InformationCoefficient`) - based similarity
+    /// [`InformationCoefficient`](`InformationCoefficient`) - based similarity
     InformationCoefficient(InformationContentKind),
     /// [Jiang & Conrath](`Jc`) - based similarity
     Jc(InformationContentKind),

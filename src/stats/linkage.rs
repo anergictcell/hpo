@@ -297,18 +297,26 @@ impl<'a> Linkage<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let genes = vec!["KRAS", "WDR45", "TP53", "CLCN7"];
+    /// let genes = vec!["KRAS", "WDR45", "ZNRF3", "CLCN7"];
     /// let sets = genes.iter().map(|gene| ontology.gene_by_name(gene).unwrap().to_hpo_set(&ontology));
     ///
-    /// let linkage = Linkage::union(sets, distance);
+    /// let linkage = Linkage::single(sets, distance);
     /// let indicies = linkage.indicies();
-    /// assert_eq!(indicies, vec![0usize, 2usize, 1usize, 3usize]);
+    ///
+    /// // Similarities:
+    /// // CLCN7 WDR45  0.8333334
+    /// // CLCN7 ZNRF3  0.66666
+    /// // KRAS WDR45   0.5
+    /// // KRAS CLCN7   0.4166667
+    /// // KRAS ZNRF3   0
+    /// // WDR45 ZNRF3  0
+    ///
+    /// assert_eq!(indicies, vec![1usize, 3usize, 2usize, 0usize]);
     /// for idx in indicies {
     ///    print!("{} ", genes[idx]);
     /// }
-    /// // "KRAS TP53 WDR45 CLCN7"
+    /// // "KRAS ZNRF3 WDR45 CLCN7"
     /// ```
-    /// TODO: This test may sometimes fail, use other example genes that cluster more distinct
     pub fn indicies(&self) -> Vec<usize> {
         let mut res = Vec::with_capacity(self.initial_len);
         for cluster in &self.clusters {

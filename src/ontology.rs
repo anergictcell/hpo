@@ -680,7 +680,6 @@ impl Ontology {
         res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
         res.append(&mut buffer);
 
-
         // ORPHA Disease and Disease-Term connections
         buffer.clear();
         for orpha_disease in self.orpha_diseases.values() {
@@ -1017,11 +1016,11 @@ impl Ontology {
         // associated with an actual phenotype of the ontology and not just
         // with a modifier terms. e.g. the modifier "Recessive inheritance"
         // is linked to roughly half of all diseases
-        let phenotype_ids: HpoGroup = terms.iter()
-            .filter(|term| {
-                (term.all_parents() & self.modifier()).is_empty()
-            })
-            .map(|term| *term.id()).collect();
+        let phenotype_ids: HpoGroup = terms
+            .iter()
+            .filter(|term| (term.all_parents() & self.modifier()).is_empty())
+            .map(|term| *term.id())
+            .collect();
 
         // Iterate all genes
         for gene in self.genes() {
@@ -1053,7 +1052,9 @@ impl Ontology {
                 continue;
             }
             let omim_disease_id = ont.add_omim_disease(
-                self.omim_disease(omim_disease.id()).ok_or(HpoError::DoesNotExist)?.name(),
+                self.omim_disease(omim_disease.id())
+                    .ok_or(HpoError::DoesNotExist)?
+                    .name(),
                 &omim_disease.id().as_u32().to_string(),
             )?;
 
@@ -1075,7 +1076,9 @@ impl Ontology {
                 continue;
             }
             let orpha_disease_id = ont.add_orpha_disease(
-                self.orpha_disease(orpha_disease.id()).ok_or(HpoError::DoesNotExist)?.name(),
+                self.orpha_disease(orpha_disease.id())
+                    .ok_or(HpoError::DoesNotExist)?
+                    .name(),
                 &orpha_disease.id().as_u32().to_string(),
             )?;
 
@@ -2179,7 +2182,9 @@ mod test {
             "Systemic lupus erythematosus, susceptibility to, 6",
             "Tinea imbricata, susceptibility to",
         ];
-        assert!(susceptibility.contains(&ont.omim_disease_by_name("susceptibility").unwrap().name()));
+        assert!(
+            susceptibility.contains(&ont.omim_disease_by_name("susceptibility").unwrap().name())
+        );
 
         assert_eq!(
             ont.omim_disease_by_name("Fetal iodine deficiency disorder")

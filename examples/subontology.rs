@@ -1,7 +1,7 @@
-use std::io::Write;
-use std::{fs::File, path::Path};
-use std::process;
 use hpo::{HpoTermId, Ontology};
+use std::io::Write;
+use std::process;
+use std::{fs::File, path::Path};
 
 fn ontology(path_arg: &str) -> Ontology {
     let path = Path::new(path_arg);
@@ -23,16 +23,20 @@ fn main() {
     }
     let path = args.nth(1).unwrap();
     let terms = args.next().unwrap();
-    let terms = terms.split(',').map(|id| {
-        HpoTermId::try_from(id).expect("Term-ID must be properly formatted")
-    });
+    let terms = terms
+        .split(',')
+        .map(|id| HpoTermId::try_from(id).expect("Term-ID must be properly formatted"));
 
     let ontology = ontology(&path);
 
-    let sub = ontology.sub_ontology(
-        ontology.hpo(1u32).expect("Root term must exist in ontology"),
-        terms.map(|id| ontology.hpo(id).expect("Term must exist in ontology"))
-    ).expect("sub ontology must work");
+    let sub = ontology
+        .sub_ontology(
+            ontology
+                .hpo(1u32)
+                .expect("Root term must exist in ontology"),
+            terms.map(|id| ontology.hpo(id).expect("Term must exist in ontology")),
+        )
+        .expect("sub ontology must work");
 
     let mut fh = File::create("out.hpo").expect("Cannot create file");
     match fh.write_all(&sub.as_bytes()) {

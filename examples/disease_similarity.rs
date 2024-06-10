@@ -120,10 +120,7 @@ fn cross_compare_diseases(
     }
 }
 
-fn compare_omim_to_orpha(
-    ontology: &Ontology,
-    sim: &GroupSimilarity<GraphIc, StandardCombiner>,
-) {
+fn compare_omim_to_orpha(ontology: &Ontology, sim: &GroupSimilarity<GraphIc, StandardCombiner>) {
     let omim: Vec<&OmimDisease> = ontology.omim_diseases().collect();
 
     let omim_names: Vec<&str> = omim.iter().map(|d| d.name()).collect();
@@ -132,14 +129,18 @@ fn compare_omim_to_orpha(
 
     println!("Orpha\\Omim\t{}", omim_names.join("\t"));
 
-    ontology.orpha_diseases().take(100).par_bridge().for_each(|orpha| {
-        let orpha_set = orpha.to_hpo_set(ontology);
-        let mut row = orpha.name().to_string();
-        for omim_set in omim_sets.iter() {
-            row.push_str(&format!("\t{}", sim.calculate(&orpha_set, omim_set)));
-        }
-        println!("{row}");
-    })
+    ontology
+        .orpha_diseases()
+        .take(100)
+        .par_bridge()
+        .for_each(|orpha| {
+            let orpha_set = orpha.to_hpo_set(ontology);
+            let mut row = orpha.name().to_string();
+            for omim_set in omim_sets.iter() {
+                row.push_str(&format!("\t{}", sim.calculate(&orpha_set, omim_set)));
+            }
+            println!("{row}");
+        })
 }
 
 fn main() {
@@ -158,10 +159,12 @@ fn main() {
                 // integer provided, using disease x disease comparisons
                 cross_compare_diseases(&ontology, &sim, num);
             } else if arg == "orpha" {
-                let sim = GroupSimilarity::new(StandardCombiner::FunSimAvg, GraphIc::new(hpo::term::InformationContentKind::Gene));
+                let sim = GroupSimilarity::new(
+                    StandardCombiner::FunSimAvg,
+                    GraphIc::new(hpo::term::InformationContentKind::Gene),
+                );
                 compare_omim_to_orpha(&ontology, &sim);
-            }
-            else {
+            } else {
                 // List of HPO terms provided
                 compare_custom_set_to_diseases(&ontology, &sim, arg);
             }

@@ -1,4 +1,5 @@
-use crate::annotations::AnnotationId;
+use crate::annotations::OrphaDiseases;
+use crate::annotations::{AnnotationId, OrphaDiseaseId};
 use crate::parser::binary::term::{from_bytes_v1, from_bytes_v2};
 use crate::parser::binary::{BinaryVersion, Bytes};
 use std::hash::Hash;
@@ -9,7 +10,7 @@ use crate::term::{HpoGroup, HpoTermId, InformationContent};
 use crate::DEFAULT_NUM_PARENTS;
 use crate::{HpoError, DEFAULT_NUM_GENES};
 use crate::{HpoResult, DEFAULT_NUM_ALL_PARENTS};
-use crate::{HpoTerm, DEFAULT_NUM_OMIM};
+use crate::{HpoTerm, DEFAULT_NUM_OMIM, DEFAULT_NUM_ORPHA};
 
 #[derive(Clone, Debug)]
 pub(crate) struct HpoTermInternal {
@@ -20,6 +21,7 @@ pub(crate) struct HpoTermInternal {
     children: HpoGroup,
     genes: Genes,
     omim_diseases: OmimDiseases,
+    orpha_diseases: OrphaDiseases,
     ic: InformationContent,
     obsolete: bool,
     replacement: Option<HpoTermId>,
@@ -47,6 +49,7 @@ impl HpoTermInternal {
             children: HpoGroup::with_capacity(DEFAULT_NUM_PARENTS),
             genes: Genes::with_capacity(DEFAULT_NUM_GENES),
             omim_diseases: OmimDiseases::with_capacity(DEFAULT_NUM_OMIM),
+            orpha_diseases: OrphaDiseases::with_capacity(DEFAULT_NUM_ORPHA),
             ic: InformationContent::default(),
             obsolete: false,
             replacement: None,
@@ -90,6 +93,10 @@ impl HpoTermInternal {
         &self.omim_diseases
     }
 
+    pub fn orpha_diseases(&self) -> &OrphaDiseases {
+        &self.orpha_diseases
+    }
+
     pub fn parents_cached(&self) -> bool {
         if self.parents.is_empty() {
             true
@@ -112,6 +119,10 @@ impl HpoTermInternal {
 
     pub fn add_omim_disease(&mut self, omim_disease_id: OmimDiseaseId) -> bool {
         self.omim_diseases.insert(omim_disease_id)
+    }
+
+    pub fn add_orpha_disease(&mut self, orpha_disease_id: OrphaDiseaseId) -> bool {
+        self.orpha_diseases.insert(orpha_disease_id)
     }
 
     pub fn information_content(&self) -> &InformationContent {
@@ -243,7 +254,7 @@ impl TryFrom<Bytes<'_>> for HpoTermInternal {
     fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
         match bytes.version() {
             BinaryVersion::V1 => from_bytes_v1(bytes),
-            BinaryVersion::V2 => from_bytes_v2(bytes),
+            _ => from_bytes_v2(bytes),
         }
     }
 }

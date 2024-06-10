@@ -59,7 +59,7 @@ use crate::Ontology;
 ///     StandardCombiner::default()
 /// );
 ///
-/// assert_eq!(similarity, 0.8177036);
+/// assert_eq!(similarity, 0.695935);
 /// ```
 #[must_use]
 pub struct HpoSet<'a> {
@@ -468,8 +468,8 @@ impl<'a> HpoSet<'a> {
     /// hpos.insert(12639u32);
     /// hpos.insert(818u32);
     /// let set = HpoSet::new(&ontology, hpos);
-    /// // `ABCD1 (HGNC:215)` is linked to `HP:0012639`
-    /// assert!(set.gene_ids().contains(&215u32.into()));
+    /// // `KRAS (HGNC:3845)` is linked to `HP:0012639`
+    /// assert!(set.gene_ids().contains(&3845u32.into()));
     /// ```
     pub fn gene_ids(&self) -> Genes {
         self.group
@@ -583,7 +583,7 @@ impl<'a> HpoSet<'a> {
     /// hpos.insert(818u32);
     /// hpos.insert(2715u32);
     /// let set = HpoSet::new(&ontology, hpos);
-    /// assert_eq!(set.information_content().unwrap().gene(), 0.14216587);
+    /// assert_eq!(set.information_content().unwrap().gene(), 0.22111309);
     /// ```
     pub fn information_content(&self) -> HpoResult<InformationContent> {
         let n_diseases = self.ontology.omim_diseases().len();
@@ -640,7 +640,7 @@ impl<'a> HpoSet<'a> {
     ///     StandardCombiner::default()
     /// );
     ///
-    /// assert_eq!(similarity, 0.8177036);
+    /// assert_eq!(similarity, 0.695935);
     /// ```
     pub fn similarity<S: Similarity, C: SimilarityCombiner>(
         &self,
@@ -759,8 +759,7 @@ mod test {
             Builtins::GraphIc(InformationContentKind::Omim),
             StandardCombiner::default(),
         );
-
-        assert!((similarity - 0.817_703_6).abs() < f32::EPSILON);
+        assert!((similarity - 0.695_935).abs() < f32::EPSILON);
     }
 
     #[test]

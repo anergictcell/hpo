@@ -1,7 +1,7 @@
 use std::env::Args;
 use std::path::Path;
 
-use hpo::annotations::OmimDisease;
+use hpo::annotations::{Disease, OmimDisease};
 use rayon::prelude::*;
 
 use hpo::similarity::GroupSimilarity;

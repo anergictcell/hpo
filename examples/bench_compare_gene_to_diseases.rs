@@ -2,6 +2,7 @@ use std::path::Path;
 
 use rayon::prelude::*;
 
+use hpo::annotations::Disease;
 use hpo::similarity::GroupSimilarity;
 use hpo::{HpoSet, Ontology};
 

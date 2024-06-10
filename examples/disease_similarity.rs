@@ -4,7 +4,7 @@ use std::io::Write;
 use std::{env::Args, time::SystemTime};
 
 use hpo::{
-    annotations::{OmimDisease, OmimDiseaseId},
+    annotations::{Disease, OmimDisease, OmimDiseaseId},
     similarity::{GraphIc, GroupSimilarity, StandardCombiner},
     term::HpoGroup,
     HpoSet, HpoTermId, Ontology,
@@ -120,6 +120,29 @@ fn cross_compare_diseases(
     }
 }
 
+fn compare_omim_to_orpha(ontology: &Ontology, sim: &GroupSimilarity<GraphIc, StandardCombiner>) {
+    let omim: Vec<&OmimDisease> = ontology.omim_diseases().collect();
+
+    let omim_names: Vec<&str> = omim.iter().map(|d| d.name()).collect();
+
+    let omim_sets: Vec<HpoSet> = omim.iter().map(|d| d.to_hpo_set(ontology)).collect();
+
+    println!("Orpha\\Omim\t{}", omim_names.join("\t"));
+
+    ontology
+        .orpha_diseases()
+        .take(100)
+        .par_bridge()
+        .for_each(|orpha| {
+            let orpha_set = orpha.to_hpo_set(ontology);
+            let mut row = orpha.name().to_string();
+            for omim_set in omim_sets.iter() {
+                row.push_str(&format!("\t{}", sim.calculate(&orpha_set, omim_set)));
+            }
+            println!("{row}");
+        })
+}
+
 fn main() {
     let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
     let combiner = StandardCombiner::FunSimAvg;
@@ -135,6 +158,12 @@ fn main() {
             if let Ok(num) = arg.parse::<usize>() {
                 // integer provided, using disease x disease comparisons
                 cross_compare_diseases(&ontology, &sim, num);
+            } else if arg == "orpha" {
+                let sim = GroupSimilarity::new(
+                    StandardCombiner::FunSimAvg,
+                    GraphIc::new(hpo::term::InformationContentKind::Gene),
+                );
+                compare_omim_to_orpha(&ontology, &sim);
             } else {
                 // List of HPO terms provided
                 compare_custom_set_to_diseases(&ontology, &sim, arg);
@@ -153,6 +182,9 @@ fn main() {
                 - Cross compare N diseases\n\
                     disease_similarity <NUMBER OF COMPARISONS>\n\
                     disease_similarity 20
+                - Compare all OMIM to all ORPHA diseases\n\
+                    disease_similarity orpha\n\
+                    disease_similarity orpha
             ");
         }
     }

@@ -16,7 +16,7 @@ use crate::HpoTerm;
 ///
 /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
 ///
-/// let gene = ontology.gene_by_name("EZH2").unwrap();
+/// let gene = ontology.gene_by_name("KRAS").unwrap();
 /// let gene_hpo_set = gene.to_hpo_set(&ontology);
 ///
 /// let mut enrichments = disease_enrichment(&ontology, &gene_hpo_set);
@@ -63,7 +63,7 @@ where
             let pvalue = hyper.sf(observed_successes - 1);
             let enrichment = (f64_from_u64(observed_successes) / f64_from_u64(sample_set.len()))
                 / (f64_from_u64(*successes) / f64_from_u64(background.len()));
-            res.push(Enrichment::disease(
+            res.push(Enrichment::annotation(
                 disease,
                 pvalue,
                 observed_successes,

@@ -1,17 +1,13 @@
+use std::collections::hash_map::Values;
 use std::collections::HashSet;
-use std::fmt::Debug;
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
-use tracing::error;
-
-use crate::annotations::AnnotationId;
-use crate::set::HpoSet;
+use crate::annotations::disease::DiseaseIterator;
+use crate::annotations::{AnnotationId, Disease};
 use crate::term::HpoGroup;
-use crate::u32_from_bytes;
 use crate::HpoError;
 use crate::HpoTermId;
-use crate::Ontology;
 
 /// A set of OMIM diseases
 ///
@@ -71,13 +67,15 @@ pub struct OmimDisease {
     hpos: HpoGroup,
 }
 
-impl OmimDisease {
+impl Disease for OmimDisease {
+    type AnnoID = OmimDiseaseId;
+
     /// Initializes a new OMIM disease
     ///
     /// This method should rarely, if ever, be used directly. The
-    /// preferred way to create new genes is through [`Ontology::add_omim_disease`]
+    /// preferred way to create new genes is through [`crate::Ontology::add_omim_disease`]
     /// to ensure that each disease exists only once.
-    pub fn new(id: OmimDiseaseId, name: &str) -> OmimDisease {
+    fn new(id: Self::AnnoID, name: &str) -> OmimDisease {
         Self {
             name: name.to_string(),
             id,
@@ -86,17 +84,17 @@ impl OmimDisease {
     }
 
     /// The unique [`OmimDiseaseId`] of the disease, the OMIM MIM number
-    pub fn id(&self) -> &OmimDiseaseId {
+    fn id(&self) -> &Self::AnnoID {
         &self.id
     }
 
     /// The OMIM disease name
-    pub fn name(&self) -> &str {
+    fn name(&self) -> &str {
         &self.name
     }
 
     /// The set of connected HPO terms
-    pub fn hpo_terms(&self) -> &HpoGroup {
+    fn hpo_terms(&self) -> &HpoGroup {
         &self.hpos
     }
 
@@ -179,6 +177,7 @@ impl PartialEq for OmimDisease {
         self.id == other.id
     }
 }
+
 impl Eq for OmimDisease {}
 
 impl TryFrom<&[u8]> for OmimDisease {
@@ -186,12 +185,12 @@ impl TryFrom<&[u8]> for OmimDisease {
     /// Returns an [`OmimDisease`] from a bytes vector
     ///
     /// The byte layout for this method is defined in
-    /// [`OmimDisease::as_bytes`]
+    /// [`Disease::as_bytes`]
     ///
     /// # Examples
     ///
     /// ```
-    /// use hpo::annotations::{OmimDisease, OmimDiseaseId};
+    /// use hpo::annotations::{Disease, OmimDisease, OmimDiseaseId};
     ///
     /// let bytes = vec![
     ///     0u8, 0u8, 0u8, 22u8, // Total size of Blop
@@ -206,77 +205,7 @@ impl TryFrom<&[u8]> for OmimDisease {
     /// assert_eq!(disease.id(), &OmimDiseaseId::from(123u32));
     /// ```
     fn try_from(bytes: &[u8]) -> Result<Self, Self::Error> {
-        // minimum length for a Disease without name and no HPO terms
-        // This check is important because we're accessing the bytes
-        // for size and ID directly and don't want to panic
-        if bytes.len() < 4 + 4 + 4 + 4 {
-            error!("Too few bytes for an OmimDisease");
-            return Err(HpoError::ParseBinaryError);
-        }
-
-        let total_len = u32_from_bytes(&bytes[0..]) as usize;
-
-        if bytes.len() != total_len {
-            error!(
-                "Too few bytes to build OmimDisease. Expected {}, received {}",
-                total_len,
-                bytes.len()
-            );
-            return Err(HpoError::ParseBinaryError);
-        }
-
-        let id = u32_from_bytes(&bytes[4..]);
-        let name_len = u32_from_bytes(&bytes[8..]) as usize;
-
-        // Minimum length considering the name
-        if bytes.len() < 16 + name_len {
-            error!("Too few bytes for an OmimDisease (including the name)");
-            return Err(HpoError::ParseBinaryError);
-        }
-
-        let Ok(name) = String::from_utf8(bytes[12..12 + name_len].to_vec()) else {
-            error!("Unable to parse the name of the OmimDisease");
-            return Err(HpoError::ParseBinaryError);
-        };
-
-        let mut gene = OmimDisease::new(id.into(), &name);
-
-        // An index for accessing the bytes during the iteration
-        let mut idx_terms = 12 + name_len;
-        let n_terms = u32_from_bytes(&bytes[idx_terms..]);
-
-        if bytes.len() < 16 + name_len + n_terms as usize * 4 {
-            error!(
-                "Too few bytes in {}. {} terms, but {} bytes",
-                name,
-                n_terms,
-                bytes.len()
-            );
-            return Err(HpoError::ParseBinaryError);
-        }
-
-        idx_terms += 4;
-        for _ in 0..n_terms {
-            let term_id = HpoTermId::from([
-                bytes[idx_terms],
-                bytes[idx_terms + 1],
-                bytes[idx_terms + 2],
-                bytes[idx_terms + 3],
-            ]);
-            idx_terms += 4;
-
-            gene.add_term(term_id);
-        }
-
-        if idx_terms == total_len && idx_terms == bytes.len() {
-            Ok(gene)
-        } else {
-            error!(
-                "The length of the bytes blob did not match: {} vs {}",
-                total_len, idx_terms
-            );
-            Err(HpoError::ParseBinaryError)
-        }
+        Self::from_bytes(bytes)
     }
 }
 
@@ -286,39 +215,41 @@ impl Hash for OmimDisease {
     }
 }
 
-/// [`OmimDisease`] Iterator
-pub struct OmimDiseaseIterator<'a> {
-    ontology: &'a Ontology,
-    diseases: std::collections::hash_set::Iter<'a, OmimDiseaseId>,
-}
+/// Iterates [`OmimDisease`]
+pub type OmimDiseaseIterator<'a> = DiseaseIterator<'a, OmimDiseaseId>;
 
-impl<'a> OmimDiseaseIterator<'a> {
-    /// Initialize a new [`OmimDiseaseIterator`]
-    ///
-    /// This method requires the [`Ontology`] as a parameter since
-    /// the actual [`OmimDisease`] entities are stored in it and
-    /// not in [`OmimDiseases`] itself
-    pub fn new(diseases: &'a OmimDiseases, ontology: &'a Ontology) -> Self {
-        OmimDiseaseIterator {
-            diseases: diseases.iter(),
-            ontology,
-        }
-    }
-}
-
-impl<'a> std::iter::Iterator for OmimDiseaseIterator<'a> {
+impl<'a> std::iter::Iterator for DiseaseIterator<'a, OmimDiseaseId> {
     type Item = &'a OmimDisease;
     fn next(&mut self) -> Option<Self::Item> {
-        match self.diseases.next() {
-            Some(omim_id) => Some(self.ontology.omim_disease(omim_id).unwrap()),
-            None => None,
-        }
+        self.diseases.next().map(|omim_id| {
+            self.ontology
+                .omim_disease(omim_id)
+                .expect("disease must exist in Ontology")
+        })
     }
 }
 
-impl Debug for OmimDiseaseIterator<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "OmimDiseaseIterator")
+/// Iterates [`OmimDisease`] that match the query string
+///
+/// This struct is returned by [`crate::Ontology::omim_diseases_by_name`]
+pub struct OmimDiseaseFilter<'a> {
+    iter: Values<'a, OmimDiseaseId, OmimDisease>,
+    query: &'a str,
+}
+
+impl<'a> OmimDiseaseFilter<'a> {
+    pub(crate) fn new(iter: Values<'a, OmimDiseaseId, OmimDisease>, query: &'a str) -> Self {
+        OmimDiseaseFilter { iter, query }
+    }
+}
+
+impl<'a> Iterator for OmimDiseaseFilter<'a> {
+    type Item = &'a OmimDisease;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .by_ref()
+            .find(|&item| item.name().contains(self.query))
     }
 }
 

@@ -3,6 +3,7 @@
 //! This is helpful for checking correctness of the parser modules
 //! or to see changes after a new HPO release
 
+use hpo::annotations::Disease;
 use hpo::comparison::Comparison;
 use hpo::{HpoTermId, Ontology};
 use std::{path::Path, process};
@@ -50,6 +51,14 @@ fn overview(diffs: &Comparison) {
     }
 
     for disease in diffs.removed_omim_diseases() {
+        println!("Removed\t{}\t{}", disease.id(), disease.name());
+    }
+
+    for disease in diffs.added_orpha_diseases() {
+        println!("Added\t{}\t{}", disease.id(), disease.name());
+    }
+
+    for disease in diffs.removed_orpha_diseases() {
         println!("Removed\t{}\t{}", disease.id(), disease.name());
     }
 }
@@ -141,7 +150,11 @@ fn changed_genes(diffs: &Comparison) {
 /// Prints info about Gene-specific changes
 fn changed_diseases(diffs: &Comparison) {
     println!("#Disease Delta\tID\tOld Name:New Name\tn Terms Old\tn Terms New\tAdded Terms\tRemoved Terms");
-    for disease in diffs.changed_omim_diseases() {
+    for disease in diffs
+        .changed_omim_diseases()
+        .iter()
+        .chain(diffs.changed_orpha_diseases().iter())
+    {
         print!("Delta\t{}", disease.id());
         if let Some(names) = disease.changed_name() {
             print!("\t{}:{}", names.0, names.1);

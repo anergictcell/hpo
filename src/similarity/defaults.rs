@@ -3,6 +3,9 @@
 //!
 //! All of the algorithms can also be accessed via [`crate::similarity::Builtins`]
 
+use std::collections::HashSet;
+use std::hash::Hash;
+
 use crate::similarity::{usize_to_f32, Similarity};
 use crate::term::InformationContentKind;
 use crate::HpoTerm;
@@ -342,11 +345,25 @@ impl Mutation {
     }
 
     fn omim_disease_similarity(a: &HpoTerm, b: &HpoTerm) -> f32 {
-        let omim_diseases_a = a.omim_disease_ids();
-        let omim_diseases_b = b.omim_disease_ids();
+        let diseases_a = a.omim_disease_ids();
+        let diseases_b = b.omim_disease_ids();
 
-        let all = omim_diseases_a | omim_diseases_b;
-        let common = omim_diseases_a & omim_diseases_b;
+        Self::disease_similarity(diseases_a, diseases_b)
+    }
+
+    fn orpha_disease_similarity(a: &HpoTerm, b: &HpoTerm) -> f32 {
+        let diseases_a = a.orpha_disease_ids();
+        let diseases_b = b.orpha_disease_ids();
+
+        Self::disease_similarity(diseases_a, diseases_b)
+    }
+
+    fn disease_similarity<T: Eq + Hash + Clone>(
+        disease_a: &HashSet<T>,
+        disease_b: &HashSet<T>,
+    ) -> f32 {
+        let all = disease_a | disease_b;
+        let common = disease_a & disease_b;
 
         if all.is_empty() {
             return 0.0;
@@ -364,6 +381,7 @@ impl Similarity for Mutation {
         match self.kind {
             InformationContentKind::Gene => Mutation::gene_similarity(a, b),
             InformationContentKind::Omim => Mutation::omim_disease_similarity(a, b),
+            InformationContentKind::Orpha => Mutation::orpha_disease_similarity(a, b),
         }
     }
 }

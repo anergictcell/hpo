@@ -2,6 +2,8 @@ use crate::annotations::GeneIterator;
 use crate::annotations::Genes;
 use crate::annotations::OmimDiseaseIterator;
 use crate::annotations::OmimDiseases;
+use crate::annotations::OrphaDiseaseIterator;
+use crate::annotations::OrphaDiseases;
 use crate::similarity::Similarity;
 use crate::term::internal::HpoTermInternal;
 use crate::term::HpoGroup;
@@ -30,6 +32,7 @@ pub struct HpoTerm<'a> {
     children: &'a HpoGroup,
     genes: &'a Genes,
     omim_diseases: &'a OmimDiseases,
+    orpha_diseases: &'a OrphaDiseases,
     information_content: &'a InformationContent,
     obsolete: bool,
     replaced_by: Option<HpoTermId>,
@@ -80,6 +83,7 @@ impl<'a> HpoTerm<'a> {
             children: term.children(),
             genes: term.genes(),
             omim_diseases: term.omim_diseases(),
+            orpha_diseases: term.orpha_diseases(),
             information_content: term.information_content(),
             obsolete: term.obsolete(),
             replaced_by: term.replacement(),
@@ -685,8 +689,8 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term = ontology.hpo(11017u32).unwrap();
-    /// assert_eq!(term.gene_ids().len(), 575);
+    /// let term = ontology.hpo(12638u32).unwrap();
+    /// assert_eq!(term.gene_ids().len(), 41);
     /// ```
     pub fn gene_ids(&self) -> &Genes {
         self.genes
@@ -698,6 +702,7 @@ impl<'a> HpoTerm<'a> {
     ///
     /// ```
     /// use hpo::{HpoTerm, Ontology};
+    /// use hpo::annotations::Disease;
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
@@ -720,10 +725,46 @@ impl<'a> HpoTerm<'a> {
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
     /// let term = ontology.hpo(1939u32).unwrap();
-    /// assert_eq!(term.omim_disease_ids().len(), 143);
+    /// assert_eq!(term.omim_disease_ids().len(), 93);
     /// ```
     pub fn omim_disease_ids(&self) -> &OmimDiseases {
         self.omim_diseases
+    }
+
+    /// Returns an iterator of all associated [`crate::annotations::OrphaDisease`]s
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    /// use hpo::annotations::Disease;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let term = ontology.hpo(11017u32).unwrap();
+    /// for disease in term.orpha_diseases() {
+    ///     println!("{}", disease.name());
+    /// }
+    /// ```
+    pub fn orpha_diseases(&self) -> OrphaDiseaseIterator<'a> {
+        OrphaDiseaseIterator::new(self.orpha_diseases, self.ontology)
+    }
+
+    /// Returns the set of all associated [`crate::annotations::OrphaDisease`]s
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    /// use hpo::annotations::Disease;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let term = ontology.hpo(1939u32).unwrap();
+    /// assert_eq!(term.orpha_disease_ids().len(), 32);
+    /// ```
+    pub fn orpha_disease_ids(&self) -> &OrphaDiseases {
+        self.orpha_diseases
     }
 
     /// Returns the [`InformationContent`] of the term
@@ -737,8 +778,9 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let term = ontology.hpo(1939u32).unwrap();
     /// let ic = term.information_content();
-    /// assert_eq!(ic.gene(), 0.6816717);
-    /// assert_eq!(ic.omim_disease(), 3.4335358);
+    /// assert_eq!(ic.gene(), 1.9442855);
+    /// assert_eq!(ic.omim_disease(), 0.4578331);
+    /// assert_eq!(ic.orpha_disease(), 2.2994552);
     /// ```
     pub fn information_content(&self) -> &InformationContent {
         self.information_content
@@ -755,11 +797,11 @@ impl<'a> HpoTerm<'a> {
     ///
     /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
     ///
-    /// let term1 = ontology.hpo(11017u32).unwrap();
-    /// let term2 = ontology.hpo(12639u32).unwrap();
+    /// let term1 = ontology.hpo(12638u32).unwrap(); // Abnormal nervous system physiology
+    /// let term2 = ontology.hpo(100547u32).unwrap(); // Abnormal forebrain morphology
     ///
     /// let sim = term1.similarity_score(&term2, &Builtins::GraphIc(InformationContentKind::Omim));
-    /// assert_eq!(sim, 0.2765914);
+    /// assert_eq!(sim, 0.112043366);
     /// ```
     pub fn similarity_score(&self, other: &HpoTerm, similarity: &impl Similarity) -> f32 {
         similarity.calculate(self, other)

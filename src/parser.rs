@@ -342,6 +342,7 @@ pub(crate) mod gene_to_hpo {
 /// ```
 ///
 pub(crate) mod disease_to_hpo {
+    use crate::annotations::Disease;
     use crate::HpoError;
     use crate::HpoResult;
     use crate::HpoTermId;
@@ -352,50 +353,48 @@ pub(crate) mod disease_to_hpo {
 
     use crate::Ontology;
 
-    struct Omim<'a> {
+    enum DiseaseKind<'a> {
+        Omim(DiseaseComponents<'a>),
+        Orpha(DiseaseComponents<'a>),
+    }
+
+    struct DiseaseComponents<'a> {
         id: &'a str,
         name: &'a str,
         hpo_id: HpoTermId,
     }
 
-    fn parse_line(line: &str) -> HpoResult<Option<Omim<'_>>> {
-        // TODO (nice to have): Add check to skip `database_id` header row
-        // It is not strictly needed, because we're discarding non-OMIM rows
-        if line.starts_with('#') {
-            return Ok(None);
-        }
-        if !line.starts_with("OMIM") {
-            return Ok(None);
-        }
-
-        let mut cols = line.trim().splitn(5, '\t');
-
-        let Some(id_col) = cols.next() else {
-            return Err(HpoError::InvalidInput(line.to_string()));
-        };
-        let Some((_, omim_id)) = id_col.split_once(':') else {
-            return Err(HpoError::InvalidInput(line.to_string()));
-        };
-
-        let Some(omim_name) = cols.next() else {
-            return Err(HpoError::InvalidInput(line.to_string()));
-        };
-
-        if let Some("NOT") = cols.next() {
-            return Ok(None);
-        };
-
-        let hpo_id = if let Some(id) = cols.next() {
-            HpoTermId::try_from(id)?
+    fn parse_line(line: &str) -> HpoResult<Option<DiseaseKind<'_>>> {
+        if line.starts_with("OMIM") {
+            parse_disease_components(line).map(DiseaseKind::Omim)
+        } else if line.starts_with("ORPHA") {
+            parse_disease_components(line).map(DiseaseKind::Orpha)
         } else {
+            Ok(None)
+        }
+    }
+
+    fn parse_disease_components(line: &str) -> HpoResul<Option<DiseaseComponents<'_>>> {
+        let cols: Vec<&str> = line.trim().split('\t').collect();
+        if cols[2] == "NOT" {
+            return Ok(None);
+        }
+
+        let Some((_, omim_id)) = cols[0].split_once(':') else {
+            error!("cannot parse Disease ID from {}", cols[0]);
             return Err(HpoError::InvalidInput(line.to_string()));
         };
-
-        Ok(Some(Omim {
+      
+        let Ok(hpo_id) = HpoTermId::try_from(cols[3]) else {
+            error!("invalid HPO ID: {}", cols[3]);
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+      
+        Ok(Some(DiseaseComponents {
             id: omim_id,
             name: omim_name,
             hpo_id,
-        }))
+        })))
     }
 
     /// Quick and dirty parser for development and debugging
@@ -411,14 +410,26 @@ pub(crate) mod disease_to_hpo {
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line.unwrap();
-            if let Some(omim) = parse_line(&line)? {
-                let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
-                ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
+            match parse_line(&line)? {
+                Some(DiseaseKind::Omim(omim)) => {
+                    let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
+                    ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
 
-                ontology
-                    .omim_disease_mut(&omim_disease_id)
-                    .expect("Omim disease was just added and cannot be missing")
-                    .add_term(omim.hpo_id);
+                    ontology
+                        .omim_disease_mut(&omim_disease_id)
+                        .ok_or(HpoError::DoesNotExist)?
+                        .add_term(omim.hpo_id);
+                }
+                Some(DiseaseKind::Orpha(orpha)) => {
+                    let orpha_disease_id = ontology.add_orpha_disease(orpha.name, orpha.id)?;
+                    ontology.link_orpha_disease_term(orpha.hpo_id, orpha_disease_id)?;
+
+                    ontology
+                        .orpha_disease_mut(&orpha_disease_id)
+                        .ok_or(HpoError::DoesNotExist)?
+                        .add_term(orpha.hpo_id);
+                }
+                _ => {}
             }
         }
         Ok(())

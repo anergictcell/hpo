@@ -366,35 +366,44 @@ pub(crate) mod disease_to_hpo {
 
     fn parse_line(line: &str) -> HpoResult<Option<DiseaseKind<'_>>> {
         if line.starts_with("OMIM") {
-            parse_disease_components(line).map(DiseaseKind::Omim)
+            Ok(parse_disease_components(line)?.map(DiseaseKind::Omim))
         } else if line.starts_with("ORPHA") {
-            parse_disease_components(line).map(DiseaseKind::Orpha)
+            Ok(parse_disease_components(line)?.map(DiseaseKind::Orpha))
         } else {
             Ok(None)
         }
     }
 
-    fn parse_disease_components(line: &str) -> HpoResul<Option<DiseaseComponents<'_>>> {
-        let cols: Vec<&str> = line.trim().split('\t').collect();
-        if cols[2] == "NOT" {
-            return Ok(None);
-        }
+    fn parse_disease_components(line: &str) -> HpoResult<Option<DiseaseComponents<'_>>> {
+        let mut cols = line.trim().splitn(5, '\t');
 
-        let Some((_, omim_id)) = cols[0].split_once(':') else {
-            error!("cannot parse Disease ID from {}", cols[0]);
+        let Some(id_col) = cols.next() else {
             return Err(HpoError::InvalidInput(line.to_string()));
         };
-      
-        let Ok(hpo_id) = HpoTermId::try_from(cols[3]) else {
-            error!("invalid HPO ID: {}", cols[3]);
+
+        let Some((_, disease_id)) = id_col.split_once(':') else {
             return Err(HpoError::InvalidInput(line.to_string()));
         };
-      
+
+        let Some(disease_name) = cols.next() else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
+        if let Some("NOT") = cols.next() {
+            return Ok(None);
+        };
+
+        let hpo_id = if let Some(id) = cols.next() {
+            HpoTermId::try_from(id)?
+        } else {
+            return Err(HpoError::InvalidInput(line.to_string()));
+        };
+
         Ok(Some(DiseaseComponents {
-            id: omim_id,
-            name: omim_name,
+            id: disease_id,
+            name: disease_name,
             hpo_id,
-        })))
+        }))
     }
 
     /// Quick and dirty parser for development and debugging
@@ -456,11 +465,18 @@ pub(crate) mod disease_to_hpo {
         }
 
         #[test]
-        fn test_skip_orpha() {
+        fn test_correct_orpha() {
             let s = "ORPHA:600171\tGonadal agenesis\t\tHP:0000055\tOMIM:600171\tTAS\tP\tHPO:skoehler[2014-11-27]";
-            assert!(parse_line(s)
+            let orpha = parse_line(s)
                 .expect("This line has the correct format")
-                .is_none());
+                .expect("Line describes an Omim disease");
+            if let DiseaseKind::Orpha(orpha) = orpha {
+                assert_eq!(orpha.name, "Gonadal agenesis");
+                assert_eq!(orpha.id, "600171");
+                assert_eq!(orpha.hpo_id, "HP:0000055");
+            } else {
+                panic!("Orpha line should be parsed as Orpha correctly");
+            }
         }
 
         #[test]
@@ -477,9 +493,13 @@ pub(crate) mod disease_to_hpo {
             let omim = parse_line(s)
                 .expect("This line has the correct format")
                 .expect("Line describes an Omim disease");
-            assert_eq!(omim.name, "Gonadal agenesis");
-            assert_eq!(omim.id, "600171");
-            assert_eq!(omim.hpo_id, "HP:0000055");
+            if let DiseaseKind::Omim(omim) = omim {
+                assert_eq!(omim.name, "Gonadal agenesis");
+                assert_eq!(omim.id, "600171");
+                assert_eq!(omim.hpo_id, "HP:0000055");
+            } else {
+                panic!("Omim line should be parsed as Omim correctly");
+            }
         }
 
         #[test]

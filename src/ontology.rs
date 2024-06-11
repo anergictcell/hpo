@@ -611,87 +611,6 @@ impl Ontology {
         }
     }
 
-    /// Returns a binary representation of the Ontology
-    ///
-    /// The binary data is separated into sections:
-    ///
-    /// - Metadata (HPO and Bindat Version) (see `Ontology::metadata_as_bytes`)
-    /// - Terms (Names + IDs) (see `HpoTermInternal::as_bytes`)
-    /// - Term - Parent connection (Child ID - Parent ID)
-    ///   (see `HpoTermInternal::parents_as_byte`)
-    /// - Genes (Names + IDs + Connected HPO Terms) ([`Gene::as_bytes`])
-    /// - OMIM Diseases (Names + IDs + Connected HPO Terms)
-    ///   ([`OmimDisease::as_bytes`])
-    ///
-    /// Every section starts with 4 bytes to indicate its size
-    /// (big-endian encoded `u32`)
-    ///
-    /// This method is only useful if you use are modifying the ontology
-    /// and want to save data for later re-use.
-    ///
-    /// # Panics
-    ///
-    /// Panics when the buffer length of any subsegment larger than `u32::MAX`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// let bytes = ontology.as_bytes();
-    /// ```
-    pub fn as_bytes(&self) -> Vec<u8> {
-        fn usize_to_u32(n: usize) -> u32 {
-            n.try_into().expect("unable to convert {n} to u32")
-        }
-        let mut res = Vec::new();
-
-        // Add metadata, version info
-        res.append(&mut self.metadata_as_bytes());
-
-        // All HPO Terms
-        let mut buffer = Vec::new();
-        for term in self.hpo_terms.values() {
-            buffer.append(&mut term.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // All Term - Parent connections
-        buffer.clear();
-        for term in self.hpo_terms.values() {
-            buffer.append(&mut term.parents_as_byte());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // Genes and Gene-Term connections
-        buffer.clear();
-        for gene in self.genes.values() {
-            buffer.append(&mut gene.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // OMIM Disease and Disease-Term connections
-        buffer.clear();
-        for omim_disease in self.omim_diseases.values() {
-            buffer.append(&mut omim_disease.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // ORPHA Disease and Disease-Term connections
-        buffer.clear();
-        for orpha_disease in self.orpha_diseases.values() {
-            buffer.append(&mut orpha_disease.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        res
-    }
-
     /// Returns the number of HPO-Terms in the Ontology
     ///
     /// # Examples
@@ -716,16 +635,6 @@ impl Ontology {
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-
-    /// Returns the Jax-Ontology release version
-    ///
-    /// e.g. `2023-03-13`
-    pub fn hpo_version(&self) -> String {
-        format!(
-            "{:0>4}-{:0>2}-{:0>2}",
-            self.hpo_version.0, self.hpo_version.1, self.hpo_version.2,
-        )
     }
 
     /// Returns the [`HpoTerm`] of the provided [`HpoTermId`]
@@ -1087,6 +996,14 @@ impl Ontology {
         res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
         res.append(&mut buffer);
 
+        // ORPHA Disease and Disease-Term connections
+        buffer.clear();
+        for orpha_disease in self.orpha_diseases.values() {
+            buffer.append(&mut orpha_disease.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
         res
     }
 
@@ -1165,16 +1082,16 @@ impl Ontology {
             if (gene.hpo_terms() & &phenotype_ids).is_empty() {
                 continue;
             }
-            let gene_id = ont.add_gene(
+            ont.add_gene(
                 self.gene(gene.id()).ok_or(HpoError::DoesNotExist)?.name(),
-                &gene.id().as_u32().to_string()
-            )?;
+                *gene.id(),
+            );
 
             // Link the gene to every term in the new ontology
             // --> also modifier terms
             for term in &(gene.hpo_terms() & &ids) {
-                ont.link_gene_term(term, gene_id)?;
-                ont.gene_mut(&gene_id)
+                ont.link_gene_term(term, *gene.id())?;
+                ont.gene_mut(gene.id())
                     .ok_or(HpoError::DoesNotExist)?
                     .add_term(term);
             }

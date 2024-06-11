@@ -6,8 +6,7 @@ use std::hash::Hash;
 use crate::annotations::disease::DiseaseIterator;
 use crate::annotations::{AnnotationId, Disease};
 use crate::term::HpoGroup;
-use crate::HpoError;
-use crate::HpoTermId;
+use crate::{HpoError, HpoSet, HpoTermId, Ontology};
 
 /// A set of OMIM diseases
 ///
@@ -114,7 +113,7 @@ impl Disease for OmimDisease {
     /// # Examples
     ///
     /// ```
-    /// use hpo::annotations::OmimDisease;
+    /// use hpo::annotations::{Disease, OmimDisease};
     ///
     /// let mut disease = OmimDisease::new(123.into(), "FooBar");
     /// let bytes = disease.as_bytes();
@@ -123,7 +122,7 @@ impl Disease for OmimDisease {
     /// assert_eq!(bytes[4..8], [0u8, 0u8, 0u8, 123u8]); // ID of disease => 123
     /// assert_eq!(bytes[8..12], [0u8, 0u8, 0u8, 6u8]); // Length of Name => 6
     /// ```
-    pub fn as_bytes(&self) -> Vec<u8> {
+    fn as_bytes(&self) -> Vec<u8> {
         fn usize_to_u32(n: usize) -> u32 {
             n.try_into().expect("unable to convert {n} to u32")
         }
@@ -157,7 +156,7 @@ impl Disease for OmimDisease {
     }
 
     /// Returns an [`HpoSet`] from the `OmimDisease`
-    pub fn to_hpo_set<'a>(&self, ontology: &'a Ontology) -> HpoSet<'a> {
+    fn to_hpo_set<'a>(&self, ontology: &'a Ontology) -> HpoSet<'a> {
         HpoSet::new(ontology, self.hpos.clone())
     }
 
@@ -167,7 +166,7 @@ impl Disease for OmimDisease {
     ///
     /// This method does **not** add the [`OmimDisease`] to the [HPO term](`crate::HpoTerm`).
     /// Clients should not use this method, unless they are creating their own Ontology.
-    pub fn add_term<I: Into<HpoTermId>>(&mut self, term_id: I) -> bool {
+    fn add_term<I: Into<HpoTermId>>(&mut self, term_id: I) -> bool {
         self.hpos.insert(term_id)
     }
 }

@@ -21,6 +21,7 @@ pub mod utils;
 pub use ontology::comparison;
 pub use ontology::Ontology;
 pub use set::HpoSet;
+#[doc(inline)]
 pub use term::{HpoTerm, HpoTermId};
 
 const DEFAULT_NUM_PARENTS: usize = 10;
@@ -59,6 +60,9 @@ pub enum HpoError {
     /// Failed to convert an integer to a float
     #[error("cannot convert int to float")]
     TryFromIntError(#[from] std::num::TryFromIntError),
+    /// Failed to parse a line of input data from the JAX obo
+    #[error("invalid input data: {0}")]
+    InvalidInput(String),
 }
 
 impl From<ParseIntError> for HpoError {

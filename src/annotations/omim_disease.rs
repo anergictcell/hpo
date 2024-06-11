@@ -6,8 +6,7 @@ use std::hash::Hash;
 use crate::annotations::disease::DiseaseIterator;
 use crate::annotations::{AnnotationId, Disease};
 use crate::term::HpoGroup;
-use crate::HpoError;
-use crate::HpoTermId;
+use crate::{HpoError, HpoSet, HpoTermId, Ontology};
 
 /// A set of OMIM diseases
 ///
@@ -93,14 +92,82 @@ impl Disease for OmimDisease {
         &self.name
     }
 
-    /// Connect another [HPO term](`crate::HpoTerm`) to the disease
-    fn add_term<I: Into<HpoTermId>>(&mut self, term_id: I) -> bool {
-        self.hpos.insert(term_id)
-    }
-
     /// The set of connected HPO terms
     fn hpo_terms(&self) -> &HpoGroup {
         &self.hpos
+    }
+
+    /// Returns a binary representation of the `OmimDisease`
+    ///
+    /// The binary layout is defined as:
+    ///
+    /// | Byte offset | Number of bytes | Description |
+    /// | --- | --- | --- |
+    /// | 0 | 4 | The total length of the binary data blob as big-endian `u32` |
+    /// | 4 | 4 | The `OmimDiseaseId` as big-endian `u32` |
+    /// | 8 | 4 | The length of the `OmimDisease` Name as big-endian `u32` |
+    /// | 12 | n | The `OmimDisease` name as u8 vector |
+    /// | 12 + n | 4 | The number of associated HPO terms as big-endian `u32` |
+    /// | 16 + n | x * 4 | The [`HpoTermId`]s of the associated terms, each encoded as big-endian `u32` |
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::annotations::{Disease, OmimDisease};
+    ///
+    /// let mut disease = OmimDisease::new(123.into(), "FooBar");
+    /// let bytes = disease.as_bytes();
+    ///
+    /// assert_eq!(bytes.len(), 4 + 4 + 4 + 6 + 4);
+    /// assert_eq!(bytes[4..8], [0u8, 0u8, 0u8, 123u8]); // ID of disease => 123
+    /// assert_eq!(bytes[8..12], [0u8, 0u8, 0u8, 6u8]); // Length of Name => 6
+    /// ```
+    fn as_bytes(&self) -> Vec<u8> {
+        fn usize_to_u32(n: usize) -> u32 {
+            n.try_into().expect("unable to convert {n} to u32")
+        }
+        let name = self.name().as_bytes();
+        let name_length = name.len();
+        let size = 4 + 4 + 4 + name_length + 4 + self.hpos.len() * 4;
+
+        let mut res = Vec::new();
+
+        // 4 bytes for total length
+        res.append(&mut usize_to_u32(size).to_be_bytes().to_vec());
+
+        // 4 bytes for OMIM Disease-ID
+        res.append(&mut self.id.to_be_bytes().to_vec());
+
+        // 4 bytes for Length of OMIM Disease Name
+        res.append(&mut usize_to_u32(name_length).to_be_bytes().to_vec());
+
+        // OMIM Disease name (n bytes)
+        for c in name {
+            res.push(*c);
+        }
+
+        // 4 bytes for number of HPO terms
+        res.append(&mut usize_to_u32(self.hpos.len()).to_be_bytes().to_vec());
+
+        // HPO terms
+        res.append(&mut self.hpos.as_bytes());
+
+        res
+    }
+
+    /// Returns an [`HpoSet`] from the `OmimDisease`
+    fn to_hpo_set<'a>(&self, ontology: &'a Ontology) -> HpoSet<'a> {
+        HpoSet::new(ontology, self.hpos.clone())
+    }
+
+    /// Connect another [HPO term](`crate::HpoTerm`) to the disease
+    ///
+    /// # Note
+    ///
+    /// This method does **not** add the [`OmimDisease`] to the [HPO term](`crate::HpoTerm`).
+    /// Clients should not use this method, unless they are creating their own Ontology.
+    fn add_term<I: Into<HpoTermId>>(&mut self, term_id: I) -> bool {
+        self.hpos.insert(term_id)
     }
 }
 

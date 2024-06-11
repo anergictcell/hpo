@@ -64,5 +64,6 @@
 
 mod disease;
 mod gene;
+mod statrs;
 pub use disease::disease_enrichment;
 pub use gene::gene_enrichment;

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.10.0]
+
 ### Feature
 
 - Add Orphante diseases (`OrphaDisease`) to Ontology
@@ -11,13 +13,19 @@ All notable changes to this project will be documented in this file.
 - Add binary version 3
 - Add new example ontology
 
+### Documentation
+
+- Change orders of methods in `Ontology` to clean up the documentation.
+
 ### Refactor
 
+- Improve the OBO parser with better error handling
 - [**breaking**] Add `Disease` trait that is needed to work with `OmimDisease` and `OrphaDisease`
 - Update example ontology
 - Update unit- and doctests to align with updated example ontology
 
-## [0.9.0] - 2024-03-27
+
+## [0.9.1] - 2024-03-30
 
 ### Bugfix
 

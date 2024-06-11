@@ -119,11 +119,6 @@ impl Gene {
         &self.name
     }
 
-    /// Connect another [HPO term](`crate::HpoTerm`) to the gene
-    pub fn add_term<I: Into<HpoTermId>>(&mut self, term_id: I) -> bool {
-        self.hpos.insert(term_id)
-    }
-
     /// The set of connected HPO terms
     pub fn hpo_terms(&self) -> &HpoGroup {
         &self.hpos
@@ -192,6 +187,16 @@ impl Gene {
     /// Returns an [`HpoSet`] from the `Gene`
     pub fn to_hpo_set<'a>(&self, ontology: &'a Ontology) -> HpoSet<'a> {
         HpoSet::new(ontology, self.hpos.clone())
+    }
+
+    /// Connect another [HPO term](`crate::HpoTerm`) to the gene
+    ///
+    /// # Note
+    ///
+    /// This method does **not** add the [`Gene`] to the [HPO term](`crate::HpoTerm`).
+    /// Clients should not use this method, unless they are creating their own Ontology.
+    pub fn add_term<I: Into<HpoTermId>>(&mut self, term_id: I) -> bool {
+        self.hpos.insert(term_id)
     }
 }
 

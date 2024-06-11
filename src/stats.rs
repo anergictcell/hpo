@@ -266,6 +266,16 @@ fn f64_from_u64(n: u64) -> f64 {
     intermediate.into()
 }
 
+/// We have to frequently do divisions starting with u64 values
+/// and need to return f64 values. To ensure some kind of safety
+/// we use this method to panic in case of overflows.
+fn f64_from_usize(n: usize) -> f64 {
+    let intermediate: u32 = n
+        .try_into()
+        .expect("cannot safely create f64 from large u64");
+    intermediate.into()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -1,5 +1,6 @@
 use crate::annotations::Disease;
 use core::fmt::Debug;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::Read;
@@ -346,7 +347,7 @@ impl Ontology {
     ///
     /// - Actual OBO data: [`hp.obo`](https://hpo.jax.org/app/data/ontology)
     /// - Links between HPO and OMIM diseases: [`phenotype.hpoa`](https://hpo.jax.org/app/data/annotations)
-    /// - Links between HPO and Genes: [`phenotype_to_genes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt)
+    /// - Links between HPO and Genes: [`genes_to_phenotype.txt`](http://purl.obolibrary.org/obo/hp/hpoa/genes_to_phenotype.txt)
     ///
     /// and then specify the folder where the data is stored.
     ///
@@ -404,7 +405,7 @@ impl Ontology {
     ///
     /// - Actual OBO data: [`hp.obo`](https://hpo.jax.org/app/data/ontology)
     /// - Links between HPO and OMIM diseases: [`phenotype.hpoa`](https://hpo.jax.org/app/data/annotations)
-    /// - Links between HPO and Genes: [`genes_to_phenotypes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/genes_to_phenotype.txt)
+    /// - Links between HPO and Genes: [`phenotype_to_genes.txt`](http://purl.obolibrary.org/obo/hp/hpoa/phenotype_to_genes.txt)
     ///
     /// and then specify the folder where the data is stored.
     ///
@@ -610,87 +611,6 @@ impl Ontology {
         }
     }
 
-    /// Returns a binary representation of the Ontology
-    ///
-    /// The binary data is separated into sections:
-    ///
-    /// - Metadata (HPO and Bindat Version) (see `Ontology::metadata_as_bytes`)
-    /// - Terms (Names + IDs) (see `HpoTermInternal::as_bytes`)
-    /// - Term - Parent connection (Child ID - Parent ID)
-    ///   (see `HpoTermInternal::parents_as_byte`)
-    /// - Genes (Names + IDs + Connected HPO Terms) ([`Gene::as_bytes`])
-    /// - OMIM Diseases (Names + IDs + Connected HPO Terms)
-    ///   ([`OmimDisease::as_bytes`])
-    ///
-    /// Every section starts with 4 bytes to indicate its size
-    /// (big-endian encoded `u32`)
-    ///
-    /// This method is only useful if you use are modifying the ontology
-    /// and want to save data for later re-use.
-    ///
-    /// # Panics
-    ///
-    /// Panics when the buffer length of any subsegment larger than `u32::MAX`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// let bytes = ontology.as_bytes();
-    /// ```
-    pub fn as_bytes(&self) -> Vec<u8> {
-        fn usize_to_u32(n: usize) -> u32 {
-            n.try_into().expect("unable to convert {n} to u32")
-        }
-        let mut res = Vec::new();
-
-        // Add metadata, version info
-        res.append(&mut self.metadata_as_bytes());
-
-        // All HPO Terms
-        let mut buffer = Vec::new();
-        for term in self.hpo_terms.values() {
-            buffer.append(&mut term.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // All Term - Parent connections
-        buffer.clear();
-        for term in self.hpo_terms.values() {
-            buffer.append(&mut term.parents_as_byte());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // Genes and Gene-Term connections
-        buffer.clear();
-        for gene in self.genes.values() {
-            buffer.append(&mut gene.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // OMIM Disease and Disease-Term connections
-        buffer.clear();
-        for omim_disease in self.omim_diseases.values() {
-            buffer.append(&mut omim_disease.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        // ORPHA Disease and Disease-Term connections
-        buffer.clear();
-        for orpha_disease in self.orpha_diseases.values() {
-            buffer.append(&mut orpha_disease.as_bytes());
-        }
-        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
-        res.append(&mut buffer);
-
-        res
-    }
-
     /// Returns the number of HPO-Terms in the Ontology
     ///
     /// # Examples
@@ -732,22 +652,6 @@ impl Ontology {
     /// ```
     pub fn hpo<I: Into<HpoTermId>>(&self, term_id: I) -> Option<HpoTerm> {
         HpoTerm::try_new(self, term_id).ok()
-    }
-
-    /// Returns an Iterator of all [`HpoTerm`]s from the Ontology
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// for term in ontology.hpos() {
-    ///     println!("{}", term.name());
-    /// }
-    /// ```
-    ///
-    pub fn hpos(&self) -> Iter<'_> {
-        self.into_iter()
     }
 
     /// Returns a reference to the [`Gene`] of the provided [`GeneId`]
@@ -939,11 +843,12 @@ impl Ontology {
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::GeneId;
     ///
     /// let ontology_1 = Ontology::from_binary("tests/example.hpo").unwrap();
     /// let mut ontology_2 = Ontology::default();
     ///
-    /// ontology_2.add_gene("FOOBAR", "666666").unwrap();
+    /// ontology_2.add_gene("FOOBAR", GeneId::from(666666));
     ///
     /// let compare = ontology_1.compare(&ontology_2);
     /// assert_eq!(compare.added_hpo_terms().len(), 0);
@@ -952,6 +857,154 @@ impl Ontology {
     /// ```
     pub fn compare<'a>(&'a self, other: &'a Ontology) -> Comparison {
         Comparison::new(self, other)
+    }
+
+    /// Iterates [`HpoTerm`]s
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// let mut ont_iter = ontology.iter();
+    ///
+    /// assert!(ont_iter.next().is_some());
+    /// ```
+    ///
+    pub fn iter(&self) -> Iter<'_> {
+        Iter {
+            inner: self.hpo_terms.iter(),
+            ontology: self,
+        }
+    }
+
+    /// Returns an Iterator of all [`HpoTerm`]s from the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// for term in ontology.hpos() {
+    ///     println!("{}", term.name());
+    /// }
+    /// ```
+    ///
+    /// # Note
+    ///
+    /// This method is deprecated and will be removed in the future.
+    /// Use either [`Ontology::iter`] or iterate the ontology directly:
+    ///
+    /// ```rust
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// for term in &ontology {
+    ///     println!("{}", term.name());
+    /// }
+    /// ```
+    ///
+    pub fn hpos(&self) -> Iter<'_> {
+        self.into_iter()
+    }
+
+    /// Returns a reference to the categories of the Ontology
+    ///
+    /// Categories are top-level `HpoTermId`s used for
+    /// categorizing individual `HpoTerm`s.
+    ///
+    /// See [`Ontology::set_default_categories()`] for more information
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    ///
+    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// assert_eq!(ontology.categories().len(), 6);
+    /// ```
+    pub fn categories(&self) -> &HpoGroup {
+        &self.categories
+    }
+
+    /// Returns a binary representation of the Ontology
+    ///
+    /// The binary data is separated into sections:
+    ///
+    /// - Metadata (HPO and Bindat Version) (see `Ontology::metadata_as_bytes`)
+    /// - Terms (Names + IDs) (see `HpoTermInternal::as_bytes`)
+    /// - Term - Parent connection (Child ID - Parent ID)
+    ///   (see `HpoTermInternal::parents_as_byte`)
+    /// - Genes (Names + IDs + Connected HPO Terms) ([`Gene::as_bytes`])
+    /// - OMIM Diseases (Names + IDs + Connected HPO Terms)
+    ///   ([`OmimDisease::as_bytes`])
+    ///
+    /// Every section starts with 4 bytes to indicate its size
+    /// (big-endian encoded `u32`)
+    ///
+    /// This method is only useful if you use are modifying the ontology
+    /// and want to save data for later re-use.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the buffer length of any subsegment larger than `u32::MAX`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::Ontology;
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    /// let bytes = ontology.as_bytes();
+    /// ```
+    pub fn as_bytes(&self) -> Vec<u8> {
+        fn usize_to_u32(n: usize) -> u32 {
+            n.try_into().expect("unable to convert {n} to u32")
+        }
+        let mut res = Vec::new();
+
+        // Add metadata, version info
+        res.append(&mut self.metadata_as_bytes());
+
+        // All HPO Terms
+        let mut buffer = Vec::new();
+        for term in self.hpo_terms.values() {
+            buffer.append(&mut term.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        // All Term - Parent connections
+        buffer.clear();
+        for term in self.hpo_terms.values() {
+            buffer.append(&mut term.parents_as_byte());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        // Genes and Gene-Term connections
+        buffer.clear();
+        for gene in self.genes.values() {
+            buffer.append(&mut gene.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        // OMIM Disease and Disease-Term connections
+        buffer.clear();
+        for omim_disease in self.omim_diseases.values() {
+            buffer.append(&mut omim_disease.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        // ORPHA Disease and Disease-Term connections
+        buffer.clear();
+        for orpha_disease in self.orpha_diseases.values() {
+            buffer.append(&mut orpha_disease.as_bytes());
+        }
+        res.append(&mut usize_to_u32(buffer.len()).to_be_bytes().to_vec());
+        res.append(&mut buffer);
+
+        res
     }
 
     /// Constructs a smaller ontology that contains only the `leaves` terms and
@@ -1029,16 +1082,16 @@ impl Ontology {
             if (gene.hpo_terms() & &phenotype_ids).is_empty() {
                 continue;
             }
-            let gene_id = ont.add_gene(
+            ont.add_gene(
                 self.gene(gene.id()).ok_or(HpoError::DoesNotExist)?.name(),
-                &gene.id().as_u32().to_string(),
-            )?;
+                *gene.id(),
+            );
 
             // Link the gene to every term in the new ontology
             // --> also modifier terms
             for term in &(gene.hpo_terms() & &ids) {
-                ont.link_gene_term(term, gene_id)?;
-                ont.gene_mut(&gene_id)
+                ont.link_gene_term(term, *gene.id())?;
+                ont.gene_mut(gene.id())
                     .ok_or(HpoError::DoesNotExist)?
                     .add_term(term);
             }
@@ -1140,26 +1193,13 @@ impl Ontology {
         code.push_str("}\n");
         code
     }
+}
 
-    /// Returns a reference to the categories of the Ontology
-    ///
-    /// Categories are top-level `HpoTermId`s used for
-    /// categorizing individual `HpoTerm`s.
-    ///
-    /// See [`Ontology::set_default_categories()`] for more information
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::{HpoTerm, Ontology};
-    ///
-    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    /// assert_eq!(ontology.categories().len(), 6);
-    /// ```
-    pub fn categories(&self) -> &HpoGroup {
-        &self.categories
-    }
-
+/// Methods to add annotations
+///
+/// These methods should rarely (if ever) be used by clients.
+/// Calling these functions might disrupt the Ontology and associated terms.
+impl Ontology {
     /// Returns a mutable reference to the categories vector
     ///
     /// This is a vector that should contain top-level `HpoTermId`s used for
@@ -1253,20 +1293,6 @@ impl Ontology {
         Ok(())
     }
 
-    /// Iterates [`HpoTerm`]s
-    pub fn iter(&self) -> Iter<'_> {
-        Iter {
-            inner: self.hpo_terms.iter(),
-            ontology: self,
-        }
-    }
-}
-
-/// Methods to add annotations
-///
-/// These methods should rarely (if ever) be used by clients.
-/// Calling these functions might disrupt the Ontology and associated terms.
-impl Ontology {
     /// Crates and inserts a new term to the ontology
     ///
     /// This method does not link the term to its parents or to any annotations
@@ -1356,7 +1382,7 @@ impl Ontology {
         }
     }
 
-    /// Add a gene to the Ontology. and return the [`GeneId`]
+    /// Add a gene to the Ontology
     ///
     /// If the gene does not yet exist, a new [`Gene`] entity is created
     /// and stored in the Ontology.
@@ -1367,19 +1393,19 @@ impl Ontology {
     /// Adding a gene does not connect it to any HPO terms.
     /// Use [`Ontology::link_gene_term`] for creating connections.
     ///
-    /// # Errors
-    ///
-    /// If the `gene_id` is invalid, an [`HpoError::ParseIntError`] is returned
+    /// This method was changed to receive the `gene_id` as [`GeneId`]
+    /// instead of `str` in `0.10` and does not return a `Result` anymore.
     ///
     /// # Examples
     ///
     /// ```
     /// use hpo::Ontology;
+    /// use hpo::annotations::GeneId;
     ///
     /// let mut ontology = Ontology::default();
     /// assert!(ontology.gene(&1u32.into()).is_none());
     ///
-    /// ontology.add_gene("Foo", "1");
+    /// ontology.add_gene("Foo", GeneId::from(1));
     ///
     /// // Genes can be iterated...
     /// let mut gene_iterator = ontology.genes();
@@ -1390,14 +1416,9 @@ impl Ontology {
     /// // .. or accessed directly
     /// assert!(ontology.gene(&1u32.into()).is_some());
     /// ```
-    pub fn add_gene(&mut self, gene_name: &str, gene_id: &str) -> HpoResult<GeneId> {
-        let id = GeneId::try_from(gene_id)?;
-        match self.genes.entry(id) {
-            std::collections::hash_map::Entry::Occupied(_) => Ok(id),
-            std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert(Gene::new(id, gene_name));
-                Ok(id)
-            }
+    pub fn add_gene(&mut self, gene_name: &str, gene_id: GeneId) {
+        if let Entry::Vacant(entry) = self.genes.entry(gene_id) {
+            entry.insert(Gene::new(gene_id, gene_name));
         }
     }
 
@@ -1520,7 +1541,7 @@ impl Ontology {
     ///
     /// let mut ontology = Ontology::default();
     /// ontology.insert_term("Term-Foo".into(), 1u32);
-    /// ontology.add_gene("Foo", "5");
+    /// ontology.add_gene("Foo", GeneId::from(5));
     /// ontology.link_gene_term(1u32, GeneId::from(5u32)).unwrap();
     ///
     /// let term = ontology.hpo(1u32).unwrap();

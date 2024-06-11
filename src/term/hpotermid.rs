@@ -54,6 +54,17 @@ impl AnnotationId for HpoTermId {
 
 impl TryFrom<&str> for HpoTermId {
     type Error = HpoError;
+
+    /// Parse a str into an `HpoTermId`
+    ///
+    /// This method assumes (but does not check!)
+    /// that the first 3 characters are `HP:`.
+    ///
+    /// # Error
+    ///
+    /// An empty string or string with less than 4 characters
+    /// will return an error.
+    /// The characters after the 4th position must be parsable to `u32`.
     fn try_from(s: &str) -> HpoResult<Self> {
         if s.len() < 4 {
             return Err(HpoError::ParseIntError);

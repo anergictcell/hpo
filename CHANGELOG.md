@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.10.1]
+
+### Refactor
+
+- Add some missing methods for Orpha diseases
+
+
 ## [0.10.0]
 
 ### Feature

@@ -14,7 +14,7 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use crate::annotations::{AnnotationId, Disease, GeneId, OmimDiseaseId};
+use crate::annotations::{AnnotationId, Disease, GeneId, OmimDiseaseId, OrphaDiseaseId};
 use crate::HpoTerm;
 
 pub mod hypergeom;
@@ -25,7 +25,7 @@ pub use linkage::Linkage;
 /// The fold enrichment and p-value for an enriched Gene or Disease
 ///
 /// [`Enrichment`] is returned from statistics enrichment methods, such as
-/// [`hypergeom::gene_enrichment`] and [`hypergeom::disease_enrichment`].
+/// [`hypergeom::gene_enrichment`], [`hypergeom::omim_disease_enrichment`] and [`hypergeom::orpha_disease_enrichment`].
 ///
 #[derive(Debug)]
 pub struct Enrichment<T> {
@@ -143,8 +143,21 @@ impl<'a> SampleSet<GeneId> {
 
 impl<'a> SampleSet<OmimDiseaseId> {
     /// Constructs a new `SampleSet` with disease counts from an iterator of [`HpoTerm`]s
-    pub fn disease<I: IntoIterator<Item = HpoTerm<'a>>>(terms: I) -> Self {
+    pub fn omim_disease<I: IntoIterator<Item = HpoTerm<'a>>>(terms: I) -> Self {
         let term2omimid = |term: HpoTerm<'a>| term.omim_diseases().map(|d| d.id().as_u32());
+        let (size, counts) = calculate_counts(terms, term2omimid);
+        Self {
+            size,
+            counts,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a> SampleSet<OrphaDiseaseId> {
+    /// Constructs a new `SampleSet` with disease counts from an iterator of [`HpoTerm`]s
+    pub fn orpha_disease<I: IntoIterator<Item = HpoTerm<'a>>>(terms: I) -> Self {
+        let term2omimid = |term: HpoTerm<'a>| term.orpha_diseases().map(|d| d.id().as_u32());
         let (size, counts) = calculate_counts(terms, term2omimid);
         Self {
             size,

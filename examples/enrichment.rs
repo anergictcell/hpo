@@ -37,7 +37,7 @@ fn gene_enrichments(ontology: &Ontology, hposet: &HpoSet, output_len: usize) {
 
 /// Prints diseases that are enriched in the hposet
 fn disease_enrichments(ontology: &Ontology, hposet: &HpoSet, output_len: usize) {
-    let mut disease_enrichments = hpo::stats::hypergeom::disease_enrichment(ontology, hposet);
+    let mut disease_enrichments = hpo::stats::hypergeom::omim_disease_enrichment(ontology, hposet);
 
     disease_enrichments.sort_by(|a, b| {
         a.pvalue()

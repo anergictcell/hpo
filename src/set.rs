@@ -2,7 +2,7 @@
 use std::collections::HashMap;
 
 use crate::annotations::Genes;
-use crate::annotations::OmimDiseases;
+use crate::annotations::{OmimDiseases, OrphaDiseases};
 use crate::similarity::GroupSimilarity;
 use crate::similarity::Similarity;
 use crate::similarity::SimilarityCombiner;
@@ -514,6 +514,40 @@ impl<'a> HpoSet<'a> {
                     .omim_diseases()
             })
             .fold(OmimDiseases::default(), |acc, element| &acc | element)
+    }
+
+    /// Returns all [`crate::annotations::OrphaDiseaseId`]s that are associated to the set
+    ///
+    /// # Panics
+    ///
+    /// When an `HpoTermId` of the set is not part of the Ontology
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{Ontology, HpoSet};
+    /// use hpo::term::HpoGroup;
+    ///
+    /// let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// let mut hpos = HpoGroup::new();
+    /// hpos.insert(12639u32);
+    /// hpos.insert(818u32);
+    /// let set = HpoSet::new(&ontology, hpos);
+    /// for d in set.orpha_disease_ids() {println!("{}", d);};
+    /// // `Papilloma of choroid plexus (ORPHA:2807)` is linked to `HP:0012639`
+    /// assert!(set.orpha_disease_ids().contains(&2807u32.into()));
+    /// ```
+    pub fn orpha_disease_ids(&self) -> OrphaDiseases {
+        self.group
+            .iter()
+            .map(|term_id| {
+                self.ontology
+                    .get(term_id)
+                    .expect("HpoTermId must be in Ontology")
+                    .orpha_diseases()
+            })
+            .fold(OrphaDiseases::default(), |acc, diseases| &acc | diseases)
     }
 
     /// Returns the counts of all categories in the set

@@ -5,7 +5,7 @@ use std::path::Path;
 
 use rayon::prelude::*;
 
-use hpo::stats::hypergeom::disease_enrichment;
+use hpo::stats::hypergeom::omim_disease_enrichment;
 use hpo::Ontology;
 
 const GENES: [&str; 6] = ["GBA1", "NPC1", "EZH2", "DMD", "MUC7", "ARID1B"];
@@ -34,7 +34,7 @@ fn multi_threaded_enrichment(ontology: &Ontology) -> usize {
                     .unwrap_or_else(|| panic!("{gene} does not exist"))
                     .to_hpo_set(ontology);
                 total
-                    + disease_enrichment(ontology, &set)
+                    + omim_disease_enrichment(ontology, &set)
                         .iter()
                         .fold(0, |count, enrichment| {
                             if enrichment.pvalue() < 0.0000005 && enrichment.enrichment() > 100.0 {
@@ -55,7 +55,7 @@ fn single_threaded_enrichment(ontology: &Ontology) -> usize {
             .unwrap_or_else(|| panic!("{gene} does not exist"))
             .to_hpo_set(ontology);
         total
-            + disease_enrichment(ontology, &set)
+            + omim_disease_enrichment(ontology, &set)
                 .iter()
                 .fold(0, |count, enrichment| {
                     if enrichment.pvalue() < 0.0000005 && enrichment.enrichment() > 100.0 {

@@ -65,5 +65,5 @@
 mod disease;
 mod gene;
 mod statrs;
-pub use disease::disease_enrichment;
+pub use disease::{omim_disease_enrichment, orpha_disease_enrichment};
 pub use gene::gene_enrichment;

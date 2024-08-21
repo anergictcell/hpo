@@ -1166,13 +1166,7 @@ impl Ontology {
         println!("At the end:  {code}");
         code
     }
-}
 
-/// Methods to add annotations
-///
-/// These methods should rarely (if ever) be used by clients.
-/// Calling these functions might disrupt the Ontology and associated terms.
-impl Ontology {
     /// Returns a mutable reference to the categories vector
     ///
     /// This is a vector that should contain top-level `HpoTermId`s used for
@@ -1266,76 +1260,6 @@ impl Ontology {
         Ok(())
     }
 
-    /// Returns a mutable reference to the [`Gene`] of the provided [`GeneId`]
-    ///
-    /// If no such gene is present, `None` is returned
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    ///
-    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    ///
-    /// let mut gene = ontology.gene_mut(&2175u32.into()).unwrap();
-    /// assert_eq!(gene.hpo_terms().len(), 3);
-    /// gene.add_term(1u32);
-    /// assert_eq!(gene.hpo_terms().len(), 4);
-    /// ```
-    pub fn gene_mut(&mut self, gene_id: &GeneId) -> Option<&mut Gene> {
-        self.genes.get_mut(gene_id)
-    }
-
-    /// Returns a mutable reference to the [`OmimDisease`] of the provided [`OmimDiseaseId`]
-    ///
-    /// If no such disease is present, `None` is returned
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// use hpo::annotations::Disease;
-    ///
-    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    ///
-    /// let mut disease = ontology.omim_disease_mut(&269880u32.into()).unwrap();
-    /// assert_eq!(disease.hpo_terms().len(), 1);
-    /// disease.add_term(1u32);
-    /// assert_eq!(disease.hpo_terms().len(), 2);
-    /// ```
-    pub fn omim_disease_mut(
-        &mut self,
-        omim_disease_id: &OmimDiseaseId,
-    ) -> Option<&mut OmimDisease> {
-        self.omim_diseases.get_mut(omim_disease_id)
-    }
-
-    /// Returns a mutable reference to the [`OrphaDisease`] of the provided [`OrphaDiseaseId`]
-    ///
-    /// If no such disease is present, `None` is returned
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// use hpo::annotations::Disease;
-    ///
-    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
-    ///
-    /// let mut disease = ontology.orpha_disease_mut(&110u32.into()).unwrap();
-    /// assert_eq!(disease.hpo_terms().len(), 1);
-    /// disease.add_term(1u32);
-    /// assert_eq!(disease.hpo_terms().len(), 2);
-    /// ```
-    pub fn orpha_disease_mut(&mut self, disease_id: &OrphaDiseaseId) -> Option<&mut OrphaDisease> {
-        self.orpha_diseases.get_mut(disease_id)
-    }
-}
-
-/// Crate-only functions for setting up and building the Ontology
-///
-/// Those methods should not be exposed publicly
-impl Ontology {
     /// Returns a binary representation of the Ontology's metadata
     ///
     /// It adds the HPO-identifying bytes `HPO`, the version

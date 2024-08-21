@@ -18,6 +18,7 @@ pub mod stats;
 pub mod term;
 pub mod utils;
 
+pub use ontology::builder;
 pub use ontology::comparison;
 pub use ontology::Ontology;
 pub use set::HpoSet;

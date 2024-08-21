@@ -1,3 +1,8 @@
+//! [`Builder`] can be used to manually create custom Ontologies
+//!
+//! In most cases, this is not recommended, use the
+//! built-in functions in [`Ontology`](`crate::Ontology`) instead.
+
 use crate::annotations::Disease;
 use crate::term::internal::HpoTermInternal;
 use std::collections::hash_map::Entry;
@@ -11,25 +16,27 @@ use crate::annotations::{OrphaDisease, OrphaDiseaseId};
 use crate::parser::binary::{BinaryTermBuilder, BinaryVersion, Bytes};
 use crate::term::HpoGroup;
 
-use crate::{u32_from_bytes, HpoTermId, Ontology};
-use crate::HpoResult;
 use crate::HpoError;
+use crate::HpoResult;
+use crate::{u32_from_bytes, HpoTermId, Ontology};
 
 use crate::ontology::termarena::Arena;
 
-
+/// State of [`Builder`] that only contains some 'loose', unconnected terms
 pub struct LooseCollection;
+
+/// State of [`Builder`] that only contains all terms of the ontology,
+/// but not yet connected to each other.
 pub struct AllTerms;
+
+/// State of [`Builder`] that contains all terms, connected to each other
 pub struct ConnectedTerms;
+
+/// State of [`Builder`] that contains all terms and all gene and disease annotation
 pub struct FullyAnnotated;
 
-pub trait AddAnotation{}
-impl AddAnotation for LooseCollection{}
-impl AddAnotation for AllTerms{}
-impl AddAnotation for ConnectedTerms{}
-
 fn transition_state<TX, TY>(builder: Builder<TX>) -> Builder<TY> {
-    Builder::<TY>{
+    Builder::<TY> {
         hpo_terms: builder.hpo_terms,
         genes: builder.genes,
         omim_diseases: builder.omim_diseases,
@@ -37,11 +44,80 @@ fn transition_state<TX, TY>(builder: Builder<TX>) -> Builder<TY> {
         hpo_version: builder.hpo_version,
         categories: builder.categories,
         modifier: builder.modifier,
-        state: PhantomData
+        state: PhantomData,
     }
 }
 
-
+/// Builder to manually create an Ontology
+///
+/// There should rarely, if ever, be any need to build custom Ontologies.
+/// The connections within the HPO, along with gene and disease annotations
+/// are quite complex and it's trivially easy to mess this up, when doing it
+/// manually.
+///
+/// To build a full ontology, the builder transitions between the following states:
+///
+/// ```text
+/// Builder<LooseCollection> : Add individual terms to the Ontology
+///   |
+///   terms_complete()
+///   |
+///   v
+/// Builder<AllTerms> : Define parent-child relationships
+///   |
+///   connect_all_terms()
+///   |
+///   v
+/// Builder<ConnectedTerms>: Annotate terms and their ancestors with genes/diseases
+///   |
+///   calculate_information_content()
+///   |
+///   v
+/// Builder<FullyAnnotated>
+///   |
+///   build_with_defaults() or build_minimal()
+///   |
+///   v
+/// Ontology
+/// ```
+///
+/// # Examples
+///
+/// ```
+/// use hpo::builder::Builder;
+///
+/// let mut builder = Builder::new();
+///
+/// // Add three terms
+/// builder.new_term("Root", 1u32);
+/// builder.new_term("First child", 2u32);
+/// builder.new_term("Second child", 3u32);
+///
+/// // before connecting terms, indicate that all terms have been added
+/// let mut builder = builder.terms_complete();
+///
+/// // Connect both childs to the root term
+/// builder.add_parent(1u32, 2u32);
+/// builder.add_parent(1u32, 3u32);
+///
+/// // Build all connections and cache the connections
+/// let mut builder = builder.connect_all_terms();
+///
+/// builder.annotate_gene(11u32.into(), "Gene1", 2u32.into()).unwrap();
+/// builder.annotate_omim_disease(22u32.into(), "Disease 1", 3u32.into()).unwrap();
+///
+/// // Indicate that all annotations are added an calculate the information content
+/// let mut builder = builder.calculate_information_content().unwrap();
+///
+/// // Build an Ontology
+/// let ontology = builder.build_minimal();
+///
+/// assert_eq!(ontology.len(), 3);
+///
+/// let root_term = ontology.hpo(1u32).unwrap();
+/// assert_eq!(root_term.name(), "Root");
+/// ```
+///
 pub struct Builder<T> {
     hpo_terms: Arena,
     genes: HashMap<GeneId, Gene>,
@@ -50,51 +126,20 @@ pub struct Builder<T> {
     hpo_version: (u16, u8, u8),
     categories: HpoGroup,
     modifier: HpoGroup,
-    state: PhantomData<T>
+    state: PhantomData<T>,
 }
 
-
-impl<T: AddAnotation> Builder<T> {
-    pub fn add_gene(&mut self, gene_name: &str, gene_id: GeneId) {
-        if let Entry::Vacant(entry) = self.genes.entry(gene_id) {
-            entry.insert(Gene::new(gene_id, gene_name));
-        }
-    }
-
-    pub fn add_omim_disease(
-        &mut self,
-        omim_disease_name: &str,
-        omim_disease_id: &str,
-    ) -> HpoResult<OmimDiseaseId> {
-        let id = OmimDiseaseId::try_from(omim_disease_id)?;
-        match self.omim_diseases.entry(id) {
-            std::collections::hash_map::Entry::Occupied(_) => Ok(id),
-            std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert(OmimDisease::new(id, omim_disease_name));
-                Ok(id)
-            }
-        }
-    }
-
-    pub fn add_orpha_disease(
-        &mut self,
-        orpha_disease_name: &str,
-        orpha_disease_id: &str,
-    ) -> HpoResult<OrphaDiseaseId> {
-        let id = OrphaDiseaseId::try_from(orpha_disease_id)?;
-        match self.orpha_diseases.entry(id) {
-            std::collections::hash_map::Entry::Occupied(_) => Ok(id),
-            std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert(OrphaDisease::new(id, orpha_disease_name));
-                Ok(id)
-            }
-        }
+impl Default for Builder<LooseCollection> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
-
-
-impl Builder<LooseCollection>{
+/// In this state, the Builder contains a loose collection
+/// of HPO-terms. They don't yet have any relation to each
+/// other or any associated annotations
+impl Builder<LooseCollection> {
+    /// Creates a new `Builder` instance to manually crate an Ontology
     pub fn new() -> Builder<LooseCollection> {
         Builder::<LooseCollection> {
             hpo_terms: Arena::default(),
@@ -104,11 +149,11 @@ impl Builder<LooseCollection>{
             hpo_version: (0u16, 0u8, 0u8),
             categories: HpoGroup::default(),
             modifier: HpoGroup::default(),
-            state: PhantomData
+            state: PhantomData,
         }
-    }    
+    }
 
-    /// Adds an [`HpoTerm`] to the ontology
+    /// Adds [`crate::HpoTerm`]s to the ontology
     ///
     /// This method is part of the Ontology-building, based on the binary
     /// data format and requires a specified data layout.
@@ -118,7 +163,7 @@ impl Builder<LooseCollection>{
     /// like parent-child connection etc.
     ///
     /// See [`HpoTermInternal::as_bytes`] for explanation of the binary layout.
-    pub (crate) fn add_terms_from_bytes(&mut self, bytes: Bytes) {
+    pub(crate) fn add_terms_from_bytes(&mut self, bytes: Bytes) {
         for term in BinaryTermBuilder::new(bytes) {
             self.add_term(term);
         }
@@ -126,13 +171,51 @@ impl Builder<LooseCollection>{
 
     /// Insert an `HpoTermInternal` to the ontology
     ///
-    /// This method does not link the term to its parents or to any annotations
-    pub(crate) fn add_term(&mut self, term: HpoTermInternal) -> HpoTermId {
-        let id = *term.id();
+    /// This method does not link the term to its parents or to any annotations.
+    /// Since `HpoTermInternal` is a crate-private struct, this method
+    /// is only available in-crate.
+    pub(crate) fn add_term(&mut self, term: HpoTermInternal) {
         self.hpo_terms.insert(term);
-        id
     }
 
+    /// Adds a new term to the ontology
+    ///
+    /// The term does not have any connections to other terms or any gene/disease
+    /// annotations. Parents and children of terms can be added in the
+    /// `Builder<AllTerms>` state.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::builder::Builder;
+    ///
+    /// let mut builder = Builder::new();
+    ///
+    /// // Add three terms
+    /// builder.new_term("Root", 1u32);
+    /// builder.new_term("First child", 2u32);
+    /// builder.new_term("Second child", 3u32);
+    ///
+    /// // quickly transition through all stages to build the ontology
+    /// let ontology = builder
+    ///     .terms_complete()
+    ///     .connect_all_terms()
+    ///     .calculate_information_content().unwrap()
+    ///     .build_minimal();
+    ///
+    /// assert_eq!(ontology.len(), 3);
+    /// ```
+    pub fn new_term<I: Into<HpoTermId>>(&mut self, name: &str, id: I) {
+        let term = HpoTermInternal::new(name.to_string(), id.into());
+        self.add_term(term);
+    }
+
+    /// Transitions the state to `Builder<AllTerms>`
+    ///
+    /// This method indicates that all terms have been added. It is not possible
+    /// to add new terms afterwards.
+    /// Transitioning to `Builder<AllTerms>` is required to crate parent-child
+    /// connections between terms.
     #[must_use]
     pub fn terms_complete(self) -> Builder<AllTerms> {
         transition_state(self)
@@ -140,30 +223,70 @@ impl Builder<LooseCollection>{
 }
 
 impl Builder<AllTerms> {
-    /// Add a connection from an [`HpoTerm`] to its parent
+    /// Add a connection from an [`HpoTerm`](`crate::HpoTerm`) to its parent
     ///
     /// This method is called once for every dependency in the Ontology during the initialization.
     ///
-    /// There should rarely be a need to call this method outside of the ontology building
+    /// # Errors
+    ///
+    /// This method will return `HpoError::DoesNotExist` when the parent or child
+    /// `HpoTerm` does not exist.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::builder::Builder;
+    /// # use hpo::builder::AllTerms;
+    ///
+    /// fn example_builder() -> Builder<AllTerms>
+    /// # {
+    /// # let mut builder = Builder::new();
+    /// # builder.new_term("Foo", 1u32);
+    /// # builder.new_term("Bar", 2u32);
+    /// # builder.terms_complete()
+    /// # }
+    ///
+    /// let mut builder: Builder<AllTerms> = example_builder();
+    ///
+    /// // connect a term to its parent
+    /// builder.add_parent(1u32, 2u32).unwrap();
+    ///
+    /// // quickly transition through all stages to build the ontology
+    /// let ontology = builder
+    ///     .connect_all_terms()
+    ///     .calculate_information_content().unwrap()
+    ///     .build_minimal();
+    ///
+    /// assert!(ontology.hpo(2u32).unwrap().parent_ids().contains(&1u32.into()));
+    /// ```
+    pub fn add_parent<I: Into<HpoTermId> + Copy, J: Into<HpoTermId> + Copy>(
+        &mut self,
+        parent_id: I,
+        child_id: J,
+    ) -> HpoResult<()> {
+        let parent = self
+            .hpo_terms
+            .get_mut(parent_id.into())
+            .ok_or(HpoError::DoesNotExist)?;
+        parent.add_child(child_id);
+
+        let child = self
+            .hpo_terms
+            .get_mut(child_id.into())
+            .ok_or(HpoError::DoesNotExist)?;
+        child.add_parent(parent_id);
+        Ok(())
+    }
+
+    /// Add a connection from an [`HpoTerm`](`crate::HpoTerm`) to its parent
+    ///
+    /// This method is called once for every dependency in the Ontology during the initialization.
     ///
     /// # Panics
     ///
     /// This method will panic if the `parent_id` or `child_id` is not present in the Ontology
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    ///
-    /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Foo".into(), 1u32);
-    /// ontology.insert_term("Bar".into(), 2u32);
-    ///
-    /// ontology.add_parent(1u32, 2u32);
-    ///
-    /// assert!(ontology.hpo(2u32).unwrap().parent_ids().contains(&1u32.into()));
-    /// ```
-    pub fn add_parent<I: Into<HpoTermId> + Copy, J: Into<HpoTermId> + Copy>(
+    pub(crate) fn add_parent_unchecked<I: Into<HpoTermId> + Copy, J: Into<HpoTermId> + Copy>(
         &mut self,
         parent_id: I,
         child_id: J,
@@ -175,7 +298,7 @@ impl Builder<AllTerms> {
         child.add_parent(parent_id);
     }
 
-    /// Connects an [`HpoTerm`] to its parent term
+    /// Connects an [`HpoTerm`](`crate::HpoTerm`) to its parent term
     ///
     /// This method is part of the Ontology-building, based on the binary
     /// data format and requires a specified data layout.
@@ -205,45 +328,48 @@ impl Builder<AllTerms> {
             for _ in 0..n_parents {
                 let parent =
                     HpoTermId::from([bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]]);
-                self.add_parent(parent, term);
+                self.add_parent_unchecked(parent, term);
                 idx += 4;
             }
         }
     }
 
-
-    /// Crates and caches the `all_parents` values for every term
+    /// Transitions the state to `Builder<ConnectedTerms>`
     ///
-    /// This method can only be called once and afterwards no new terms
-    /// should be added to the Ontology anymore and no new term-parent connection
-    /// should be created.
-    /// Since this method caches the results, rerunning it will not cause a new
-    /// calculation.
+    /// After changing the state no new terms can be added to the Ontology
+    /// anymore and no new term-parent connection can should be created.
     ///
     /// # Examples
     ///
     /// ```
-    /// use hpo::Ontology;
+    /// use hpo::builder::Builder;
+    /// # use hpo::builder::{AllTerms, ConnectedTerms};
     ///
-    /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Root".into(), 1u32);
-    /// ontology.insert_term("Foo".into(), 2u32);
-    /// ontology.insert_term("Bar".into(), 3u32);
+    /// fn example_builder() -> Builder<AllTerms>
+    /// # {
+    /// # let mut builder = Builder::new();
+    /// # builder.new_term("Foo", 1u32);
+    /// # builder.new_term("Bar", 2u32);
+    /// # let mut builder = builder.terms_complete();
+    /// # builder.add_parent(1u32, 2u32).unwrap();
+    /// # builder
+    /// # }
     ///
-    /// ontology.add_parent(1u32, 2u32);
-    /// ontology.add_parent(2u32, 3u32);
+    /// let mut builder: Builder<AllTerms> = example_builder();
     ///
-    /// // At this point #3 does not have info about grandparents
-    /// assert!(!ontology.hpo(3u32).unwrap().all_parent_ids().contains(&1u32.into()));
+    /// // connect all the terms and return a `Builder<ConnectedTerms>`
+    /// let builder: Builder<ConnectedTerms> = builder.connect_all_terms();
     ///
-    /// ontology.create_cache();
-    /// assert!(ontology.hpo(3u32).unwrap().all_parent_ids().contains(&1u32.into()));
+    /// // quickly transition through all stages to build the ontology
+    /// let ontology = builder
+    ///     .calculate_information_content().unwrap()
+    ///     .build_minimal();
+    ///
+    /// assert!(ontology.hpo(2u32).unwrap().parent_ids().contains(&1u32.into()));
     /// ```
     #[must_use]
     pub fn connect_all_terms(mut self) -> Builder<ConnectedTerms> {
-        let term_ids: Vec<HpoTermId> = self.hpo_terms.keys();
-
-        for id in term_ids {
+        for id in self.hpo_terms.keys() {
             self.create_cache_of_grandparents(id);
         }
         transition_state(self)
@@ -292,8 +418,294 @@ impl Builder<AllTerms> {
     }
 }
 
-
 impl Builder<ConnectedTerms> {
+    /// Add the [`Gene`] as annotation to the [`HpoTerm`](`crate::HpoTerm`)
+    ///
+    /// The gene will be recursively connected to all parent `HpoTerms` as well.
+    ///
+    /// # Errors
+    ///
+    /// If the HPO term is not present, an [`HpoError::DoesNotExist`] is returned
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::HpoTermId;
+    /// use hpo::annotations::GeneId;
+    /// use hpo::builder::Builder;
+    /// # use hpo::builder::ConnectedTerms;
+    ///
+    /// fn example_builder() -> Builder<ConnectedTerms>
+    /// # {
+    /// # let mut builder = Builder::new();
+    /// # builder.new_term("Foo", 1u32);
+    /// # builder.new_term("Bar", 2u32);
+    /// # let mut builder = builder.terms_complete();
+    /// # builder.add_parent(1u32, 2u32).unwrap();
+    /// # builder.connect_all_terms()
+    /// # }
+    ///
+    /// let mut builder: Builder<ConnectedTerms> = example_builder();
+    ///
+    /// builder.annotate_gene(GeneId::from(5), "Gene 1", HpoTermId::from(1u32));
+    ///
+    /// // quickly transition through all stages to build the ontology
+    /// let ontology = builder
+    ///     .calculate_information_content().unwrap()
+    ///     .build_minimal();
+    ///    
+    /// let term = ontology.hpo(1u32).unwrap();
+    /// assert!(term.genes().find(|gene| gene.name() == "Gene 1").is_some());
+    /// assert!(term.genes().find(|gene| gene.name() == "Foobar").is_none());
+    /// ```
+    #[allow(clippy::missing_panics_doc)]
+    pub fn annotate_gene(
+        &mut self,
+        gene_id: GeneId,
+        gene_name: &str,
+        term_id: HpoTermId,
+    ) -> HpoResult<()> {
+        self.add_gene(gene_name, gene_id);
+        let gene = self
+            .genes
+            .get_mut(&gene_id)
+            .expect("Gene is present because it was just add_omim_disease");
+
+        gene.add_term(term_id);
+        self.link_gene_term(term_id, gene_id)?;
+        Ok(())
+    }
+
+    /// Add the [`OmimDisease`] as annotation to the [`HpoTerm`](`crate::HpoTerm`)
+    ///
+    /// The disease will be recursively connected to all parent `HpoTerms` as well.
+    ///
+    /// # Errors
+    ///
+    /// If the HPO term is not present, an [`HpoError::DoesNotExist`] is returned
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::HpoTermId;
+    /// use hpo::annotations::{Disease, OmimDiseaseId};
+    /// use hpo::builder::Builder;
+    /// # use hpo::builder::ConnectedTerms;
+    ///
+    /// fn example_builder() -> Builder<ConnectedTerms>
+    /// # {
+    /// # let mut builder = Builder::new();
+    /// # builder.new_term("Foo", 1u32);
+    /// # builder.new_term("Bar", 2u32);
+    /// # let mut builder = builder.terms_complete();
+    /// # builder.add_parent(1u32, 2u32).unwrap();
+    /// # builder.connect_all_terms()
+    /// # }
+    ///
+    /// let mut builder: Builder<ConnectedTerms> = example_builder();
+    ///
+    /// builder.annotate_omim_disease(OmimDiseaseId::from(5), "Disease 1", HpoTermId::from(1u32));
+    ///
+    /// // quickly transition through all stages to build the ontology
+    /// let ontology = builder
+    ///     .calculate_information_content().unwrap()
+    ///     .build_minimal();
+    ///    
+    /// let term = ontology.hpo(1u32).unwrap();
+    /// assert!(term.omim_diseases().find(|disease| disease.name() == "Disease 1").is_some());
+    /// assert!(term.omim_diseases().find(|disease| disease.name() == "Foobar").is_none());
+    /// ```
+    #[allow(clippy::missing_panics_doc)]
+    pub fn annotate_omim_disease(
+        &mut self,
+        omim_id: OmimDiseaseId,
+        omim_name: &str,
+        term_id: HpoTermId,
+    ) -> HpoResult<()> {
+        self.add_omim_disease(omim_name, omim_id);
+        let gene = self
+            .omim_diseases
+            .get_mut(&omim_id)
+            .expect("Gene is present because it was just add_omim_disease");
+
+        gene.add_term(term_id);
+        self.link_omim_disease_term(term_id, omim_id)?;
+
+        Ok(())
+    }
+
+    /// Add the [`OrphaDisease`] as annotation to the [`HpoTerm`](`crate::HpoTerm`)
+    ///
+    /// The disease will be recursively connected to all parent `HpoTerms` as well.
+    ///
+    /// # Errors
+    ///
+    /// If the HPO term is not present, an [`HpoError::DoesNotExist`] is returned
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::HpoTermId;
+    /// use hpo::annotations::{Disease, OrphaDiseaseId};
+    /// use hpo::builder::Builder;
+    /// # use hpo::builder::ConnectedTerms;
+    ///
+    /// fn example_builder() -> Builder<ConnectedTerms>
+    /// # {
+    /// # let mut builder = Builder::new();
+    /// # builder.new_term("Foo", 1u32);
+    /// # builder.new_term("Bar", 2u32);
+    /// # let mut builder = builder.terms_complete();
+    /// # builder.add_parent(1u32, 2u32).unwrap();
+    /// # builder.connect_all_terms()
+    /// # }
+    ///
+    /// let mut builder: Builder<ConnectedTerms> = example_builder();
+    ///
+    /// builder.annotate_orpha_disease(OrphaDiseaseId::from(5), "Disease 1", HpoTermId::from(1u32));
+    ///
+    /// // quickly transition through all stages to build the ontology
+    /// let ontology = builder
+    ///     .calculate_information_content().unwrap()
+    ///     .build_minimal();
+    ///    
+    /// let term = ontology.hpo(1u32).unwrap();
+    /// assert!(term.orpha_diseases().find(|disease| disease.name() == "Disease 1").is_some());
+    /// assert!(term.orpha_diseases().find(|disease| disease.name() == "Foobar").is_none());
+    /// ```
+    #[allow(clippy::missing_panics_doc)]
+    pub fn annotate_orpha_disease(
+        &mut self,
+        orpha_id: OrphaDiseaseId,
+        orpha_name: &str,
+        term_id: HpoTermId,
+    ) -> HpoResult<()> {
+        self.add_orpha_disease(orpha_name, orpha_id);
+        let gene = self
+            .orpha_diseases
+            .get_mut(&orpha_id)
+            .expect("Gene is present because it was just add_orpha_disease");
+
+        gene.add_term(term_id);
+        self.link_orpha_disease_term(term_id, orpha_id)?;
+
+        Ok(())
+    }
+
+    /// Calculates the [`crate::term::InformationContent`]s for every term
+    /// and transitions to the `FullyAnnotated` state
+    ///
+    /// This method should only be called **after** all terms are added,
+    /// connected and all genes and diseases are linked as well.
+    ///
+    /// # Errors
+    ///
+    /// This method returns an error if there are more Genes or Terms than `u16::MAX`
+    /// because larger numbers can't be safely converted to `f32`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::HpoTermId;
+    /// use hpo::annotations::GeneId;
+    /// use hpo::builder::Builder;
+    /// # use hpo::builder::ConnectedTerms;
+    ///
+    /// fn example_builder() -> Builder<ConnectedTerms>
+    /// # {
+    /// # let mut builder = Builder::new();
+    /// # builder.new_term("Foo", 1u32);
+    /// # builder.new_term("Bar", 2u32);
+    /// # let mut builder = builder.terms_complete();
+    /// # builder.add_parent(1u32, 2u32).unwrap();
+    /// # let mut builder = builder.connect_all_terms();
+    /// # builder
+    /// # }
+    ///
+    /// let mut builder: Builder<ConnectedTerms> = example_builder();
+    /// builder.annotate_gene(GeneId::from(1), "Gene 1", HpoTermId::from(1u32));
+    /// builder.annotate_gene(GeneId::from(2), "Gene 2", HpoTermId::from(2u32));
+    ///
+    /// // transition to final state of `Builder`
+    /// let builder = builder.calculate_information_content().unwrap();
+    ///
+    /// let ontology = builder.build_minimal();
+    ///
+    /// let gene_ic = ontology
+    ///     .hpo(2u32).unwrap()
+    ///     .information_content()
+    ///     .gene();
+    /// assert!(gene_ic > 0.0, "{gene_ic}");
+    /// ```
+    pub fn calculate_information_content(mut self) -> HpoResult<Builder<FullyAnnotated>> {
+        self.calculate_gene_ic()?;
+        self.calculate_omim_disease_ic()?;
+        self.calculate_orpha_disease_ic()?;
+
+        Ok(transition_state(self))
+    }
+
+    /// Adds a [`Gene`](`crate::annotations::Gene`) to the ontology
+    ///
+    /// The gene is not yet linked to any terms, this must be done
+    /// through [`Builder<ConnectedTerms>::annotate_gene`](`Builder::annotate_gene`)
+    ///
+    /// # Note:
+    ///
+    /// There is rarely need to call this method directly. The preferred way is to use
+    /// [`Builder<ConnectedTerms>::annotate_gene`](`Builder::annotate_gene`)
+    pub fn add_gene(&mut self, gene_name: &str, gene_id: GeneId) {
+        if let Entry::Vacant(entry) = self.genes.entry(gene_id) {
+            entry.insert(Gene::new(gene_id, gene_name));
+        }
+    }
+
+    /// Adds an [`OmimDisease`](`crate::annotations::OmimDisease`) to the ontology
+    ///
+    /// The gene is not yet linked to any terms, this must be done
+    /// through [`Builder<ConnectedTerms>::annotate_omim_disease`](`Builder::annotate_omim_disease`)
+    ///
+    /// # Note:
+    ///
+    /// There is rarely need to call this method directly. The preferred way is to use
+    /// [`Builder<ConnectedTerms>::annotate_omim_disease`](`Builder::annotate_omim_disease`)
+    pub fn add_omim_disease(
+        &mut self,
+        omim_disease_name: &str,
+        omim_disease_id: OmimDiseaseId,
+    ) -> OmimDiseaseId {
+        match self.omim_diseases.entry(omim_disease_id) {
+            std::collections::hash_map::Entry::Occupied(_) => omim_disease_id,
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(OmimDisease::new(omim_disease_id, omim_disease_name));
+                omim_disease_id
+            }
+        }
+    }
+
+    /// Adds an [`OrphaDisease`](`crate::annotations::OrphaDisease`) to the ontology
+    ///
+    /// The gene is not yet linked to any terms, this must be done
+    /// through [`Builder<ConnectedTerms>::annotate_orpha_disease`](`Builder::annotate_orpha_disease`)
+    ///
+    /// # Note:
+    ///
+    /// There is rarely need to call this method directly. The preferred way is to use
+    /// [`Builder<ConnectedTerms>::annotate_orpha_disease`](`Builder::annotate_orpha_disease`)
+    pub fn add_orpha_disease(
+        &mut self,
+        orpha_disease_name: &str,
+        orpha_disease_id: OrphaDiseaseId,
+    ) -> OrphaDiseaseId {
+        match self.orpha_diseases.entry(orpha_disease_id) {
+            std::collections::hash_map::Entry::Occupied(_) => orpha_disease_id,
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(OrphaDisease::new(orpha_disease_id, orpha_disease_name));
+                orpha_disease_id
+            }
+        }
+    }
+
     /// Adds genes to the ontoloigy and connects them to connected terms
     ///
     /// This method is part of the Ontology-building, based on the binary
@@ -303,7 +715,7 @@ impl Builder<ConnectedTerms> {
     /// method assumes that the bytes encode all gene-term connections.
     ///
     /// See [`Gene::as_bytes`] for explanation of the binary layout
-    pub (crate) fn add_genes_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
+    pub(crate) fn add_genes_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
         let mut idx: usize = 0;
         loop {
             if idx >= bytes.len() {
@@ -329,7 +741,7 @@ impl Builder<ConnectedTerms> {
     /// method assumes that the bytes encode all Disease-term connections.
     ///
     /// See [`OmimDisease::as_bytes`] for explanation of the binary layout
-    pub (crate) fn add_omim_disease_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
+    pub(crate) fn add_omim_disease_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
         let mut idx: usize = 0;
         loop {
             if idx >= bytes.len() {
@@ -355,7 +767,7 @@ impl Builder<ConnectedTerms> {
     /// method assumes that the bytes encode all Disease-term connections.
     ///
     /// See [`OrphaDisease::as_bytes`] for explanation of the binary layout
-    pub (crate) fn add_orpha_disease_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
+    pub(crate) fn add_orpha_disease_from_bytes(&mut self, bytes: &[u8]) -> HpoResult<()> {
         let mut idx: usize = 0;
         loop {
             if idx >= bytes.len() {
@@ -372,37 +784,22 @@ impl Builder<ConnectedTerms> {
         Ok(())
     }
 
-    /// Add the [`Gene`] as annotation to the [`HpoTerm`]
+    /// Add the [`Gene`] as annotation to the [`HpoTerm`](`crate::HpoTerm`)
     ///
     /// The gene will be recursively connected to all parent `HpoTerms` as well.
     ///
-    /// This method does not add the HPO-term to the [`Gene`], this must be handled
-    /// by the client.
+    /// This method does not add the HPO-term to the [`Gene`], this
+    /// must be handled by the client.
     ///
     /// # Errors
     ///
-    /// If the HPO term is not present, an [`HpoError::DoesNotExist`] is returned
+    /// If the HPO term is not present, an [`HpoError`] is returned
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// use hpo::annotations::GeneId;
-    ///
-    /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Term-Foo".into(), 1u32);
-    /// ontology.add_gene("Foo", GeneId::from(5));
-    /// ontology.link_gene_term(1u32, GeneId::from(5u32)).unwrap();
-    ///
-    /// let term = ontology.hpo(1u32).unwrap();
-    /// assert_eq!(term.genes().next().unwrap().name(), "Foo");
-    /// ```
-    pub fn link_gene_term<I: Into<HpoTermId>>(
-        &mut self,
-        term_id: I,
-        gene_id: GeneId,
-    ) -> HpoResult<()> {
-        let term = self.hpo_terms.get_mut(term_id.into()).ok_or(HpoError::DoesNotExist)?;
+    fn link_gene_term(&mut self, term_id: HpoTermId, gene_id: GeneId) -> HpoResult<()> {
+        let term = self
+            .hpo_terms
+            .get_mut(term_id)
+            .ok_or(HpoError::DoesNotExist)?;
 
         if term.add_gene(gene_id) {
             // If the gene is already associated to the term, this branch will
@@ -416,7 +813,7 @@ impl Builder<ConnectedTerms> {
         Ok(())
     }
 
-    /// Add the [`OmimDisease`] as annotation to the [`HpoTerm`]
+    /// Add the [`OmimDisease`] as annotation to the [`HpoTerm`](`crate::HpoTerm`)
     ///
     /// The disease will be recursively connected to all parent `HpoTerms` as well.
     ///
@@ -427,26 +824,15 @@ impl Builder<ConnectedTerms> {
     ///
     /// If the HPO term is not present, an [`HpoError`] is returned
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// use hpo::annotations::{Disease, OmimDiseaseId};
-    ///
-    /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Term-Foo".into(), 1u32);
-    /// ontology.add_omim_disease("Foo", "5");
-    /// ontology.link_omim_disease_term(1u32, OmimDiseaseId::from(5u32)).unwrap();
-    ///
-    /// let term = ontology.hpo(1u32).unwrap();
-    /// assert_eq!(term.omim_diseases().next().unwrap().name(), "Foo");
-    /// ```
-    pub fn link_omim_disease_term<I: Into<HpoTermId>>(
+    fn link_omim_disease_term(
         &mut self,
-        term_id: I,
+        term_id: HpoTermId,
         omim_disease_id: OmimDiseaseId,
     ) -> HpoResult<()> {
-        let term = self.hpo_terms.get_mut(term_id.into()).ok_or(HpoError::DoesNotExist)?;
+        let term = self
+            .hpo_terms
+            .get_mut(term_id)
+            .ok_or(HpoError::DoesNotExist)?;
 
         if term.add_omim_disease(omim_disease_id) {
             // If the disease is already associated to the term, this branch will
@@ -460,7 +846,7 @@ impl Builder<ConnectedTerms> {
         Ok(())
     }
 
-    /// Add the [`OrphaDisease`] as annotation to the [`HpoTerm`]
+    /// Add the [`OrphaDisease`] as annotation to the [`HpoTerm`](`crate::HpoTerm`)
     ///
     /// The disease will be recursively connected to all parent `HpoTerms` as well.
     ///
@@ -471,26 +857,15 @@ impl Builder<ConnectedTerms> {
     ///
     /// If the HPO term is not present, an [`HpoError`] is returned
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    /// use hpo::annotations::{Disease, OrphaDiseaseId};
-    ///
-    /// let mut ontology = Ontology::default();
-    /// ontology.insert_term("Term-Foo".into(), 1u32);
-    /// ontology.add_orpha_disease("Foo", "5");
-    /// ontology.link_orpha_disease_term(1u32, OrphaDiseaseId::from(5u32)).unwrap();
-    ///
-    /// let term = ontology.hpo(1u32).unwrap();
-    /// assert_eq!(term.orpha_diseases().next().unwrap().name(), "Foo");
-    /// ```
-    pub fn link_orpha_disease_term<I: Into<HpoTermId>>(
+    fn link_orpha_disease_term(
         &mut self,
-        term_id: I,
+        term_id: HpoTermId,
         orpha_disease_id: OrphaDiseaseId,
     ) -> HpoResult<()> {
-        let term = self.hpo_terms.get_mut(term_id.into()).ok_or(HpoError::DoesNotExist)?;
+        let term = self
+            .hpo_terms
+            .get_mut(term_id)
+            .ok_or(HpoError::DoesNotExist)?;
 
         if term.add_orpha_disease(orpha_disease_id) {
             // If the disease is already associated to the term, this branch will
@@ -502,40 +877,6 @@ impl Builder<ConnectedTerms> {
             }
         }
         Ok(())
-    }
-
-    /// Calculates the [`crate::term::InformationContent`]s for every term
-    ///
-    /// This method should only be called **after** all terms are added,
-    /// connected and all genes and diseases are linked as well.
-    ///
-    /// It can be called repeatedly, all values are recalculated each time,
-    /// as long as the Ontology contains at least 1 gene/disease.
-    /// When no genes/diseases are present, the IC is not calculated nor updated.
-    ///
-    /// # Errors
-    ///
-    /// This method returns an error if there are more Genes or Terms than `u16::MAX`
-    /// because larger numbers can't be safely converted to `f32`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use hpo::Ontology;
-    ///
-    /// let mut ontology = Ontology::default();
-    ///
-    /// // [all kind of logic to add terms, diseases, genes....]
-    ///
-    /// ontology.calculate_information_content().unwrap();
-    /// ```
-    #[must_use]
-    pub fn calculate_information_content(mut self) -> HpoResult<Builder<FullyAnnotated>> {
-        self.calculate_gene_ic()?;
-        self.calculate_omim_disease_ic()?;
-        self.calculate_orpha_disease_ic()?;
-
-        Ok(transition_state(self))
     }
 
     /// Calculates the gene-specific Information Content for every term
@@ -580,30 +921,57 @@ impl Builder<ConnectedTerms> {
     }
 }
 
-
 impl Builder<FullyAnnotated> {
+    /// Builds the [`Ontology`] with default settings
+    ///
+    /// This method can only be used with the standard HPO from Jax
+    /// and will most likely not work with custom ontologies.
+    ///
+    /// # Errors
+    ///
+    /// This method requires that the main-category terms:
+    ///
+    /// - `HP:0000001 | All`
+    /// - `HP:0000118 | Phenotypic abnormality`
+    ///
+    /// are present in the Ontology.
     pub fn build_with_defaults(self) -> HpoResult<Ontology> {
-        let mut ont = Ontology { 
+        let mut ont = self.build_minimal();
+        ont.set_default_categories()?;
+        ont.set_default_modifier()?;
+        Ok(ont)
+    }
+
+    /// Builds the [`Ontology`]
+    ///
+    /// This method will not specify different phenotype
+    /// categories or modifier terms.
+    ///
+    /// Use this method only with custom ontologies. When using the standard
+    /// Jax ontology, use the recommended [`Builder::build_with_defaults`]
+    /// method.
+    pub fn build_minimal(self) -> Ontology {
+        Ontology {
             hpo_terms: self.hpo_terms,
             genes: self.genes,
             omim_diseases: self.omim_diseases,
             orpha_diseases: self.orpha_diseases,
             hpo_version: self.hpo_version,
             ..Default::default()
-        };
-        ont.set_default_categories()?;
-        ont.set_default_modifier()?;
-        Ok(ont)
+        }
     }
 }
 
 impl<T> Builder<T> {
+    /// Defines the HPO version of the Ontology
+    /// The version should be specified as \[YEAR\]-\[MONTH\]-\[DAY\], e.g.
+    /// `2024-08-21`
     pub fn set_hpo_version(&mut self, version: (u16, u8, u8)) {
         self.hpo_version = version;
     }
 
     /// Parses `Bytes` into the Jax-Ontology release version
-    pub (crate) fn hpo_version_from_bytes(&mut self, bytes: &Bytes) -> HpoResult<usize> {
+    pub(crate) fn hpo_version_from_bytes(&mut self, bytes: &Bytes) -> HpoResult<usize> {
         if bytes.version() == BinaryVersion::V1 {
             self.set_hpo_version((0u16, 0u8, 0u8));
             Ok(0)
@@ -619,51 +987,3 @@ impl<T> Builder<T> {
         }
     }
 }
-
-
-/*
-struct OntologyBuilder{}
-impl OntologyBuilder {
-    fn add_terms(&mut self, )
-}
-
-1. add terms
-2. connect terms to parents
-3. add genes or diseases
-4. connect genes or diseases with terms (2 must be finished)
-
-stateDiagram-v2
-    Builder --> Builder : add terms
-    Builder --> Builder: add annotations (gene, disease)
-    Builder --> Builder2: connect parents and children (add_parent())
-    Builder2 --> Builder3: cache all terms and parents (create_cache())
-    Builder2 --> Builder2: add annotations (gene, disease)
-    Builder3 --> Builder3: add annotations (gene, disease)
-    Builder3 --> Builder3: set_categories, set_modifier
-    Builder3 --> Builder3: link annotations to terms
-    Builder3 --> Builder4: calculate information content
-    Builder4 --> Builder4: set_categories, set_modifier
-
-
-Builder<LooseCollection>
-|
-add_parent()
-|
-V
-Builder<AllTerms>
-|
-crate_cache()
-|
-V
-Builder<ConnectedTerms>
-|
-calculate_information_content()
-|
-V
-Builder<FullyAnnotated>
-|
-ontology()
-|
-V
-Ontology
-*/

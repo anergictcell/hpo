@@ -30,7 +30,17 @@ pub use orpha_disease::{OrphaDisease, OrphaDiseaseId, OrphaDiseaseIterator, Orph
 /// The ID must be unique only within the annotation type, i.e. a gene and a disease
 /// can have the same ID.
 pub trait AnnotationId:
-    Clone + Copy + Debug + Hash + PartialEq + PartialOrd + Eq + Ord + Display + From<u32>
+    Clone
+    + Copy
+    + Debug
+    + Hash
+    + PartialEq
+    + PartialOrd
+    + Eq
+    + Ord
+    + Display
+    + From<u32>
+    + for<'a> TryFrom<&'a str>
 {
     /// Return the integer representation of the annotation ID
     fn as_u32(&self) -> u32;

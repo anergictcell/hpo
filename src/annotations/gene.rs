@@ -77,7 +77,7 @@ impl Gene {
     /// Initializes a new Gene
     ///
     /// This method should rarely, if ever, be used directly. The
-    /// preferred way to create new genes is through [`Ontology::add_gene`]
+    /// preferred way to create new genes is through [`Builder::annotate_gene`](`crate::builder::Builder::annotate_gene`)
     /// to ensure that each gene exists only once.
     pub fn new(id: GeneId, name: &str) -> Gene {
         Gene {
@@ -90,7 +90,7 @@ impl Gene {
     /// Initializes a new Gene from `str` values
     ///
     /// This method should rarely, if ever, be used directly. The
-    /// preferred way to create new genes is through [`Ontology::add_gene`]
+    /// preferred way to create new genes is through [`Builder::annotate_gene`](`crate::builder::Builder::annotate_gene`)
     /// to ensure that each gene exists only once.
     ///
     /// # Errors

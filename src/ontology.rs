@@ -1159,11 +1159,9 @@ impl Ontology {
                 let term_name = term.name().replace(' ', "\n");
                 let child_name = child.name().replace(' ', "\n");
                 code.push_str(&format!("\"{term_name}\" -> \"{child_name}\"\n"));
-                println!("In function:  {code}");
             }
         }
         code.push_str("}\n");
-        println!("At the end:  {code}");
         code
     }
 
@@ -1507,7 +1505,6 @@ mod test {
     }
 
     #[test]
-    #[ignore = "fails with weird \0 extra characters"]
     fn graphiv() {
         let test_terms = [
             ("Root", 1u32),
@@ -1519,10 +1516,10 @@ mod test {
 
         let mut v: Vec<u8> = Vec::new();
         for (name, id) in test_terms {
-            let t = HpoTermInternal::new(String::from(name), id.into());
+            let t = HpoTermInternal::new(name.into(), id.into());
             v.append(&mut t.as_bytes());
         }
-        ont.add_terms_from_bytes(Bytes::new(&v, parser::binary::BinaryVersion::V1));
+        ont.add_terms_from_bytes(Bytes::new(&v, parser::binary::BinaryVersion::V3));
         let mut ont = ont.terms_complete();
 
         ont.add_parent_unchecked(1u32, 2u32);

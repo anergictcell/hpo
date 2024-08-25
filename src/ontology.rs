@@ -27,7 +27,6 @@ use termarena::Arena;
 
 pub use builder::Builder;
 
-#[cfg_attr(doc, aquamarine::aquamarine)]
 /// `Ontology` is the main interface of the `hpo` crate and contains all data
 ///
 /// The [`Ontology`] struct holds all information about the ontology
@@ -117,6 +116,30 @@ pub use builder::Builder;
 /// [`Ontology`] does not contain a direct relationship between genes and diseases. This relation
 /// is only present indirectly via the connected [`HpoTerm`]s.
 ///
+/// ```text
+///    .----------.
+///    | Ontology |
+///    '----------'
+///         |
+///         |
+///      contains
+///         |
+///         |
+///         ^
+///    .---------.
+///    |         |----------.
+///    | HPOTerm |          |
+///    |         |>---is a -'
+///    '---------'
+///      v     v
+///      |     |
+///      |     |
+///      ^     ^
+/// .------. .---------.
+/// | Gene | | Disease |
+/// '------' '---------'
+/// ```
+///
 /// # Transivity of relations
 ///
 /// **New in 0.9.0**
@@ -126,32 +149,6 @@ pub use builder::Builder;
 /// But [`Gene`]s and [`OmimDisease`]s will only contain links to *direct* [`HpoTerm`]s. The annotations
 /// are not transitiv.
 ///
-/// ```mermaid
-/// erDiagram
-///     ONTOLOGY ||--|{ HPOTERM : contains
-///     HPOTERM ||--|{ HPOTERM : is_a
-///     HPOTERM }|--o{ DISEASE : phenotype_of
-///     HPOTERM }|--o{ GENE : phenotype_of
-///     HPOTERM {
-///         str name
-///         HpoTermId id
-///         HpoTerms parents
-///         HpoTerms children
-///         Genes genes
-///         OmimDiseases omim_diseases
-///     }
-///     DISEASE {
-///         str name
-///         OmimDiseaseId id
-///         HpoGroup hpo_terms
-///     }
-///     GENE {
-///         str name
-///         GeneId id
-///         HpoGroup hpo_terms
-///     }
-/// ```
-///
 /// # Relations of different public struct in this module
 ///
 /// The below diagram looks complicated at first, but the
@@ -160,77 +157,31 @@ pub use builder::Builder;
 /// The `HpoGroup` is more relevant for internal use, but can also be
 /// useful for fast set-based operations.
 ///
-/// ```mermaid
-/// classDiagram
-///     class Ontology {
-///         into_iter()
-///     }
+/// ```text
+///  ==============
+///  || Ontology ||
+///  ==============                                         ============
+///        |                                                || HPOSet ||
+///        |                                                ============
+///        v                                                     |
+///  ................                                            |
+///  : IntoIterator :                                            v
+///  ''''''''''''''''         .----------.                ................
+///        |                  | Combined | -------------> : IntoIterator :
+///        |                  '----------'                ''''''''''''''''
+///        v                       ^                             |
+///  .----------------.            |                             |
+///  | ontology::Iter |            |                             |
+///  '----------------'       ...ancestors()                     |
+///        |                       |                             |
+///        |                       |                             v
+///        |                  =============                 .------------.                  ==============
+///    iterates ------------> || HpoTerm || <-- iterates -- | term::Iter | ----collect----> || HpoGroup ||
+///                           =============                 '------------'                  ==============
+///                                 |                            ^
+///                                 |                            |
+///                                 '--- parents()/children() ---'
 ///
-///     class HpoTerm{
-///         - HpoTermId id
-///         - &Ontology
-///         parents() HpoTerms
-///         parent_ids() HpoGroup
-///         all_parent_ids() HpoGroup
-///         children() HpoTerms
-///         children_ids() HpoTerms
-///         common_ancestors() Combine
-///         union_ancestors() Combine
-///         many-more()
-///     }
-///
-///     class HpoGroup {
-///         - Set~HpoTermId~
-///         into_iter()
-///         terms()
-///     }
-///
-///     class HpoSet {
-///         - HpoGroup
-///         - &Ontology
-///         similarity(...) f32
-///         information_content()
-///     }
-///
-///     class HpoTermId {
-///         - u32: id
-///     }
-///
-///     class `ontology::Iter` {
-///         next() HpoTerm
-///     }
-///
-///     class `term::Iter` {
-///         next() HpoTerm
-///     }
-///
-///     class `group::Iter` {
-///         next() HpoTermId
-///     }
-///
-///     class Combine {
-///         - HpoGroup
-///         into_iter()
-///     }
-///
-///     Ontology ..|> `ontology::Iter`: hpos()
-///     HpoSet ..|> `term::Iter`: iter()
-///     HpoGroup ..|> `group::Iter`: iter()
-///     HpoGroup ..|> `term::Iter`: terms()
-///     Combine ..|> `term::Iter`: iter()
-///
-///     `ontology::Iter` --o HpoGroup: collect()
-///     `ontology::Iter` --* HpoTerm: iterates()
-///
-///     `term::Iter` --* HpoTerm: iterates()
-///     `term::Iter` --o HpoGroup: collect()
-///
-///     `group::Iter` --* HpoTermId: iterates()
-///     `group::Iter` --o HpoGroup: collect()
-///
-///     HpoTerm ..|> HpoGroup: parent_ids()/children_ids()
-///     HpoTerm ..|> `term::Iter`: parents()/children()
-///     HpoTerm ..|> `Combine`: ..._ancestors()
 /// ```
 ///
 /// # Example ontology
@@ -238,88 +189,7 @@ pub use builder::Builder;
 /// For all examples and tests in this documentation, we're using the
 /// following small subset of the full Ontology:
 ///
-/// ```mermaid
-/// graph TD
-/// HP:0011017["HP:0011017<br>
-/// Abnormal cellular physiology"]
-/// HP:0010662["HP:0010662<br>
-/// Abnormality of the diencephalon"]
-/// HP:0010662 --> HP:0012285
-/// HP:0000005["HP:0000005<br>
-/// Mode of inheritance"]
-/// HP:0000005 --> HP:0034345
-/// HP:0012648["HP:0012648<br>
-/// Decreased inflammatory response"]
-/// HP:0012443["HP:0012443<br>
-/// Abnormality of brain morphology"]
-/// HP:0012443 --> HP:0100547
-/// HP:0003674["HP:0003674<br>
-/// Onset"]
-/// HP:0003674 --> HP:0003581
-/// HP:0010978["HP:0010978<br>
-/// Abnormality of immune system physiology"]
-/// HP:0010978 --> HP:0012647
-/// HP:0000707["HP:0000707<br>
-/// Abnormality of the nervous system"]
-/// HP:0000707 --> HP:0012638
-/// HP:0000707 --> HP:0012639
-/// HP:0034345["HP:0034345<br>
-/// Mendelian inheritance"]
-/// HP:0034345 --> HP:0000007
-/// HP:0000001["HP:0000001<br>
-/// All"]
-/// HP:0000001 -----> HP:0000005
-/// HP:0000001 --> HP:0000118
-/// HP:0000001 --> HP:0012823
-/// HP:0000818["HP:0000818<br>
-/// Abnormality of the endocrine system"]
-/// HP:0000818 --> HP:0000864
-/// HP:0100547["HP:0100547<br>
-/// Abnormal forebrain morphology"]
-/// HP:0100547 ----> HP:0010662
-/// HP:0012647["HP:0012647<br>
-/// Abnormal inflammatory response"]
-/// HP:0012647 --> HP:0012648
-/// HP:0001939["HP:0001939<br>
-/// Abnormality of metabolism/homeostasis"]
-/// HP:0001939 --> HP:0011017
-/// HP:0001939 ---> HP:0025454
-/// HP:0003581["HP:0003581<br>
-/// Adult onset"]
-/// HP:0012823["HP:0012823<br>
-/// Clinical modifier"]
-/// HP:0012823 --> HP:0031797
-/// HP:0012285["HP:0012285<br>
-/// Abnormal hypothalamus physiology"]
-/// HP:0012638["HP:0012638<br>
-/// Abnormal nervous system physiology"]
-/// HP:0012638 ----> HP:0012285
-/// HP:0000118["HP:0000118<br>
-/// Phenotypic abnormality"]
-/// HP:0000118 --> HP:0000707
-/// HP:0000118 --> HP:0000818
-/// HP:0000118 --> HP:0001939
-/// HP:0000118 -----> HP:0002715
-/// HP:0002011["HP:0002011<br>
-/// Morphological central nervous system abnormality"]
-/// HP:0002011 --> HP:0012443
-/// HP:0031797["HP:0031797<br>
-/// Clinical course"]
-/// HP:0031797 --> HP:0003674
-/// HP:0012639["HP:0012639<br>
-/// Abnormal nervous system morphology"]
-/// HP:0012639 --> HP:0002011
-/// HP:0002715["HP:0002715<br>
-/// Abnormality of the immune system"]
-/// HP:0002715 --> HP:0010978
-/// HP:0025454["HP:0025454<br>
-/// Abnormal CSF metabolite concentration"]
-/// HP:0000007["HP:0000007<br>
-/// Autosomal recessive inheritance"]
-/// HP:0000864["HP:0000864<br>
-/// Abnormality of the hypothalamus-pituitary axis"]
-/// HP:0000864 ---> HP:0012285
-/// ```
+/// ![Diagram of Example ontology](https://github.com/user-attachments/assets/0fa29033-e4cc-4bc6-aed3-123162629ca4)
 #[derive(Default, Clone)]
 pub struct Ontology {
     hpo_terms: Arena,

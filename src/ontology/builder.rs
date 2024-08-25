@@ -312,7 +312,8 @@ impl Builder<AllTerms> {
     /// # Panics
     ///
     /// This method will panic if the length of bytes does not exactly correspond
-    /// to the contained data
+    /// to the contained data or if a `parent_id` or `child_id` is not present
+    /// in the Ontology
     pub(crate) fn add_parent_from_bytes(&mut self, bytes: &[u8]) {
         let mut idx: usize = 0;
         loop {
@@ -793,7 +794,7 @@ impl Builder<ConnectedTerms> {
     ///
     /// # Errors
     ///
-    /// If the HPO term is not present, an [`HpoError`] is returned
+    /// If the HPO term is not present, an [`HpoError::DoesNotExist`] is returned
     ///
     fn link_gene_term(&mut self, term_id: HpoTermId, gene_id: GeneId) -> HpoResult<()> {
         let term = self
@@ -971,6 +972,10 @@ impl<T> Builder<T> {
     }
 
     /// Parses `Bytes` into the Jax-Ontology release version
+    ///
+    /// # Errors
+    ///
+    /// - Wrong HPO-version format: [`HpoError::ParseBinaryError`]
     pub(crate) fn hpo_version_from_bytes(&mut self, bytes: &Bytes) -> HpoResult<usize> {
         if bytes.version() == BinaryVersion::V1 {
             self.set_hpo_version((0u16, 0u8, 0u8));

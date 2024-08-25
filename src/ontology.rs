@@ -69,50 +69,66 @@ pub use builder::Builder;
 ///
 /// # Construction
 ///
-/// There are two main ways to build the Ontology
-/// 1. Download the standard annotation data from
-///     [Jax HPO](https://hpo.jax.org/) itself.
-///     Then use [`Ontology::from_standard`] to load the data.
-///     You need the following files:
-///     - `phenotype.hpoa` (Required to connect [`OmimDisease`]s to [`HpoTerm`]s)
-///     - `genes_to_phenotype.txt` (Required to connect [`Gene`]s to [`HpoTerm`]s)
-///         - alternatively: `phenotype_to_genes.txt` (use [`Ontology::from_standard_transitive`])
-///     - `hp.obo` (Required for [`HpoTerm`]s and their connection to each other)
-/// 2. Load the ontology from a binary build using [`Ontology::from_binary`].
+/// There are several ways to build the Ontology
 ///
-///     The [Github repository](https://github.com/anergictcell/hpo) of this crate
-///     contains a binary build of the ontology
-///     <https://github.com/anergictcell/hpo/blob/main/tests/ontology.hpo>.
-///     The snapshot will not always be up to date, so please double-check yourself.
+/// ## Using the built-in binary Ontolgy
 ///
-///     You can crate your own binary build of the ontology using the
-///     `examples/obo_to_bin.rs` example.
+/// The [Github repository](https://github.com/anergictcell/hpo) of this crate
+/// contains a binary build of the ontology
+/// <https://github.com/anergictcell/hpo/blob/main/tests/ontology.hpo> that can
+/// be used to construct an Ontology. This is the most convenient way, but has
+/// one small downside: The snapshot of the binary build will not always be up
+/// to date, so please double-check the version yourself or create your own copy.
 ///
-///     `cargo run --example --release obo_to_bin <PATH TO FOLDER WITH JAX DATA> <OUTPUT FILENAME>`
+/// see [`Ontolgy::from_binary`](`crate::Ontology::from_binary`)
 ///
-/// You can also build it all by yourself (not recommended), in which case you
-/// will have to:
-/// 1. construct an empty Ontology [`Ontology::default`]
-/// 2. Add all terms [`Ontology::insert_term`]
-/// 3. Connect terms to their parents [`Ontology::add_parent`]
-/// 4. Cache all parent, child and grandparent connections [`Ontology::create_cache`]
-/// 5. Add genes and diseases to the ontology
-///     - [`Ontology::add_gene`] and [`Ontology::add_omim_disease`]
-///     - Connect genes and diseases to the [`HpoTerm`]s using
-///         [`Ontology::link_gene_term`] and [`Ontology::link_omim_disease_term`]
-///         (this will automatically take care of "inheriting" the connection to all
-///         parent terms)
-///     - make sure to also add the linked terms to the genes and diseases
-///         [`Gene::add_term`] and [`OmimDisease::add_term`]
-/// 6. Calculate the information content [`Ontology::calculate_information_content`]
+/// ```no_run
+/// use hpo::Ontology;
 ///
+/// let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
+///
+/// println!("HPO version: {}", ontology.hpo_version())
+/// ```
+///
+/// ## Using the Ontology data provided by JAX
+///
+/// HPO is maintained by [Jax HPO](https://hpo.jax.org/) and they provide
+/// all masterdata to download. To construct an Ontology you need the files:
+///
+/// - `hp.obo` (Required for [`HpoTerm`]s and their connection to each other)
+/// - `phenotype.hpoa` (Required to connect [`OmimDisease`]s to [`HpoTerm`]s)
+/// - `genes_to_phenotype.txt` (Required to connect [`Gene`]s to [`HpoTerm`]s)
+///
+/// You must download the files into a local folder and then specify the path
+/// to the folder, see [`Ontolgy::from_standard`](`crate::Ontology::from_standard`)
+///
+/// ```bash
+/// wget https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/hp.obo
+/// wget https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/phenotype.hpoa
+/// wget https://github.com/obophenotype/human-phenotype-ontology/releases/latest/download/genes_to_phenotype.txt
+/// ```
+///
+/// ```no_run
+/// use hpo::Ontology;
+///
+/// let ontology = Ontology::from_standard("/path/to/jax_hpo_data/").unwrap();
+///
+/// println!("HPO version: {}", ontology.hpo_version())
+/// ```
+///
+/// ## Custom creation of an Ontology
+///
+/// `hpo` provides an interface to create your own Ontology. This is not
+/// really recommended, though, because there are a few footguns along the
+/// way. For more information, check the [`Builder`](`crate::builder::Builder`)
+/// struct for more information.
 ///
 /// # Layout
 ///
 /// The [`Ontology`] contains all terms and all associated genes and diseases.
 /// [`HpoTerm`]s are connected to each other in a directed relationship. Every term
 /// (except the term `All`) has at least one parent term in an `is_a` relationship.
-/// Terms and [`crate::annotations`] ([`Gene`]s, [`OmimDisease`]s) have a many-to-many relationship. The
+/// Terms and [`crate::annotations`] ([`Gene`]s, [`OmimDisease`]s, [`OrphaDisease`]s) have a many-to-many relationship. The
 /// [`Ontology`] does not contain a direct relationship between genes and diseases. This relation
 /// is only present indirectly via the connected [`HpoTerm`]s.
 ///
@@ -329,12 +345,15 @@ impl Ontology {
     ///
     /// This method can fail for various reasons:
     ///
-    /// - Binary file not available: [`HpoError::CannotOpenFile`]
-    /// - `Ontology::add_genes_from_bytes` failed (TODO)
-    /// - `Ontology::add_omim_disease_from_bytes` failed (TODO)
-    /// - `add_terms_from_bytes` failed (TODO)
-    /// - `add_parent_from_bytes` failed (TODO)
-    /// - Size of binary data does not match the content: [`HpoError::ParseBinaryError`]
+    /// - Binary file not available or readable: [`HpoError::CannotOpenFile`]
+    /// - Invalid data provided: [`HpoError::ParseBinaryError`]
+    /// - Invalid binary version: [`HpoError::NotImplemented`]
+    /// - Invalid reference to terms: [`HpoError::DoesNotExist`]
+    ///
+    /// # Panics
+    ///
+    /// The method can panic if the provided data is incorrectly formatted or
+    /// contains invalid references between terms, genes or diseases
     ///
     /// # Examples
     ///
@@ -390,14 +409,14 @@ impl Ontology {
     ///
     /// This method can fail for various reasons:
     ///
-    /// - Too few bytes or an invalid version
-    /// - `Ontology::hpo_version_from_bytes` failed
-    /// - `Ontology::add_genes_from_bytes` failed
-    /// - `Ontology::add_omim_disease_from_bytes` failed
-    /// - `add_terms_from_bytes` failed
-    /// - `add_parent_from_bytes` failed
-    /// - Size of binary data does not match the content: [`HpoError::ParseBinaryError`]
+    /// - Invalid data provided: [`HpoError::ParseBinaryError`]
+    /// - Invalid binary version: [`HpoError::NotImplemented`]
+    /// - Invalid reference to terms: [`HpoError::DoesNotExist`]
     ///
+    /// # Panics
+    ///
+    /// The method can panic if the provided data is incorrectly formatted or
+    /// contains invalid references between terms, genes or diseases
     ///
     /// # Examples
     ///

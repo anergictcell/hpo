@@ -2,6 +2,14 @@
 use crate::parser::binary::Bytes;
 use crate::{HpoError, HpoResult};
 
+/// Identifies the encoding version of the provided binary data
+///
+/// # Errors
+///
+/// This method can fail for the following reasons:
+/// - Incorrect byte encoding: [`HpoError::ParseBinaryError`]
+/// - Invalid version: [`HpoError::NotImplemented`]
+///
 pub(crate) fn version(bytes: &[u8]) -> HpoResult<Bytes> {
     if bytes.len() < 5 {
         return Err(HpoError::ParseBinaryError);

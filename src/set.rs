@@ -759,11 +759,32 @@ impl<'b, 'a> Extend<HpoTerm<'b>> for HpoSet<'a> {
 
 #[cfg(test)]
 mod test {
+    use crate::ontology::builder::{AllTerms, ConnectedTerms, LooseCollection};
+    use crate::ontology::Builder;
     use crate::similarity::{Builtins, StandardCombiner};
     use crate::term::internal::HpoTermInternal;
     use crate::term::HpoGroup;
     use crate::term::InformationContentKind;
     use crate::{HpoSet, Ontology};
+
+    fn builder_from_ontology(ont: &Ontology) -> Builder<LooseCollection> {
+        let mut builder = Builder::new();
+        for term in ont {
+            builder.add_term(ont.get_unchecked(term.id()).clone());
+        }
+        builder
+    }
+
+    fn connect_terms(ont: &Ontology, mut builder: Builder<AllTerms>) -> Builder<ConnectedTerms> {
+        for term in ont {
+            for parent in term.parents() {
+                builder
+                    .add_parent(parent.id(), term.id())
+                    .expect("Term or parent must be present in builder");
+            }
+        }
+        builder.connect_all_terms()
+    }
 
     #[test]
     fn test() {
@@ -798,12 +819,19 @@ mod test {
 
     #[test]
     fn test_obsolete() {
-        let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let mut builder = builder_from_ontology(&ontology);
 
         let mut obsolete_term = HpoTermInternal::new("Obsolete: Foo".to_string(), 666u32.into());
         *obsolete_term.obsolete_mut() = true;
+        builder.add_term(obsolete_term);
 
-        ontology.add_term(obsolete_term);
+        let builder = connect_terms(&ontology, builder.terms_complete());
+        let ontology = builder
+            .calculate_information_content()
+            .expect("Able to calculate IC in tests")
+            .build_with_defaults()
+            .expect("Able to build Ontology in tests");
 
         let mut hpos = HpoGroup::new();
         hpos.insert(707u32);
@@ -824,11 +852,19 @@ mod test {
 
     #[test]
     fn test_with_replaced_obsolete() {
-        let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let mut builder = builder_from_ontology(&ontology);
 
         let mut obsolete_term = HpoTermInternal::new("Obsolete: Foo".to_string(), 666u32.into());
         *obsolete_term.replacement_mut() = Some(25454u32.into());
-        ontology.add_term(obsolete_term.clone());
+        builder.add_term(obsolete_term);
+
+        let builder = connect_terms(&ontology, builder.terms_complete());
+        let ontology = builder
+            .calculate_information_content()
+            .expect("Able to calculate IC in tests")
+            .build_with_defaults()
+            .expect("Able to build Ontology in tests");
 
         let mut hpos = HpoGroup::new();
         hpos.insert(707u32);
@@ -852,11 +888,19 @@ mod test {
 
     #[test]
     fn test_replace_obsolete() {
-        let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+        let mut builder = builder_from_ontology(&ontology);
 
         let mut obsolete_term = HpoTermInternal::new("Obsolete: Foo".to_string(), 666u32.into());
         *obsolete_term.replacement_mut() = Some(25454u32.into());
-        ontology.add_term(obsolete_term.clone());
+        builder.add_term(obsolete_term);
+
+        let builder = connect_terms(&ontology, builder.terms_complete());
+        let ontology = builder
+            .calculate_information_content()
+            .expect("Able to calculate IC in tests")
+            .build_with_defaults()
+            .expect("Able to build Ontology in tests");
 
         let mut hpos = HpoGroup::new();
         hpos.insert(707u32);

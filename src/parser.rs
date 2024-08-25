@@ -2,7 +2,9 @@
 
 use std::path::Path;
 
-use crate::{HpoResult, Ontology};
+use builder::Builder;
+
+use crate::{ontology::builder, HpoResult, Ontology};
 
 pub(crate) mod binary;
 /// Module to parse `hp.obo` file
@@ -15,6 +17,8 @@ pub(crate) mod hp_obo;
 pub(crate) mod gene_to_hpo {
 
     use crate::annotations::GeneId;
+    use crate::ontology::builder::ConnectedTerms;
+    use crate::ontology::Builder;
     use crate::parser::Path;
     use crate::HpoError;
     use crate::HpoResult;
@@ -23,7 +27,6 @@ pub(crate) mod gene_to_hpo {
     use std::io::BufReader;
 
     use crate::HpoTermId;
-    use crate::Ontology;
 
     struct ParsedGene<'a> {
         ncbi_id: GeneId,
@@ -131,9 +134,9 @@ pub(crate) mod gene_to_hpo {
     /// ```
     pub fn parse_genes_to_phenotype<P: AsRef<Path>>(
         file: P,
-        ontology: &mut Ontology,
+        builder: &mut Builder<ConnectedTerms>,
     ) -> HpoResult<()> {
-        parse(file, ontology, genes_to_phenotype_line)
+        parse(file, builder, genes_to_phenotype_line)
     }
 
     /// Parse `phenotype_to_genes.txt` file
@@ -146,15 +149,15 @@ pub(crate) mod gene_to_hpo {
     /// ```
     pub fn parse_phenotype_to_genes<P: AsRef<Path>>(
         file: P,
-        ontology: &mut Ontology,
+        builder: &mut Builder<ConnectedTerms>,
     ) -> HpoResult<()> {
-        parse(file, ontology, phenotype_to_gene_line)
+        parse(file, builder, phenotype_to_gene_line)
     }
 
     /// Parses a file to connect genes to HPO terms
     fn parse<P: AsRef<Path>, F: Fn(&str) -> HpoResult<ParsedGene<'_>>>(
         file: P,
-        ontology: &mut Ontology,
+        builder: &mut Builder<ConnectedTerms>,
         parse_line: F,
     ) -> HpoResult<()> {
         let filename = file.as_ref().display().to_string();
@@ -169,13 +172,7 @@ pub(crate) mod gene_to_hpo {
             })?;
 
             let gene = parse_line(&line)?;
-
-            ontology.add_gene(gene.symbol, gene.ncbi_id);
-            ontology.link_gene_term(gene.hpo, gene.ncbi_id)?;
-            ontology
-                .gene_mut(&gene.ncbi_id)
-                .expect("Gene is present because it was just add_omim_disease")
-                .add_term(gene.hpo);
+            builder.annotate_gene(gene.ncbi_id, gene.symbol, gene.hpo)?;
         }
         Ok(())
     }
@@ -342,7 +339,10 @@ pub(crate) mod gene_to_hpo {
 /// ```
 ///
 pub(crate) mod disease_to_hpo {
-    use crate::annotations::Disease;
+    use crate::annotations::OmimDiseaseId;
+    use crate::annotations::OrphaDiseaseId;
+    use crate::ontology::builder::ConnectedTerms;
+    use crate::ontology::Builder;
     use crate::HpoError;
     use crate::HpoResult;
     use crate::HpoTermId;
@@ -350,8 +350,6 @@ pub(crate) mod disease_to_hpo {
     use std::io::BufRead;
     use std::io::BufReader;
     use std::path::Path;
-
-    use crate::Ontology;
 
     enum DiseaseKind<'a> {
         Omim(DiseaseComponents<'a>),
@@ -364,6 +362,16 @@ pub(crate) mod disease_to_hpo {
         hpo_id: HpoTermId,
     }
 
+    impl<'a> DiseaseComponents<'a> {
+        fn omim_disease_id(&self) -> HpoResult<OmimDiseaseId> {
+            OmimDiseaseId::try_from(self.id)
+        }
+
+        fn orpha_disease_id(&self) -> HpoResult<OrphaDiseaseId> {
+            OrphaDiseaseId::try_from(self.id)
+        }
+    }
+
     fn parse_line(line: &str) -> HpoResult<Option<DiseaseKind<'_>>> {
         if line.starts_with("OMIM") {
             Ok(parse_disease_components(line)?.map(DiseaseKind::Omim))
@@ -374,7 +382,7 @@ pub(crate) mod disease_to_hpo {
         }
     }
 
-    fn parse_disease_components(line: &str) -> HpoResult<Option<DiseaseComponents<'_>>> {
+    fn parse_disease_components(line: &str) -> HpoResult<Option<DiseaseComponents>> {
         let mut cols = line.trim().splitn(5, '\t');
 
         let Some(id_col) = cols.next() else {
@@ -413,7 +421,7 @@ pub(crate) mod disease_to_hpo {
     /// - [`HpoError::CannotOpenFile`]: Source file not present or can't be opened
     /// - [`HpoError::ParseIntError`]: A line contains an invalid `omim_disease_id`
     /// - [`HpoError::DoesNotExist`]: A line contains a non-existing [`HpoTermId`]
-    pub fn parse<P: AsRef<Path>>(file: P, ontology: &mut Ontology) -> HpoResult<()> {
+    pub fn parse<P: AsRef<Path>>(file: P, builder: &mut Builder<ConnectedTerms>) -> HpoResult<()> {
         let filename = file.as_ref().display().to_string();
         let file = File::open(file).map_err(|_| HpoError::CannotOpenFile(filename))?;
         let reader = BufReader::new(file);
@@ -421,22 +429,18 @@ pub(crate) mod disease_to_hpo {
             let line = line.unwrap();
             match parse_line(&line)? {
                 Some(DiseaseKind::Omim(omim)) => {
-                    let omim_disease_id = ontology.add_omim_disease(omim.name, omim.id)?;
-                    ontology.link_omim_disease_term(omim.hpo_id, omim_disease_id)?;
-
-                    ontology
-                        .omim_disease_mut(&omim_disease_id)
-                        .ok_or(HpoError::DoesNotExist)?
-                        .add_term(omim.hpo_id);
+                    builder.annotate_omim_disease(
+                        omim.omim_disease_id()?,
+                        omim.name,
+                        omim.hpo_id,
+                    )?;
                 }
                 Some(DiseaseKind::Orpha(orpha)) => {
-                    let orpha_disease_id = ontology.add_orpha_disease(orpha.name, orpha.id)?;
-                    ontology.link_orpha_disease_term(orpha.hpo_id, orpha_disease_id)?;
-
-                    ontology
-                        .orpha_disease_mut(&orpha_disease_id)
-                        .ok_or(HpoError::DoesNotExist)?
-                        .add_term(orpha.hpo_id);
+                    builder.annotate_orpha_disease(
+                        orpha.orpha_disease_id()?,
+                        orpha.name,
+                        orpha.hpo_id,
+                    )?;
                 }
                 _ => {}
             }
@@ -526,22 +530,28 @@ pub(crate) fn load_from_jax_files_with_transivitve_genes<P: AsRef<Path>>(
     obo_file: P,
     gene_file: P,
     disease_file: P,
-    ontology: &mut Ontology,
-) -> HpoResult<()> {
-    hp_obo::read_obo_file(obo_file, ontology)?;
-    gene_to_hpo::parse_phenotype_to_genes(gene_file, ontology)?;
-    disease_to_hpo::parse(disease_file, ontology)?;
-    Ok(())
+) -> HpoResult<Ontology> {
+    let builder = Builder::new();
+    let builder = hp_obo::read_obo_file(obo_file, builder)?;
+    let mut builder = builder.connect_all_terms();
+    gene_to_hpo::parse_phenotype_to_genes(gene_file, &mut builder)?;
+    disease_to_hpo::parse(disease_file, &mut builder)?;
+    builder
+        .calculate_information_content()?
+        .build_with_defaults()
 }
 
 pub(crate) fn load_from_jax_files<P: AsRef<Path>>(
     obo_file: P,
     gene_file: P,
     disease_file: P,
-    ontology: &mut Ontology,
-) -> HpoResult<()> {
-    hp_obo::read_obo_file(obo_file, ontology)?;
-    gene_to_hpo::parse_genes_to_phenotype(gene_file, ontology)?;
-    disease_to_hpo::parse(disease_file, ontology)?;
-    Ok(())
+) -> HpoResult<Ontology> {
+    let builder = Builder::new();
+    let builder = hp_obo::read_obo_file(obo_file, builder)?;
+    let mut builder = builder.connect_all_terms();
+    gene_to_hpo::parse_genes_to_phenotype(gene_file, &mut builder)?;
+    disease_to_hpo::parse(disease_file, &mut builder)?;
+    builder
+        .calculate_information_content()?
+        .build_with_defaults()
 }

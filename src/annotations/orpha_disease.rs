@@ -72,7 +72,7 @@ impl Disease for OrphaDisease {
     /// Initializes a new Orpha disease
     ///
     /// This method should rarely, if ever, be used directly. The
-    /// preferred way to create new genes is through [`crate::Ontology::add_orpha_disease`]
+    /// preferred way to create new genes is through [`Builder::annotate_orpha_disease`](`crate::builder::Builder::annotate_orpha_disease`)
     /// to ensure that each disease exists only once.
     fn new(id: Self::AnnoID, name: &str) -> OrphaDisease {
         Self {

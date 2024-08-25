@@ -72,7 +72,7 @@ impl Disease for OmimDisease {
     /// Initializes a new OMIM disease
     ///
     /// This method should rarely, if ever, be used directly. The
-    /// preferred way to create new genes is through [`crate::Ontology::add_omim_disease`]
+    /// preferred way to create new genes is through [`Builder::annotate_omim_disease`](`crate::builder::Builder::annotate_omim_disease`)
     /// to ensure that each disease exists only once.
     fn new(id: Self::AnnoID, name: &str) -> OmimDisease {
         Self {

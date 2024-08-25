@@ -3,7 +3,10 @@ use tracing::{error, trace, warn};
 use crate::{parser::Path, HpoError, HpoResult};
 use std::fs;
 
-use crate::{term::internal::HpoTermInternal, HpoTermId, Ontology};
+use crate::{term::internal::HpoTermInternal, HpoTermId};
+
+use crate::ontology::builder::{AllTerms, LooseCollection};
+use crate::ontology::Builder;
 
 /// Links terms to each other (Child - Parent)
 ///
@@ -21,7 +24,10 @@ type Connections = Vec<(HpoTermId, HpoTermId)>;
 ///
 /// If you use this function you cannot add additional terms or
 /// parents afterwards, since all dependency data will be already cached.
-pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology) -> HpoResult<()> {
+pub(super) fn read_obo_file<P: AsRef<Path>>(
+    filename: P,
+    mut builder: Builder<LooseCollection>,
+) -> HpoResult<Builder<AllTerms>> {
     // stores tuples of Term - Parent
     let mut connections: Connections = Vec::new();
 
@@ -34,14 +40,15 @@ pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology
     for term in file_content.split("\n\n") {
         if let Some(term) = term.strip_prefix("[Term]\n") {
             if let Some(raw_term) = term_from_obo(term) {
-                let id = ontology.add_term(raw_term);
+                let id = *raw_term.id();
+                builder.add_term(raw_term);
                 add_connections(&mut connections, term, id);
             } else {
                 warn!("Unable to parse: {}", term);
             }
         } else if term.starts_with("format-version: 1.2") {
             trace!("Parsing the header");
-            ontology.set_hpo_version(version_from_obo(term).unwrap_or_else(|| {
+            builder.set_hpo_version(version_from_obo(term).unwrap_or_else(|| {
                 warn!("No HPO Ontology version detected");
                 (0u16, 0u8, 0u8)
             }));
@@ -50,12 +57,13 @@ pub(super) fn read_obo_file<P: AsRef<Path>>(filename: P, ontology: &mut Ontology
         }
     }
 
+    let mut builder = builder.terms_complete();
+
     for (child, parent) in connections {
-        ontology.add_parent(parent, child);
+        builder.add_parent_unchecked(parent, child);
     }
 
-    ontology.create_cache();
-    Ok(())
+    Ok(builder)
 }
 
 fn version_from_obo(header: &str) -> Option<(u16, u8, u8)> {
@@ -124,12 +132,16 @@ mod test {
     // use std::fs;
 
     use super::*;
-    use crate::Ontology;
 
     #[test]
     fn split_terms() {
-        let mut ont = Ontology::default();
-        read_obo_file("tests/small.obo", &mut ont).unwrap();
+        let builder = Builder::new();
+        let builder = read_obo_file("tests/small.obo", builder).unwrap();
+        let ont = builder
+            .connect_all_terms()
+            .calculate_information_content()
+            .unwrap()
+            .build_minimal();
 
         assert_eq!(ont.len(), 4);
 

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.11.0]
+
+### Refactor
+
+- [**breaking**] Add `Builder` to build Ontology. This removes several methods from `Ontology`.
+- Remove aquamarine dependency, update docs
+
+
 ## [0.10.1]
 
 ### Refactor

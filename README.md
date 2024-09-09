@@ -1,20 +1,22 @@
 # HPO
 
-This library is a Rust implementation of [PyHPO](https://pypi.org/project/pyhpo/).
-
-## What is this?
-
 HPO, the [Human Phenotype Ontology](https://hpo.jax.org/app/) is a standard vocabulary of phenotypic abnormalities in human diseases. It is an Ontology, so all terms are connected to each other, similar to a directed graph.  
 
 This library provides convenient APIs to work with the ontology. The main goals are to compare terms - or sets of terms - to each other and run statistics for enrichment analysis.
 
+This library is basically a Rust implementation of [PyHPO](https://pypi.org/project/pyhpo/), but contains some additional features as well.
+
+
 ### Features
-- Calculate the similarity of HPO terms
-- Calculate the similarity of multiple sets of HPO terms (e.g. a patient's clinical information)
-- Enrichment analysis of genes and diseases in sets of HPO terms
-- Compare different HPO versions
-- Graph based analysis of the ontology
+
+- 👫 Identify patient cohorts based on clinical features
+- 👨‍👧‍👦 Cluster patients or other clinical information for GWAS
+- 🩻→🧬 Phenotype to Genotype studies
+- 🍎🍊 HPO similarity analysis
+- 🕸️ Graph based analysis of phenotypes, genes and diseases
+- 🔬 Enrichment analysis of genes and diseases in sets of HPO terms
 - Completely written in Rust, so it's **🚀blazingly fast🚀**<sup>TM</sup> ([Benchmarks](#benchmarks))
+
 
 ## What is the current state?
 
@@ -24,7 +26,9 @@ The API is mostly stable, but I might refactor some parts a bit for easier use a
 
 If you find this project interesting and want to contribute, please get in touch, I could definitely need some help.
 
+
 ## Documentation
+
 The public API is fully documented on [`docs.rs`](https://docs.rs/hpo/latest/hpo/)
 
 The main structs used in `hpo` are:
@@ -42,40 +46,18 @@ The most relevant modules are:
 
 
 ## Examples
+
 Some (more or less random) examples are included in the [`examples` folder](https://github.com/anergictcell/hpo/tree/main/examples).
 
-HPO data must be downloaded first from  [Jax HPO](https://hpo.jax.org/) itself. You need the following files:
-- [phenotype.hpoa](https://hpo.jax.org/app/data/annotations) available as "Download HPO annotations" (Required to connect `OmimDisease` to `HpoTerm`s
-- [genes_to_phenotype.txt](https://hpo.jax.org/app/data/annotations) available as "Genes to Phenotype" (Required to connect `Gene` to `HpoTerm`)
-- [hp.obo](https://hpo.jax.org/app/data/ontology) (Required for `HpoTerm`s and their connection to each other)
-
-1. Data can be loaded directly from the code with  [`Ontology::from_standard`]:
-```no_run
-use hpo::Ontology;
-let ontology = Ontology::from_standard("/path/to/master-data/").unwrap();
-```
-
-2. Or it can be converted to a localy binary by copy  `examples/obo_to_bin.rs` into your project, then run 
-```sh
-cargo run --example --release obo_to_bin <PATH TO FOLDER WITH JAX DATA> <OUTPUT FILENAME>`
-```
-
-Finally, load the data using [`Ontology::from_binary`]:
-
-```no_run
-use hpo::Ontology;
-let ontology = Ontology::from_binary("your-hpo-binary.hpo").unwrap();
-```
-
-3. Another possibility is to use the snapshot from the [Github repository](https://github.com/anergictcell/hpo) of this crate which contains a binary build of the ontology <https://github.com/anergictcell/hpo/blob/main/tests/ontology.hpo>. IT will not always be up to date, so please double-check yourself.
 
 ### Ontology
+
 ```rust
 use hpo::{Ontology, HpoTermId};
 use hpo::annotations::{GeneId, OmimDiseaseId, OrphaDiseaseId};
 
 fn example() {
-    let ontology = Ontology::from_standard("/path/to/master-data/").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
     // iterate HPO terms
     for term in &ontology {
@@ -123,11 +105,12 @@ fn example() {
 ```
 
 ### HPO term
+
 ```rust
 use hpo::Ontology;
 
 fn example() {
-    let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
     let term = ontology.hpo(123u32).unwrap();
 
@@ -152,13 +135,14 @@ fn example() {
 ```
 
 ### Similarity
+
 ```rust
 use hpo::Ontology;
 use hpo::similarity::GraphIc;
 use hpo::term::InformationContentKind;
 
 fn example() {
-    let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
     let term1 = ontology.hpo(123u32).unwrap();
     let term2 = ontology.hpo(1u32).unwrap();
 
@@ -168,6 +152,7 @@ fn example() {
 ```
 
 ### Enrichment
+
 Identify which genes (or diseases) are enriched in a set of `HpoTerm`s, e.g. in
 the clinical information of a patient or patient cohort
 
@@ -177,7 +162,7 @@ use hpo::{HpoSet, term::HpoGroup};
 use hpo::stats::hypergeom::gene_enrichment;
 
 fn example() {
-    let ontology = Ontology::from_binary("/path/to/binary.hpo").unwrap();
+    let ontology = Ontology::from_binary("tests/ontology.hpo").unwrap();
 
     let mut hpos = HpoGroup::new();
     hpos.insert(2943u32);
@@ -200,7 +185,9 @@ fn example() {
 }
 ```
 
+
 ## Benchmarks
+
 As the saying goes: "Make it work, make it good, make it fast". The *work* and *good* parts are realized in [PyHPO](https://pypi.org/project/pyhpo/). And even though I tried my best to make it *fast*, I was still hungry for more. So I started developing the `hpo` Rust library in December 2022. Even without micro-benchmarking and tuning performance as much as I did for `PyHPO`, `hpo` is indeed much much faster already now.
 
 The below benchmarks were run non scientificially and your mileage may vary. I used a MacBook Air M1, `rustc 1.68.0`, `Python 3.9` and `/usr/bin/time` for timing.
@@ -216,4 +203,5 @@ The below benchmarks were run non scientificially and your mileage may vary. I u
 
 
 ## Technical design
+
 There is some info about the plans for the implementation in the [Technical Design document](https://github.com/anergictcell/hpo/blob/main/TechnicalDesign.md)

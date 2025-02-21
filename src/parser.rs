@@ -362,7 +362,7 @@ pub(crate) mod disease_to_hpo {
         hpo_id: HpoTermId,
     }
 
-    impl<'a> DiseaseComponents<'a> {
+    impl DiseaseComponents<'_> {
         fn omim_disease_id(&self) -> HpoResult<OmimDiseaseId> {
             OmimDiseaseId::try_from(self.id)
         }

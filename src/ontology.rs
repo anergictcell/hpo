@@ -648,7 +648,7 @@ impl Ontology {
     ///     println!("{:?}", result.name());
     ///  }
     /// ```
-    pub fn omim_diseases_by_name<'a>(&'a self, substring: &'a str) -> OmimDiseaseFilter {
+    pub fn omim_diseases_by_name<'a>(&'a self, substring: &'a str) -> OmimDiseaseFilter<'a> {
         OmimDiseaseFilter::new(self.omim_diseases.values(), substring)
     }
 
@@ -739,7 +739,7 @@ impl Ontology {
     /// assert_eq!(compare.removed_hpo_terms().len(), 26);
     /// assert_eq!(compare.added_genes().len(), 1);
     /// ```
-    pub fn compare<'a>(&'a self, other: &'a Ontology) -> Comparison {
+    pub fn compare<'a>(&'a self, other: &'a Ontology) -> Comparison<'a> {
         Comparison::new(self, other)
     }
 

@@ -749,7 +749,7 @@ impl<'a> IntoIterator for &'a HpoSet<'a> {
     }
 }
 
-impl<'b, 'a> Extend<HpoTerm<'b>> for HpoSet<'a> {
+impl<'b> Extend<HpoTerm<'b>> for HpoSet<'_> {
     fn extend<T: IntoIterator<Item = HpoTerm<'b>>>(&mut self, iter: T) {
         for term in iter {
             self.group.insert(term.id());

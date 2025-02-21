@@ -36,7 +36,7 @@ pub struct Comparison<'a> {
     rhs: &'a Ontology,
 }
 
-impl<'a> Display for Comparison<'a> {
+impl Display for Comparison<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -328,7 +328,7 @@ pub struct AnnotationDelta {
     removed_terms: Vec<HpoTermId>,
 }
 
-impl<'a> AnnotationDelta {
+impl AnnotationDelta {
     /// Constructs a new [`AnnotationDelta`] by comparing two [`Gene`]s
     ///
     /// Returns `None` if both are identical
@@ -388,7 +388,7 @@ impl<'a> AnnotationDelta {
     /// are not linked to the `old` anotation
     ///
     /// Returns `None` if no such terms exist
-    pub fn added_terms(&'a self) -> Option<&Vec<HpoTermId>> {
+    pub fn added_terms(&self) -> Option<&Vec<HpoTermId>> {
         if self.added_terms.is_empty() {
             None
         } else {
@@ -400,7 +400,7 @@ impl<'a> AnnotationDelta {
     /// are not linked to the `new` anotation
     ///
     /// Returns `None` if no such terms exist
-    pub fn removed_terms(&'a self) -> Option<&Vec<HpoTermId>> {
+    pub fn removed_terms(&self) -> Option<&Vec<HpoTermId>> {
         if self.removed_terms.is_empty() {
             None
         } else {

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.11.1] - 2025-02-21
+
+### Data
+
+- Update to HPO 2025-01-16
+
+
 ## [0.11.0]
 
 ### Refactor

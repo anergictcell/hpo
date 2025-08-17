@@ -84,7 +84,7 @@ impl HpoGroup {
     }
 
     /// Returns an Iterator of the [`HpoTermId`]s inside the group
-    pub fn iter(&self) -> Iter {
+    pub fn iter(&'_ self) -> Iter<'_> {
         self.into_iter()
     }
 

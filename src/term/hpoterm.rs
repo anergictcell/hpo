@@ -500,7 +500,7 @@ impl<'a> HpoTerm<'a> {
     ///     println!("{}", term.name());
     /// }
     /// ```
-    pub fn all_common_ancestors(&self, other: &HpoTerm) -> Combined {
+    pub fn all_common_ancestors(&'_ self, other: &HpoTerm) -> Combined<'_> {
         Combined::new(self.all_common_ancestor_ids(other), self.ontology)
     }
 
@@ -550,7 +550,7 @@ impl<'a> HpoTerm<'a> {
     ///     println!("{}", term.name());
     /// }
     /// ```
-    pub fn common_ancestors(&self, other: &HpoTerm) -> Combined {
+    pub fn common_ancestors(&'_ self, other: &HpoTerm) -> Combined<'_> {
         Combined::new(self.common_ancestor_ids(other), self.ontology)
     }
 
@@ -608,7 +608,7 @@ impl<'a> HpoTerm<'a> {
     ///     println!("{}", term.name());
     /// }
     /// ```
-    pub fn all_union_ancestors(&self, other: &HpoTerm) -> Combined {
+    pub fn all_union_ancestors(&'_ self, other: &HpoTerm) -> Combined<'_> {
         Combined::new(self.union_ancestor_ids(other), self.ontology)
     }
 
@@ -658,7 +658,7 @@ impl<'a> HpoTerm<'a> {
     ///     println!("{}", term.name());
     /// }
     /// ```
-    pub fn union_ancestors(&self, other: &HpoTerm) -> Combined {
+    pub fn union_ancestors(&'_ self, other: &HpoTerm) -> Combined<'_> {
         Combined::new(self.union_ancestor_ids(other), self.ontology)
     }
 

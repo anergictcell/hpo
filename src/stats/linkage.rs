@@ -13,7 +13,7 @@ use cluster::ClusterVec;
 struct DistanceMatrix(HashMap<(usize, usize), f32>);
 
 impl DistanceMatrix {
-    fn iter(&self) -> hash_map::Iter<(usize, usize), f32> {
+    fn iter(&'_ self) -> hash_map::Iter<'_, (usize, usize), f32> {
         self.0.iter()
     }
 
@@ -265,7 +265,7 @@ impl<'a> Linkage<'a> {
     }
 
     /// Returns an Iterator of [`Cluster`] references
-    pub fn cluster(&self) -> cluster::Iter {
+    pub fn cluster(&'_ self) -> cluster::Iter<'_> {
         self.clusters.iter()
     }
 
@@ -534,7 +534,7 @@ impl<'a> Linkage<'a> {
     }
 
     /// Returns an Iterator of [`Cluster`] references
-    pub fn iter(&self) -> cluster::Iter {
+    pub fn iter(&'_ self) -> cluster::Iter<'_> {
         self.cluster()
     }
 }

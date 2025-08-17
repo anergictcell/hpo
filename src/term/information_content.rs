@@ -14,6 +14,7 @@ pub struct InformationContent {
     gene: f32,
     omim: f32,
     orpha: f32,
+    custom: f32,
 }
 
 impl InformationContent {
@@ -53,6 +54,7 @@ impl InformationContent {
             InformationContentKind::Gene => self.gene(),
             InformationContentKind::Omim => self.omim_disease(),
             InformationContentKind::Orpha => self.orpha_disease(),
+            InformationContentKind::Custom => self.custom(),
         }
     }
 
@@ -63,7 +65,7 @@ impl InformationContent {
         let total = f32_from_usize(total)?;
         let current = f32_from_usize(current)?;
 
-        Ok((current / total).ln() * -1.0)
+        Ok(-(current / total).ln())
     }
 
     /// Calculates and caches the gene `InformationContent`
@@ -98,6 +100,17 @@ impl InformationContent {
         self.orpha = Self::calculate(total, current)?;
         Ok(())
     }
+
+    /// A custom Information content that can be provided by a client
+    /// based on their own method
+    pub fn custom(&self) -> f32 {
+        self.custom
+    }
+
+    /// A mutable reference to the custom information content
+    pub fn custom_mut(&mut self) -> &mut f32 {
+        &mut self.custom
+    }
 }
 
 /// Different types of information contents
@@ -109,4 +122,6 @@ pub enum InformationContentKind {
     Omim,
     /// Information content related to the associated ORPHA-diseases
     Orpha,
+    /// This information content can be custom defined by clients
+    Custom,
 }

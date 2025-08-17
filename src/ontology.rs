@@ -1,6 +1,7 @@
 use crate::annotations::Disease;
 use core::fmt::Debug;
 use std::collections::{HashMap, HashSet};
+use std::fmt::Write as _;
 use std::fs::File;
 use std::io::Read;
 
@@ -533,7 +534,7 @@ impl Ontology {
     /// assert_eq!(term.name(), "Abnormal cellular physiology");
     /// assert!(ontology.hpo(66666u32).is_none());
     /// ```
-    pub fn hpo<I: Into<HpoTermId>>(&self, term_id: I) -> Option<HpoTerm> {
+    pub fn hpo<I: Into<HpoTermId>>(&'_ self, term_id: I) -> Option<HpoTerm<'_>> {
         HpoTerm::try_new(self, term_id).ok()
     }
 
@@ -1017,14 +1018,11 @@ impl Ontology {
         let mut code = String::new();
         code.push_str("graph TD\n");
         for term in self {
-            code.push_str(&format!(
-                "{}[\"{}\n{}\"]\n",
-                term.id(),
-                term.id(),
-                term.name()
-            ));
+            write!(code, "{}[\"{}\n{}\"]\n", term.id(), term.id(), term.name())
+                .expect("able to write into a String");
             for child in term.children() {
-                code.push_str(&format!("{} --> {}\n", term.id(), child.id()));
+                writeln!(code, "{} --> {}", term.id(), child.id())
+                    .expect("able to write into a String");
             }
         }
         code
@@ -1042,12 +1040,13 @@ impl Ontology {
     pub fn as_graphviz(&self, layout: &str) -> String {
         let mut code = String::new();
         code.push_str("digraph G  {\n");
-        code.push_str(&format!("layout={layout}\n"));
+        writeln!(code, "layout={layout}").expect("able to write into a String");
         for term in self {
             for child in term.children() {
                 let term_name = term.name().replace(' ', "\n");
                 let child_name = child.name().replace(' ', "\n");
-                code.push_str(&format!("\"{term_name}\" -> \"{child_name}\"\n"));
+                writeln!(code, "\"{term_name}\" -> \"{child_name}\"")
+                    .expect("able to write into a String");
             }
         }
         code.push_str("}\n");
@@ -1182,6 +1181,47 @@ impl Ontology {
     /// This method will panic if the `term_id` is not present in the Ontology
     pub(crate) fn get_unchecked<I: Into<HpoTermId>>(&self, term_id: I) -> &HpoTermInternal {
         self.hpo_terms.get_unchecked(term_id.into())
+    }
+
+    /// Sets custom Information content values
+    ///
+    /// With this method you can define a custom information content to use it for
+    /// similarity or other calculations.
+    ///
+    /// This method does not allow to modify the internally calculated information contents.
+    ///
+    /// # Errors
+    ///
+    /// `DoesNotExist` error returned if (at least) one term does not exist
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hpo::{HpoTerm, Ontology};
+    ///
+    /// let mut ontology = Ontology::from_binary("tests/example.hpo").unwrap();
+    ///
+    /// // No custom Information content defined, yet
+    /// assert_eq!(ontology.hpo(118u32).unwrap().information_content().custom(), 0.0);
+    ///
+    /// // Set a custom IC
+    /// ontology.custom_information_content(&[(118u32, 1.3)]).unwrap();
+    /// assert_eq!(ontology.hpo(118u32).unwrap().information_content().custom(), 1.3);
+    /// ```
+    pub fn custom_information_content<I: Into<HpoTermId> + Clone>(
+        &mut self,
+        scores: &[(I, f32)],
+    ) -> HpoResult<()> {
+        for (term_id, score) in scores {
+            *self
+                .hpo_terms
+                .get_mut(term_id.clone().into())
+                .ok_or(HpoError::DoesNotExist)?
+                .information_content_mut()
+                .custom_mut() = *score;
+        }
+
+        Ok(())
     }
 }
 

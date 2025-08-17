@@ -109,7 +109,7 @@ pub(crate) mod gene_to_hpo {
         // Column 2 is the HPO-name, which we don't need
         if cols.next().is_none() {
             return Err(HpoError::InvalidInput(line.to_string()));
-        };
+        }
 
         // Column 3 is the NCBI-ID of the gene
         let Some(ncbi_id) = cols.next() else {
@@ -382,7 +382,7 @@ pub(crate) mod disease_to_hpo {
         }
     }
 
-    fn parse_disease_components(line: &str) -> HpoResult<Option<DiseaseComponents>> {
+    fn parse_disease_components(line: &'_ str) -> HpoResult<Option<DiseaseComponents<'_>>> {
         let mut cols = line.trim().splitn(5, '\t');
 
         let Some(id_col) = cols.next() else {
@@ -399,7 +399,7 @@ pub(crate) mod disease_to_hpo {
 
         if let Some("NOT") = cols.next() {
             return Ok(None);
-        };
+        }
 
         let hpo_id = if let Some(id) = cols.next() {
             HpoTermId::try_from(id)?

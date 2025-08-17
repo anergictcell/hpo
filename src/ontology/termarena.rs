@@ -185,7 +185,7 @@ impl Arena {
         self.terms[1..].iter().map(|term| *term.id()).collect()
     }
 
-    pub(super) fn iter(&self) -> Iter {
+    pub(super) fn iter(&'_ self) -> Iter<'_> {
         Iter(self.terms[1..].iter().map(|term| *term.id()))
     }
 }

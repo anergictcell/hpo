@@ -234,7 +234,7 @@ impl Similarity for Relevance {
         let resnik = Resnik::new(self.kind).calculate(a, b);
         let lin = Lin::new(self.kind).calculate(a, b);
 
-        lin * (1.0 - (resnik * -1.0).exp())
+        lin * (1.0 - (-resnik * 1.0).exp())
     }
 }
 
@@ -382,6 +382,7 @@ impl Similarity for Mutation {
             InformationContentKind::Gene => Mutation::gene_similarity(a, b),
             InformationContentKind::Omim => Mutation::omim_disease_similarity(a, b),
             InformationContentKind::Orpha => Mutation::orpha_disease_similarity(a, b),
+            InformationContentKind::Custom => 0.0,
         }
     }
 }

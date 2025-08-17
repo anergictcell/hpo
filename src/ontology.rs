@@ -1,6 +1,7 @@
 use crate::annotations::Disease;
 use core::fmt::Debug;
 use std::collections::{HashMap, HashSet};
+use std::fmt::Write as _;
 use std::fs::File;
 use std::io::Read;
 
@@ -1017,14 +1018,11 @@ impl Ontology {
         let mut code = String::new();
         code.push_str("graph TD\n");
         for term in self {
-            code.push_str(&format!(
-                "{}[\"{}\n{}\"]\n",
-                term.id(),
-                term.id(),
-                term.name()
-            ));
+            write!(code, "{}[\"{}\n{}\"]\n", term.id(), term.id(), term.name())
+                .expect("able to write into a String");
             for child in term.children() {
-                code.push_str(&format!("{} --> {}\n", term.id(), child.id()));
+                writeln!(code, "{} --> {}", term.id(), child.id())
+                    .expect("able to write into a String");
             }
         }
         code
@@ -1042,12 +1040,13 @@ impl Ontology {
     pub fn as_graphviz(&self, layout: &str) -> String {
         let mut code = String::new();
         code.push_str("digraph G  {\n");
-        code.push_str(&format!("layout={layout}\n"));
+        writeln!(code, "layout={layout}").expect("able to write into a String");
         for term in self {
             for child in term.children() {
                 let term_name = term.name().replace(' ', "\n");
                 let child_name = child.name().replace(' ', "\n");
-                code.push_str(&format!("\"{term_name}\" -> \"{child_name}\"\n"));
+                writeln!(code, "\"{term_name}\" -> \"{child_name}\"")
+                    .expect("able to write into a String");
             }
         }
         code.push_str("}\n");

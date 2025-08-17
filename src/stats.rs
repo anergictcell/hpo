@@ -32,6 +32,7 @@ pub struct Enrichment<T> {
     annotation: T,
     pvalue: f64,
     count: u64,
+    #[allow(clippy::struct_field_names)]
     enrichment: f64,
 }
 
@@ -204,7 +205,7 @@ impl<T: AnnotationId> SampleSet<T> {
 
     /// An iterator of [`SampleSet::frequency`] values, along with their key
     #[allow(dead_code)]
-    fn frequencies(&self) -> Frequencies<T> {
+    fn frequencies(&'_ self) -> Frequencies<'_, T> {
         Frequencies::new(self.counts.iter(), self.size, self.phantom)
     }
 }

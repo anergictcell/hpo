@@ -128,7 +128,7 @@ impl<'a, T> Matrix<'a, T> {
     /// assert_eq!(rows.next().unwrap().count(), 4);
     /// assert!(rows.next().is_none());
     /// ```
-    pub fn rows(&self) -> RowIterator<T> {
+    pub fn rows(&'_ self) -> RowIterator<'_, T> {
         RowIterator::new(self.data, self.row_indicies())
     }
 
@@ -153,7 +153,7 @@ impl<'a, T> Matrix<'a, T> {
     /// assert_eq!(cols.next().unwrap().count(), 3);
     /// assert!(cols.next().is_none());
     /// ```
-    pub fn cols(&self) -> ColumnIterator<T> {
+    pub fn cols(&'_ self) -> ColumnIterator<'_, T> {
         ColumnIterator::new(self.data, self.col_indicies())
     }
 

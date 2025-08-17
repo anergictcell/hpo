@@ -534,7 +534,7 @@ impl Ontology {
     /// assert_eq!(term.name(), "Abnormal cellular physiology");
     /// assert!(ontology.hpo(66666u32).is_none());
     /// ```
-    pub fn hpo<I: Into<HpoTermId>>(&self, term_id: I) -> Option<HpoTerm> {
+    pub fn hpo<I: Into<HpoTermId>>(&'_ self, term_id: I) -> Option<HpoTerm<'_>> {
         HpoTerm::try_new(self, term_id).ok()
     }
 

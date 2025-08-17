@@ -10,7 +10,7 @@ use crate::{HpoError, HpoResult};
 /// - Incorrect byte encoding: [`HpoError::ParseBinaryError`]
 /// - Invalid version: [`HpoError::NotImplemented`]
 ///
-pub(crate) fn version(bytes: &[u8]) -> HpoResult<Bytes> {
+pub(crate) fn version(bytes: &'_ [u8]) -> HpoResult<Bytes<'_>> {
     if bytes.len() < 5 {
         return Err(HpoError::ParseBinaryError);
     }

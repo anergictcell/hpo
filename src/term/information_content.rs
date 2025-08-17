@@ -65,7 +65,7 @@ impl InformationContent {
         let total = f32_from_usize(total)?;
         let current = f32_from_usize(current)?;
 
-        Ok((current / total).ln() * -1.0)
+        Ok(-(current / total).ln())
     }
 
     /// Calculates and caches the gene `InformationContent`

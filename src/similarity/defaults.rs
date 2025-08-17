@@ -234,7 +234,7 @@ impl Similarity for Relevance {
         let resnik = Resnik::new(self.kind).calculate(a, b);
         let lin = Lin::new(self.kind).calculate(a, b);
 
-        lin * (1.0 - (resnik * -1.0).exp())
+        lin * (1.0 - (-resnik * 1.0).exp())
     }
 }
 

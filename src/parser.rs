@@ -382,7 +382,7 @@ pub(crate) mod disease_to_hpo {
         }
     }
 
-    fn parse_disease_components(line: &str) -> HpoResult<Option<DiseaseComponents>> {
+    fn parse_disease_components(line: &'_ str) -> HpoResult<Option<DiseaseComponents<'_>>> {
         let mut cols = line.trim().splitn(5, '\t');
 
         let Some(id_col) = cols.next() else {

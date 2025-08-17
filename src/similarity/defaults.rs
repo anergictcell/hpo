@@ -382,6 +382,7 @@ impl Similarity for Mutation {
             InformationContentKind::Gene => Mutation::gene_similarity(a, b),
             InformationContentKind::Omim => Mutation::omim_disease_similarity(a, b),
             InformationContentKind::Orpha => Mutation::orpha_disease_similarity(a, b),
+            InformationContentKind::Custom => 0.0,
         }
     }
 }

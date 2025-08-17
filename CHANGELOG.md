@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [0.12.0]
+
+### Feature
+
+- Add custom `InformationContent` that can be set and modified by the user
+
+### Data
+
+- Update to HPO 2025-08-11
+
 ## [0.11.1] - 2025-02-21
 
 ### Data

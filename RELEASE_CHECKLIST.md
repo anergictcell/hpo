@@ -26,7 +26,7 @@ This procedure is just a suggestion at this point and can be modified if needs a
 - [ ] Add Changelog summary of changes
 - [ ] Run format, clippy, tests and doc-generation: `cargo fmt --check && cargo clippy && cargo test && cargo doc`
 - [ ] add git tag with version: `git tag v<MAJOR>.<MINOR>.<PATCH>`
-- [ ] push to remote, also push tags: `git push -u origin release/<MAJOR>.<MINOR>.<PATCH> && git push tags`
+- [ ] push to remote, also push tags: `git push -u origin release/<MAJOR>.<MINOR>.<PATCH> && git push --tags`
 - [ ] Merge into main
 - [ ] update main branch locally: `git checkout main && git pull`
 - [ ] release to cargo: `cargo publish`
